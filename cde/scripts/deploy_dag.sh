@@ -4,8 +4,9 @@
 # does not refresh an already-registered DAG.
 #
 # Set the seven SPEND_CAI_* Airflow Variables first (cde/dags/spend_dag.py).
-# The DAG is created unpaused; its first scheduled run is the interval closing
-# after start_date, so registering it does not start a run by itself.
+# The DAG is created paused (is_paused_upon_creation=True in the DAG; CDE takes an
+# Airflow job's schedule from the DAG only): with catchup=False, unpausing starts
+# a run for the latest closed interval at once. An update keeps the paused state.
 
 set -euo pipefail
 
@@ -30,5 +31,5 @@ fi
 
 echo "==> Creating ${DAG_JOB_NAME}"
 cde job create --name "${DAG_JOB_NAME}" --type airflow --dag-file "${DAG_PATH}" --mount-1-resource "${REPO_NAME}"
-echo "DAG spend_analytics_pipeline registered (daily, 21:00 UTC). Run now:"
-echo "  cde job run --name ${DAG_JOB_NAME}"
+echo "DAG spend_analytics_pipeline registered paused (daily, 21:00 UTC). To arm it:"
+echo "  cde job schedule unpause --name ${DAG_JOB_NAME}"

@@ -141,9 +141,20 @@ def test_workflow_runs_the_cai_chain_after_train_validate():
 class FakeWorkbench:
     def __init__(self, env="{}"):
         self.calls, self.env, self.jobs, self.project = [], env, [], None
+        self.models, self.apps, self.base = [], [], "https://ml-x.example/api/v2"
 
     def __call__(self, method, path, body=None, params=None):
         self.calls.append((method, path, body))
+        for kind, items in (("models", self.models), ("applications", self.apps)):
+            if path == f"/projects/p1/{kind}" and method == "GET":
+                return {kind: items}
+            if path == f"/projects/p1/{kind}" and method == "POST":
+                items.append({"id": f"{kind[0]}{len(items)}", "access_key": "mk-123", **body})
+                return items[-1]
+            if path.startswith(f"/projects/p1/{kind}/") and method == "GET":
+                return next(i for i in items if i["id"] == path.rsplit("/", 1)[1])
+        if path.startswith("/projects/p1/models/") and path.endswith("/builds") and method == "POST":
+            return {"id": "b0", **body}
         if path == "/projects" and method == "GET":
             return {"projects": [self.project] if self.project else []}
         if path == "/projects" and method == "POST":
@@ -159,6 +170,9 @@ class FakeWorkbench:
         if path == "/projects/p1/jobs" and method == "POST":
             self.jobs.append({"name": body["name"], "id": f"j{len(self.jobs)}", **body})
             return self.jobs[-1]
+        if path.startswith("/projects/p1/jobs/") and method == "PATCH":
+            next(j for j in self.jobs if j["id"] == path.rsplit("/", 1)[1]).update(body)
+            return {}
         raise AssertionError((method, path))
 
 
@@ -180,4 +194,72 @@ def test_setup_cai_creates_once_and_never_prints_secrets(monkeypatch, capsys):
     setup_cai.ensure_env(wb, project, dry_run=False)
     setup_cai.ensure_jobs(wb, project, dry_run=False)
     assert not [c for c in wb.calls[n:] if c[0] in ("POST", "PATCH")]       # idempotent
+    wb.jobs[0]["memory"] = 2                                                  # sized before a change
+    setup_cai.ensure_jobs(wb, project, dry_run=False)
+    assert wb.calls[-1] == ("PATCH", "/projects/p1/jobs/j0", {"cpu": cai_jobs.JOBS[0]["cpu"],
+                                                               "memory": cai_jobs.JOBS[0]["memory"]})
     assert "s3cret-value" not in capsys.readouterr().out
+
+
+def test_setup_cai_deploys_the_model_then_the_app_once_the_model_key_is_set(monkeypatch, capsys):
+    import json
+    from ci import setup_cai
+    monkeypatch.setenv("SPEND_IMPALA_USER", "u")
+    monkeypatch.setenv("SPEND_IMPALA_PASSWORD", "p")
+    monkeypatch.delenv("SPEND_ENDPOINT_API_KEY", raising=False)
+    wb = FakeWorkbench()
+    project = setup_cai.ensure_project(wb, dry_run=False)
+    model = setup_cai.ensure_model(wb, project, dry_run=False)
+    build = next(b for m, p, b in wb.calls if p.endswith("/builds"))
+    assert build["file_path"] == "cai/model/predict.py" and build["function_name"] == "predict"
+    assert build["auto_deploy_model"] and build["auto_deployment_config"]["memory"] == 16
+    assert wb.models[0]["disable_authentication"] is False
+    endpoint = setup_cai.endpoint_env(wb, model)
+    assert endpoint == {"SPEND_ENDPOINT_URL": "https://modelservice.ml-x.example/model",
+                        "SPEND_ENDPOINT_ACCESS_KEY": "mk-123"}
+    setup_cai.ensure_app(wb, project, "SPEND_ENDPOINT_API_KEY" in endpoint, dry_run=False)
+    assert wb.apps == []                                                     # no Model API key yet
+    monkeypatch.setenv("SPEND_ENDPOINT_API_KEY", "model-key-value")
+    model = setup_cai.ensure_model(wb, project, dry_run=False)
+    assert len(wb.models) == 1
+    endpoint = setup_cai.endpoint_env(wb, model)
+    setup_cai.ensure_env(wb, project, dry_run=False, extra=endpoint)
+    assert json.loads(wb.env)["SPEND_ENDPOINT_API_KEY"] == "model-key-value"
+    setup_cai.ensure_app(wb, project, "SPEND_ENDPOINT_API_KEY" in endpoint, dry_run=False)
+    setup_cai.ensure_app(wb, project, True, dry_run=False)
+    assert [a["script"] for a in wb.apps] == ["app/run.py"]
+    out = capsys.readouterr().out
+    assert "model-key-value" not in out and "mk-123" not in out
+
+
+def test_airflow_variables_upsert_only_the_spend_keys_and_never_print_values(capsys):
+    import urllib.error
+    av = _load(ROOT / "cde" / "scripts" / "set_airflow_variables.py")
+    store = {"SPEND_CAI_HOST": "https://old", "SPEND_CAI_PROJECT_ID": "p1", "MULE_CAI_HOST": "https://mule"}
+    calls = []
+
+    def airflow(method, path, body=None):
+        calls.append((method, path))
+        key = path.rsplit("/", 1)[1]
+        if method == "GET":
+            if key not in store:
+                raise urllib.error.HTTPError(path, 404, "not found", {}, None)
+            return {"key": key, "value": store[key]}
+        store[body["key"]] = body["value"]
+        return {}
+
+    wb = FakeWorkbench()
+    wb.project = {"id": "p1", "name": "rsingh-spend-analytics"}
+    wb.jobs = [{"name": j["name"], "id": f"id-{j['name']}"} for j in cai_jobs.JOBS]
+    wanted = av.wanted_variables(wb, "ml-x.example", "api-key-value")
+    assert set(wanted) == {"SPEND_CAI_HOST", "SPEND_CAI_PROJECT_ID", "SPEND_CAI_API_KEY",
+                           *av.JOB_VARIABLES} and len(wanted) == 7
+    assert wanted["SPEND_CAI_HOST"] == "https://ml-x.example"
+    assert wanted["SPEND_CAI_TRAIN_JOB_ID"] == "id-spend-model-training"
+    av.apply(airflow, wanted, dry_run=True)
+    assert all(m == "GET" for m, _ in calls) and store["SPEND_CAI_HOST"] == "https://old"
+    av.apply(airflow, wanted, dry_run=False)
+    assert {k: store[k] for k in wanted} == wanted and store["MULE_CAI_HOST"] == "https://mule"
+    assert ("PATCH", "/variables/SPEND_CAI_HOST") in calls
+    assert not [p for m, p in calls if m != "GET" and "SPEND_CAI_PROJECT_ID" in p]   # unchanged
+    assert "api-key-value" not in capsys.readouterr().out

@@ -474,3 +474,46 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
     spend_signals 14,908, spend_model_run 1.
 - `sql/reports.sql` on live Impala: all 20 statements OK, 6-12 s each.
   Persona moves are empty on the first run.
+- CAI project `rsingh-spend-analytics` (`8ze8-2kux-eik9-8pzv`) and its five
+  jobs created with `ci/setup_cai.py` (decision 25).
+  - The first `spend-sync-code` run (27 s) pulled `5f99510`.
+  - The second failed after about 20 s with no traceback, and so did a
+    throwaway diagnostic job that ran pip and wrote its output to a project
+    file. That file stopped in the middle of the 553 MB `nvidia_cudnn_cu13`
+    download: at 1 vCPU / 2 GB, pip is killed while it installs torch.
+  - At 2 vCPU / 8 GB the install succeeded in 893 s, and the hash marker
+    matches `requirements.txt`. `setup_cai.py` now resizes existing jobs to
+    `ci/cai_jobs.py`.
+  - API v2 has no job-run log endpoint. Project files are read with
+    `POST /files/<path>:download` (a GET returns 404).
+- 2026-09-25 as CAI jobs (triggered_by `cai-job`), in order: feature
+  engineering 71 s, training 321 s, evaluation 277 s, 11 min in all against
+  28 min from the laptop.
+  - Run `20260925-9956bba8` replaced the laptop run for the date (one
+    `spend_model_run` row, 193,370 `customer_persona` rows).
+  - Same KPIs as the laptop run: k=8, silhouette 0.163, ARI 0.649, accuracy
+    0.925 / 0.934, WAPE 0.0998 vs 0.1144 (ratio 0.872), coverage 0.779,
+    14,908 signals, gate PASS. Feature hash `aa21012976534ed4`, MLflow run
+    `wqym-trq3-pxqa-wqw9`.
+- Model `spend-scorer` (`30e2f08e-8fcc-4433-b803-cdb7f55e3675`) created by
+  `setup_cai.py` with a build that deploys itself.
+  - Build 455 s, deployed at 617 s.
+  - `SPEND_ENDPOINT_URL` and `SPEND_ENDPOINT_ACCESS_KEY` are set in the
+    project environment.
+  - `test_endpoint.py` against the deployment, with authentication on (the
+    API v2 key is also accepted as the bearer): profile 16.8 s cold, then
+    2.4 s; forecast 2.2 s; what-if 1.8 s; categorise 1.2 s.
+  - It serves run `20260925-9956bba8`, feature hash `aa21012976534ed4`,
+    source impala.
+  - The planted customer is Tier-1 traveller with TRAVEL_SURGE. The what-if
+    moves him nearest to Tier-1 digital foodie (5.54 vs traveller 5.81).
+  - The app waits for a Model API key (`SPEND_ENDPOINT_API_KEY`).
+- Airflow: `cde/scripts/set_airflow_variables.py` created the seven
+  `SPEND_CAI_*` Variables through the vcluster's Airflow API (Knox token for
+  the workload user). The 16 other projects' variables are untouched.
+- DAG deploy: `cde job create --schedule-paused` is rejected for Airflow jobs
+  ("does not support setting schedule from outside of DAG"), and nothing was
+  created.
+  - With `catchup=False` and `start_date` 27 Sep, an unpaused registration
+    would at once run the latest closed interval.
+  - The DAG now sets `is_paused_upon_creation=True` (decision 26).

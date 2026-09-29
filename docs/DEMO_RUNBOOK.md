@@ -13,7 +13,7 @@ each time. Check every screenshot for keys and hostnames before committing it.
 |---|---|---|
 | CAI project | `rsingh-spend-analytics` | `8ze8-2kux-eik9-8pzv` |
 | CAI jobs | `spend-sync-code`, `spend-categorise`, `spend-feature-engineering`, `spend-model-training`, `spend-model-evaluation` | from `ci/setup_cai.py` (step 2) |
-| Model | `spend-scorer` | (fill in) |
+| Model | `spend-scorer` | `30e2f08e-8fcc-4433-b803-cdb7f55e3675` (from `ci/setup_cai.py`) |
 | Application | `Spend Insights Console` | (fill in) |
 | CDE DAG job | `rsingh-spend-anl-orchestration` | dagID `spend_analytics_pipeline` |
 
@@ -133,7 +133,7 @@ names must match `ci/cai_jobs.py`:
 
 | Job | Script | Resources |
 |---|---|---|
-| `spend-sync-code` | `cai/jobs/sync_code.py` | 1 vCPU / 2 GB |
+| `spend-sync-code` | `cai/jobs/sync_code.py` | 2 vCPU / 8 GB |
 | `spend-categorise` | `cai/jobs/categorise.py` | 4 vCPU / 16 GB |
 | `spend-feature-engineering` | `cai/jobs/feature_engineering.py` | 2 vCPU / 8 GB |
 | `spend-model-training` | `cai/jobs/train_models.py` | 8 vCPU / 32 GB |
@@ -152,6 +152,8 @@ python3 -c "import os, cmlapi; c = cmlapi.default_client(); pid = os.environ['CD
 
 ### 5. Model Deployment: `spend-scorer`
 
+`ci/setup_cai.py` (step 2) creates it, builds and deploys it once, and sets
+`SPEND_ENDPOINT_URL` / `_ACCESS_KEY` in the project environment. By hand:
 Model Deployments > New Model: name `spend-scorer`, file
 `cai/model/predict.py`, function `predict`, Python 3.11, 4 vCPU / 16 GB, 1
 replica, authentication **on**. Example input for each action for the Test
@@ -167,6 +169,9 @@ profile 1.6-2.3 s, forecast 1-1.9 s, what-if and categorise under 0.25 s.
 
 ### 6. Application: `Spend Insights Console`
 
+Put a Model API key in `.env` as `SPEND_ENDPOINT_API_KEY` and rerun
+`ci/setup_cai.py`: it adds the key to the project environment and creates the
+application (subdomain `rsingh-spend-insights`). By hand:
 Applications > New Application: name `Spend Insights Console`, script
 `app/run.py`, Python 3.11, 2 vCPU / 4 GB. Set at project level, from the
 `spend-scorer` Overview page's sample code:
@@ -182,31 +187,38 @@ endpoint or ran in-process.
 
 ### 7. Airflow Variables and the DAG
 
-CDE Airflow UI > Admin > Variables, the seven values (step 4 for the IDs):
+From the laptop (`.env` sourced; looks the IDs up by name, prints no values,
+touches no other key):
+
+```bash
+python cde/scripts/set_airflow_variables.py --dry-run && python cde/scripts/set_airflow_variables.py
+```
+
+Or CDE Airflow UI > Admin > Variables, the seven values (step 4 for the IDs):
 `SPEND_CAI_HOST`, `SPEND_CAI_PROJECT_ID`, `SPEND_CAI_API_KEY` (a CAI **API
 v2** key), `SPEND_CAI_CATEGORISE_JOB_ID`, `SPEND_CAI_FEATURES_JOB_ID`,
 `SPEND_CAI_TRAIN_JOB_ID`, `SPEND_CAI_EVALUATE_JOB_ID`. The other projects'
 `*_CAI_*` variables stay in the same list untouched. Then:
 
 ```bash
-./cde/scripts/deploy_dag.sh
-cde job schedule pause --name rsingh-spend-anl-orchestration     # a new DAG job is live; pause until ready
+./cde/scripts/deploy_dag.sh      # registers the DAG paused (is_paused_upon_creation=True)
 ```
 
-The DAG's `start_date` (27 Sep 21:00 UTC) is in the past and its first
-interval closes after the deploy, so registering it starts no run by itself.
-With a future `start_date` a manual trigger "succeeds" in seconds and runs
-no task.
+The DAG has `catchup=False` and a `start_date` of 27 Sep 21:00 UTC, so
+unpausing it starts a run for the latest closed interval straight away; that
+is why it is registered paused (CDE rejects `--schedule-paused` for Airflow
+jobs; the DAG owns its schedule). With a future `start_date` a manual trigger
+"succeeds" in seconds and runs no task.
 
 ### 8. First end-to-end run
 
-**After asking**: unpause (which also arms the daily 21:00 UTC schedule) and
-trigger for yesterday:
+**After asking**: unpause. This arms the daily 21:00 UTC schedule and, with
+`catchup=False`, at once starts the scheduled run for the latest closed
+interval, so no manual trigger is needed (one would be a second run):
 
 ```bash
 cde job schedule unpause --name rsingh-spend-anl-orchestration
-cde job run --name rsingh-spend-anl-orchestration --config-json '{"as_of": "<yesterday>"}' --wait
-cde run logs --id <run-id> --type cai_model_evaluation/attempt_1 --follow=false
+cde run list --filter 'job[eq]rsingh-spend-anl-orchestration'      # the run id; poll cde run describe --id
 ```
 
 Verify from `ref.dq_results` (one `pipeline_run`, three layers) and from

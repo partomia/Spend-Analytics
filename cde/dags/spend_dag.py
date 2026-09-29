@@ -105,11 +105,12 @@ with DAG(
                 "forecast, signals with a KPI gate (CAI)",
     default_args=default_args,
     schedule_interval=DAILY,
-    # Set at deploy: in the past, or manual triggers run no tasks, with the first interval closing
-    # after the deploy (here 28 Sep 21:00 UTC), so deploying fires no unwanted run.
+    # In the past, or manual triggers run no tasks. With catchup=False, an unpaused DAG
+    # runs the latest closed interval as soon as it is registered, hence paused on
+    # creation: unpausing (cde job schedule unpause) is a deliberate step.
     start_date=datetime(2026, 9, 27, 21, 0),
     catchup=False,
-    is_paused_upon_creation=False,
+    is_paused_upon_creation=True,
     params={"as_of": ""},
     tags=["spend", "iceberg", "great-expectations", "minilm", "chronos-2", "kmeans"],
 ) as dag:

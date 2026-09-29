@@ -19,7 +19,7 @@ GITHUB_ARTIFACTS_DIR = "artifacts/github"
 
 JOBS = [
     # name, script, vCPU, memory GB (the runbook's job table)
-    {"name": "spend-sync-code", "script": "cai/jobs/sync_code.py", "cpu": 1, "memory": 2},
+    {"name": "spend-sync-code", "script": "cai/jobs/sync_code.py", "cpu": 2, "memory": 8},
     {"name": "spend-categorise", "script": "cai/jobs/categorise.py", "cpu": 4, "memory": 16},
     {"name": "spend-feature-engineering", "script": "cai/jobs/feature_engineering.py", "cpu": 2, "memory": 8},
     {"name": "spend-model-training", "script": "cai/jobs/train_models.py", "cpu": 8, "memory": 32},

@@ -276,7 +276,7 @@ python cai/model/test_endpoint.py --local --context impala     # the four endpoi
 
 | Job | Script | Resources |
 |---|---|---|
-| `spend-sync-code` | `cai/jobs/sync_code.py` | 1 vCPU / 2 GB |
+| `spend-sync-code` | `cai/jobs/sync_code.py` | 2 vCPU / 8 GB |
 | `spend-categorise` | `cai/jobs/categorise.py` | 4 vCPU / 16 GB |
 | `spend-feature-engineering` | `cai/jobs/feature_engineering.py` | 2 vCPU / 8 GB |
 | `spend-model-training` | `cai/jobs/train_models.py` | 8 vCPU / 32 GB (or GPU) |

@@ -295,6 +295,19 @@ Names:
     so `spend-sync-code` pip-installs `requirements.txt` whenever its hash changes;
     packages persist in the project's `/home/cdsw/.local`, and a changed
     requirements file pushed from GitHub is installed before the chain uses it.
+    Sync-code runs at 2 vCPU / 8 GB because pip is killed at 2 GB while it
+    installs torch. The same script creates the `spend-scorer` model (built and
+    deployed once, authentication on), puts its URL and access key in the
+    project environment, and creates the application once a Model API key is
+    supplied. `cde/scripts/set_airflow_variables.py` upserts only the seven
+    `SPEND_CAI_*` Airflow Variables.
+
+26. **The DAG is registered paused (`is_paused_upon_creation=True`).** The spec
+    deploys it live. But CDE takes an Airflow job's schedule only from the DAG
+    (`--schedule-paused` is rejected), and with `catchup=False` a DAG whose
+    `start_date` is more than a day back runs the latest closed interval as soon
+    as it is registered. That would be an unasked first trigger. Unpausing is
+    the deliberate first run, and it needs no manual trigger.
 ## Method (demo policy, see `config/policy.yaml`)
 
 - **Categorise**: MCC (card) -> SEED (exact normalised match) -> EMBEDDING (MiniLM +

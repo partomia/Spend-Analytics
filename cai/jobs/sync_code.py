@@ -14,7 +14,8 @@ CAI Job spend-sync-code: the first job GitHub Actions starts through the CAI API
   3. EXPECTED_GIT_SHA (set by the trigger in the run's environment) stops the chain
      if the branch has already moved on; the newer push runs its own chain.
 
-Jobs > New Job: script cai/jobs/sync_code.py, Python 3.11 runtime, 1 vCPU / 2 GB.
+Jobs > New Job: script cai/jobs/sync_code.py, Python 3.11 runtime, 2 vCPU / 8 GB (pip is
+killed at 2 GB while it installs the torch and CUDA wheels).
 SPEND_SKIP_GIT=1 skips step 1 (a project not cloned from Git).
 
 Exit codes: 0 project at the expected commit; 1 the branch moved on; a git or pip
