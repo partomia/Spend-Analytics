@@ -405,3 +405,39 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
     throwaway git repo (reset to the pushed commit, untracked `artifacts/`
     kept, a moved branch stops the chain).
 - `pytest -q`: 178 passed. Not yet run against the live workbench (Phase 9).
+
+## Phase 9: live on Cloudera (in progress, 2026-09-29)
+
+- CDE (`deploy_jobs.sh`, 6 min): repository `rsingh-spend-anl-pipeline`, python-env
+  `rsingh-spend-anl-python-env`, and the four Spark jobs, nothing else under
+  `spend-anl`. Nothing of the sibling projects was touched.
+- generate-bronze failed twice: run 2375 (200k) and run 2376 (20k).
+  - Both wrote the six ref tables and then the driver shut down, with no
+    traceback in `cde run logs` (it truncates on this vcluster, as Collections
+    recorded).
+  - Reproduced on local PySpark 3.5.4 (the cluster's runtime): `mapInArrow`
+    checks for pyarrow on the driver and raises ImportError, and the env had
+    only Great Expectations.
+  - Fixed by pinning `pyarrow==25.0.1` in `cde/resources/requirements.txt`,
+    with a test. The env rebuild took about 7.5 min.
+- Chain for as-of 2026-09-25 at 200k customers, all verified in Impala rather
+  than from logs:
+
+  | Run | Job | Result | Wall |
+  |---|---|---|---|
+  | 2377 | generate-bronze | succeeded | ~4 min |
+  | 2378 | dq-check bronze | succeeded, 68 checks, 0 failed | 131 s |
+  | 2379 | build-silver | succeeded | 91 s |
+  | 2380 | dq-check silver | succeeded, 23 checks, 0 failed | 134 s |
+
+  - Bronze: crm_customer 194,490; cbs_accounts 228,835; card_master 218,463;
+    vpa_registry 261,593.
+  - Bronze transactions: upi_txn 16,138,066, card_txn 5,813,837, atm_txn
+    4,264,583, nb_txn 1,895,604 (28.1M).
+  - Silver: customer 194,076, account 228,835, spend_event 28,056,197.
+  - Location sources: home_fallback 48.3%, upi_pincode 25.1%, atm 15.2%,
+    card_city 11.4%.
+  - 21,551 merchant keys await categorisation.
+- Impala from the laptop: `.env` (gitignored) holds `SPEND_IMPALA_USER` /
+  `SPEND_IMPALA_PASSWORD`, the same workload credentials the sibling projects
+  use against the same warehouse.
