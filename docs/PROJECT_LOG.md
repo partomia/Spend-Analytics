@@ -304,3 +304,64 @@ Churn; all local, none modified) and the Cloudera AI MLOps workshop. Adopted as
   - Cold start with only `spend_model_run`, where every tab shows its
     "not yet" message.
   - `pytest -q`: 121 passed.
+
+### Phase 8: Orchestration + CI + docs
+
+- `cde/dags/spend_dag.py`, adapted from Churn's DAG:
+  - 10 tasks: `generate >> dq_bronze >> silver >> dq_silver >> cai_categorise
+    >> gold >> dq_gold >> cai_feature_engineering >> cai_model_training >>
+    cai_model_evaluation`.
+  - The four `cai_*` tasks share one `trigger_cai_job(as_of, job_var)`. It
+    posts `{"SPEND_RUN_DATE": as_of, "SPEND_TRIGGERED_BY": "airflow"}` as the
+    run's environment and polls every 30 s, with a 90-minute deadline and
+    retries=0.
+  - Seven Airflow Variables. Without `SPEND_CAI_HOST` the CAI steps are
+    skipped.
+  - Daily at 21:00 UTC, `start_date` 27 Sep 21:00, created unpaused like the
+    siblings.
+- `cde/scripts/`:
+  - `deploy_jobs.sh` and `deploy_dag.sh` are Churn's, with Spend's names.
+  - `backfill_drill.sh` also starts `spend-categorise` over the API v2
+    between silver and gold for each date, using stdlib Python and the four
+    values from the environment. `SKIP_CATEGORISE=1` opts out (decision 20).
+- CI (`ci.yml`):
+  - `test` runs pytest, then generate / dq_bronze / silver / dq_silver at
+    3,000 customers, stub categorise, gold / dq_gold / export, the stub daily
+    run with `--ignore-gate`, and the DQ gate failing on cue. It uploads the
+    parquet book.
+  - `train-validate` (needs `test`) installs CPU torch, caches
+    `~/.cache/huggingface`, downloads the book and runs the real daily run
+    with the gate enforced.
+  - The same sequence in scratch folders on the laptop took 174 s end to end.
+    Stub run: WAPE ratio 1.000 and coverage 0.384 (both fail, as expected).
+    Real run: 2,914 customers in 8 personas, accuracy 0.926 / 0.935, WAPE
+    0.271 vs 0.390 naive (ratio 0.696), coverage 0.771, silhouette 0.166,
+    214 signals. Gate PASS, exit 0.
+- `sql/reports.sql`: 12 reports.
+  - Covered: run lineage and KPIs, category mix, channel mix by week, home vs
+    away, personas, persona moves, forecast by category, backtest WAPE and
+    coverage, signals (summary and top 25), the categoriser's methods and
+    newest keys, DQ by layer, and time travel.
+  - All 13 SELECTs ran in local Spark SQL over the CI book.
+  - Two fixes from that run: `is_home` is an int in silver (`= 1`), and an
+    empty first-run `persona_flow` export had no types. The second is a
+    scratch artifact; Impala has the DDL.
+- Tests:
+  - `test_orchestration.py` covers prefixes, deployed jobs pointing at real
+    files, the DAG and drill running only deployed jobs, the 10-task chain,
+    the CAI task to Variable pairs, `--db-prefix` repeated on every override,
+    every triggered job reading `SPEND_RUN_DATE`, the schedule and
+    registration names, and the CI shape (train-validate needs test, no
+    `--stub` or `--ignore-gate`).
+  - `test_reports_sql.py` checks every identifier in every statement: it
+    must be a keyword, an alias, or a column of a table the statement reads
+    (from `schema.py`, `features.py`, silver's `EVENT_COLUMNS` and dq_check's
+    `RESULT_SCHEMA`). A misspelled column fails it.
+- Demo texts checked with the real categoriser:
+  - SWIGGY*BLR 5521 is FOOD_DELIVERY (0.81) and "ola cabs pvt" is TRAVEL
+    (SEED).
+  - SHARMA MEDICOS is HEALTH (0.79).
+  - TANISHQ JEWELLERS falls back to OTHER, a brand with no type word.
+- README and `docs/DEMO_RUNBOOK.md`. Cluster numbers and IDs are left blank
+  for Phase 9.
+- `pytest -q`: 132 passed.

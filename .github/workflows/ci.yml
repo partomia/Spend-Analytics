@@ -4,6 +4,15 @@ name: CI
 #   - Every push to main
 #   - Every pull request
 #   - Manual trigger from the Actions tab
+#
+# Two jobs (PLAN.md decision 2):
+#   test            unit tests, the Spark jobs and GX gates on local Spark + Iceberg
+#                   (small scale), the three CAI stages with the stubs, and the DQ
+#                   gate failing on cue. No torch.
+#   train-validate  needs test. The real MiniLM categoriser and Chronos-2 forecaster
+#                   on the runner's CPU over the book test built, KPI gate enforced:
+#                   a regression in accuracy, WAPE vs naive, coverage or silhouette
+#                   turns the build red.
 on:
   push:
     branches: [main]
@@ -23,6 +32,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
 
       - name: Set up Java (local Spark / Iceberg needs it)
         uses: actions/setup-java@v4
@@ -35,3 +46,73 @@ jobs:
 
       - name: Unit tests
         run: pytest -q
+
+      # No committed data file: the generator is deterministic, so every step
+      # below is reproducible on every run.
+      - name: CDE jobs to silver + GX gates on local Spark + Iceberg (small scale)
+        run: python scripts/run_cde_local.py generate dq_bronze silver dq_silver --as-of 2026-09-25 --customers 3000
+
+      - name: Categorise new merchant keys (character n-gram stand-in, no torch)
+        run: python scripts/run_cde_local.py categorise --stub --as-of 2026-09-25
+
+      - name: Gold features + GX gate, export to parquet
+        run: python scripts/run_cde_local.py gold dq_gold export --as-of 2026-09-25
+
+      # Exercises feature engineering, training, holdouts, gate and publishing
+      # end to end, but --ignore-gate: the seasonal-naive stub forecaster is the
+      # baseline itself (WAPE ratio 1.000 > 0.9, P10-P90 coverage 0.384). The real
+      # models run with the gate enforced in train-validate.
+      - name: Daily run (stub models, exercises the three stages and the gate)
+        env:
+          SPEND_TRACKING_ENABLED: "false"
+        run: python cai/jobs/daily_run.py --backend parquet --stub --ignore-gate
+
+      - name: DQ gate fails on cue
+        run: |
+          python scripts/run_cde_local.py generate --as-of 2026-09-25 --customers 3000 --inject-bad-data --warehouse /tmp/bad
+          ! python scripts/run_cde_local.py dq_bronze --as-of 2026-09-25 --warehouse /tmp/bad
+
+      - name: Hand the parquet book to train-validate
+        uses: actions/upload-artifact@v4
+        with:
+          name: spend-book-3000
+          path: data/parquet
+          retention-days: 3
+
+  train-validate:
+    name: Train & validate the real models (MiniLM + Chronos-2, CPU) + KPI gate
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-train-ci.txt
+
+      - name: Install dependencies (CPU torch)
+        run: pip install -r requirements-train-ci.txt
+
+      - name: Cache Hugging Face models (all-MiniLM-L6-v2, chronos-2)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ hashFiles('config/spend.yaml') }}
+
+      - name: Fetch the book built by test
+        uses: actions/download-artifact@v4
+        with:
+          name: spend-book-3000
+          path: data/parquet
+
+      # Gate enforced: exit 1 on any failed check. Replaces the stub run's
+      # outputs for 2026-09-25.
+      - name: Daily run (real models, KPI gate enforced)
+        env:
+          SPEND_TRACKING_ENABLED: "false"
+        run: python cai/jobs/daily_run.py --backend parquet

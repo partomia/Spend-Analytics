@@ -229,6 +229,17 @@ Names:
     `ref.pincode_geo` coordinates, with area proportional to spend. The spec's
     ten tabs have no what-if tab, so the endpoint's what-if is a panel under the
     customer's profile and forecast in Customer 360.
+20. **CI's `train-validate` reuses the book `test` built, and the drill runs the
+    categorise job itself.** `test` uploads `data/parquet` (3,000 customers,
+    ~46 MB) as an artifact, and `train-validate` downloads it, so the second
+    job needs neither Java nor Spark nor GX, only CPU torch. Its map comes from
+    the stub categoriser, but the gate's accuracy checks run the real MiniLM on
+    the holdouts, so the gate still measures the real models. On that book,
+    locally: accuracy 0.926 / 0.935, WAPE ratio 0.696, coverage 0.771,
+    silhouette 0.166, all PASS. `backfill_drill.sh` starts `spend-categorise`
+    over the API v2 between silver and gold for each date (the same four values
+    as the DAG, from the environment), because gold joins the map and a fresh
+    map would leave every key UNCATEGORISED and fail `dq_gold`.
 
 ## Method (demo policy, see `config/policy.yaml`)
 
@@ -286,5 +297,11 @@ Names:
   endpoint, or in-process with the stub fallback. 20k book: all tabs in 2.9 s with the stubs,
   22 s on first load with the real models in-process (then cached). AppTest on every tab,
   the live categoriser, what-if, a failed-gate run and two cold starts (decision 19). 121 tests.
-- [ ] **8. Orchestration + CI + docs**: DAG, deploy / backfill scripts, CI (test + train-validate), SQL, README, runbook.
+- [x] **8. Orchestration + CI + docs**: `cde/dags/spend_dag.py` (10 tasks, 7 Variables),
+  `cde/scripts/{deploy_jobs,deploy_dag,backfill_drill}.sh`, `ci.yml` (test, then
+  train-validate with the gate enforced), `sql/reports.sql` (12 reports; its 13 SELECTs all run
+  in Spark SQL against the CI book), README, `docs/DEMO_RUNBOOK.md` (decision 20).
+  `tests/test_orchestration.py` cross-checks job names, prefixes, the chain, the Variables
+  and the CI shape; `tests/test_reports_sql.py` checks every SQL column against the table
+  definitions. 132 tests.
 - [ ] **9. Live on Cloudera** (with Ravi).

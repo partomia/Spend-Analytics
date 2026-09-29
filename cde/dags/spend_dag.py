@@ -1,0 +1,155 @@
+"""
+Airflow DAG (CDE): daily spend analytics pipeline, 10 tasks.
+
+  generate_spend_bronze -> dq_bronze -> build_silver -> dq_silver            (CDE Spark)
+    -> cai_categorise                                                        (CAI Job: new merchant keys -> map)
+    -> build_gold_features -> dq_gold                                        (CDE Spark)
+    -> cai_feature_engineering -> cai_model_training -> cai_model_evaluation (CAI Jobs: the daily ML, PLAN decision 1)
+
+dq_bronze/dq_silver/dq_gold are the same CDE job (cde/jobs/dq_check.py, Great
+Expectations) run three times with --layer overridden per task. Critical
+expectation failures fail the task (and stop the DAG before the next layer);
+warnings are recorded but let the run continue. Every result, pass or fail, is
+appended to <db_prefix>_ref.dq_results (Iceberg) tagged with this DAG run's
+run_id, so a run's three layers can be grouped in the app's Data quality tab.
+
+cai_categorise runs between silver and gold because gold's category shares join
+silver.spend_event to ref.merchant_category_map. The three ML jobs hand off
+through artifacts/<run_date>/ on the CAI project filesystem; a failed KPI gate
+fails cai_model_evaluation (exit 1) after recording the run, and yesterday's
+personas, forecast and signals stay live.
+
+Airflow Variables (CDE Airflow UI > Admin > Variables), set before the DAG is
+deployed:
+  SPEND_CAI_HOST               https://ml-xxxx.<env>.cloudera.site  (CAI workbench URL)
+  SPEND_CAI_PROJECT_ID         project id (from the project URL or API)
+  SPEND_CAI_API_KEY            CAI API v2 key (User settings > API keys; not the Model API key)
+  SPEND_CAI_CATEGORISE_JOB_ID  id of the spend-categorise job
+  SPEND_CAI_FEATURES_JOB_ID    id of the spend-feature-engineering job
+  SPEND_CAI_TRAIN_JOB_ID       id of the spend-model-training job
+  SPEND_CAI_EVALUATE_JOB_ID    id of the spend-model-evaluation job
+If SPEND_CAI_HOST is not set the CAI steps are skipped, so the Spark part can be
+tested on its own (gold then joins the map as it stands).
+
+Scheduled daily at 21:00 UTC (02:30 IST), between the other daily DAGs on the
+cluster: Mule (20:30), Churn (22:00) and Collections (00:30). Manual trigger (Trigger DAG w/ config):
+{"as_of": "2026-09-25"}; empty = yesterday.
+
+Job names must match cde/scripts/deploy_jobs.sh exactly (CDEJobRunOperator
+fails with 404 "job not found" otherwise).
+"""
+
+import time
+from datetime import datetime, timedelta
+
+import requests
+from airflow import DAG
+from airflow.exceptions import AirflowException, AirflowSkipException
+from airflow.models import Variable
+from airflow.operators.python import PythonOperator
+from cloudera.cdp.airflow.operators.cde_operator import CDEJobRunOperator
+
+JOB_PREFIX = "rsingh-spend-anl"
+DB_PREFIX = "rsingh_spend_anl"
+# Scheduled runs: the day before the interval end; manual runs: the as_of param (empty = yesterday).
+AS_OF = ("{{ params.as_of or ((data_interval_end - macros.timedelta(days=1)).strftime('%Y-%m-%d') "
+         "if dag_run.run_type == 'scheduled' else (macros.datetime.utcnow() - macros.timedelta(days=1))"
+         ".strftime('%Y-%m-%d')) }}")
+TERMINAL_OK = {"succeeded"}
+TERMINAL_BAD = {"failed", "stopped", "timedout"}
+DAILY = "0 21 * * *"
+CAI_DEADLINE_MIN = 90
+
+
+def trigger_cai_job(as_of: str, job_var: str, **_):
+    host = Variable.get("SPEND_CAI_HOST", default_var="").rstrip("/")
+    if not host:
+        raise AirflowSkipException("SPEND_CAI_HOST not set: skipping the CAI step")
+    project = Variable.get("SPEND_CAI_PROJECT_ID")
+    job = Variable.get(job_var)
+    headers = {"Authorization": f"Bearer {Variable.get('SPEND_CAI_API_KEY')}", "Content-Type": "application/json"}
+    # A job run ignores "arguments" (the job's own are used); the environment map is applied.
+    # categorise records as_of as the map's first_run_date; the ML jobs hand off under
+    # artifacts/<as_of>/.
+    env = {"SPEND_RUN_DATE": as_of, "SPEND_TRIGGERED_BY": "airflow"}
+    url = f"{host}/api/v2/projects/{project}/jobs/{job}/runs"
+    resp = requests.post(url, json={"environment": env}, headers=headers, timeout=60)
+    resp.raise_for_status()
+    run_id = resp.json()["id"]
+    print(f"Started CAI job run {run_id} ({job_var}) with environment: {env}")
+
+    deadline = time.time() + CAI_DEADLINE_MIN * 60
+    while time.time() < deadline:
+        time.sleep(30)
+        r = requests.get(f"{url}/{run_id}", headers=headers, timeout=60)
+        r.raise_for_status()
+        status = str(r.json().get("status", "")).lower().replace("engine_", "")
+        print(f"CAI run {run_id}: {status}")
+        if status in TERMINAL_OK:
+            return run_id
+        if status in TERMINAL_BAD:
+            raise AirflowException(f"CAI job run {run_id} ended with status {status}")
+    raise AirflowException(f"CAI job run {run_id} did not finish within {CAI_DEADLINE_MIN} minutes")
+
+
+default_args = {
+    "owner": "spend-analytics",
+    "depends_on_past": False,
+    "retries": 1,
+    "retry_delay": timedelta(minutes=5),
+}
+
+with DAG(
+    dag_id="spend_analytics_pipeline",
+    description="Six source extracts -> bronze/silver/gold with GX gates (CDE) -> categorise, personas, "
+                "forecast, signals with a KPI gate (CAI)",
+    default_args=default_args,
+    schedule_interval=DAILY,
+    # Set at deploy: in the past, or manual triggers run no tasks, with the first interval closing
+    # after the deploy (here 28 Sep 21:00 UTC), so deploying fires no unwanted run.
+    start_date=datetime(2026, 9, 27, 21, 0),
+    catchup=False,
+    is_paused_upon_creation=False,
+    params={"as_of": ""},
+    tags=["spend", "iceberg", "great-expectations", "minilm", "chronos-2", "kmeans"],
+) as dag:
+
+    def dq_task(task_id: str, layer: str) -> CDEJobRunOperator:
+        # run-time args replace the job's own args, so repeat --db-prefix; --pipeline-run
+        # groups this run's three layers in dq_results under the DAG run_id
+        return CDEJobRunOperator(
+            task_id=task_id,
+            job_name=f"{JOB_PREFIX}-dq-check",
+            overrides={"spark": {"args": ["--db-prefix", DB_PREFIX, "--layer", layer, "--as-of", AS_OF,
+                                          "--pipeline-run", "{{ run_id }}"]}},
+            wait=True,
+        )
+
+    def cai_task(task_id: str, job_var: str) -> PythonOperator:
+        # retries=0: the CAI jobs are not idempotent mid-run and a gate failure is not transient
+        return PythonOperator(task_id=task_id, python_callable=trigger_cai_job,
+                              op_kwargs={"as_of": AS_OF, "job_var": job_var}, retries=0)
+
+    generate = CDEJobRunOperator(
+        task_id="generate_spend_bronze",
+        job_name=f"{JOB_PREFIX}-generate-bronze",
+        # run-time args replace the job's own args, so repeat --db-prefix
+        overrides={"spark": {"args": ["--db-prefix", DB_PREFIX, "--as-of", AS_OF]}},
+        wait=True,
+    )
+    dq_bronze = dq_task("dq_bronze", "bronze")
+    silver = CDEJobRunOperator(task_id="build_silver", job_name=f"{JOB_PREFIX}-build-silver", wait=True)
+    dq_silver = dq_task("dq_silver", "silver")
+    categorise = cai_task("cai_categorise", "SPEND_CAI_CATEGORISE_JOB_ID")
+    gold = CDEJobRunOperator(
+        task_id="build_gold_features",
+        job_name=f"{JOB_PREFIX}-build-gold-features",
+        overrides={"spark": {"args": ["--db-prefix", DB_PREFIX, "--as-of", AS_OF]}},
+        wait=True,
+    )
+    dq_gold = dq_task("dq_gold", "gold")
+    features = cai_task("cai_feature_engineering", "SPEND_CAI_FEATURES_JOB_ID")
+    train = cai_task("cai_model_training", "SPEND_CAI_TRAIN_JOB_ID")
+    evaluate = cai_task("cai_model_evaluation", "SPEND_CAI_EVALUATE_JOB_ID")
+
+    generate >> dq_bronze >> silver >> dq_silver >> categorise >> gold >> dq_gold >> features >> train >> evaluate
