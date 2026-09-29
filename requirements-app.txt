@@ -1,0 +1,12 @@
+# Streamlit app only (no torch): Docker / any host that calls the CAI endpoint.
+# Without an endpoint, the Categoriser and Customer 360 tabs fall back to the
+# TF-IDF stand-in and the seasonal-naive forecaster in-process.
+numpy
+pandas[pyarrow]>=2.2,<3
+scipy
+pyyaml
+impyla
+scikit-learn
+streamlit
+plotly
+requests

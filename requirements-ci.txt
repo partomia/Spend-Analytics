@@ -1,0 +1,13 @@
+# GitHub Actions, test job: no torch. Runs the Spark jobs and GX gates small, and
+# the CAI stages with the stubs (TF-IDF categoriser, seasonal-naive forecaster).
+numpy
+pandas[pyarrow]>=2.2,<3
+scipy
+pyyaml
+scikit-learn
+streamlit
+plotly
+requests
+pyspark==4.0.1
+great_expectations==1.23.2
+pytest

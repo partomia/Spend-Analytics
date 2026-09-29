@@ -1,0 +1,5 @@
+# CDE python-env for the spend Spark jobs: the generator and silver / gold jobs only
+# use PySpark and the standard library; dq_check.py needs Great Expectations.
+# A rebuild after a change takes ~6 minutes (measured in Collections). No torch here:
+# categorisation runs as a CAI job between silver and gold.
+great_expectations==1.23.2

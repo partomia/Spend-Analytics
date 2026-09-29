@@ -1,0 +1,17 @@
+# CAI runtime (Python 3.11): categorise job, the three daily jobs (feature engineering,
+# model training, model evaluation), model endpoint, Streamlit app.
+# The default Linux torch wheel includes CUDA, so the same file serves GPU sessions and jobs;
+# the CPU-only torch index lives in requirements-train-ci.txt and the Dockerfile only.
+# mlflow is pre-installed in Cloudera AI via mlflow-cml-plugin: do not add it here.
+sentence-transformers>=3.0
+chronos-forecasting>=2.0
+pandas[pyarrow]>=2.2,<3
+numpy
+scipy
+scikit-learn
+pyyaml
+impyla
+huggingface_hub
+streamlit
+plotly
+requests

@@ -1,0 +1,5 @@
+# Local development: run the CDE Spark jobs and GX gates on a laptop, and the unit tests
+-r requirements.txt
+pyspark==4.0.1
+great_expectations==1.23.2
+pytest

@@ -1,0 +1,13 @@
+# GitHub Actions, train-validate job: the real MiniLM + Chronos-2 on the runner's CPU,
+# KPI gate enforced. CPU-only torch (the default wheel pulls ~2 GB of CUDA libraries);
+# never put this index in requirements.txt, it would install CPU torch on CAI GPU sessions.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+sentence-transformers>=3.0
+chronos-forecasting>=2.0
+numpy
+pandas[pyarrow]>=2.2,<3
+scipy
+pyyaml
+scikit-learn
+requests

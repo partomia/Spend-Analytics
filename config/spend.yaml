@@ -1,0 +1,77 @@
+# Single source of truth for names and runtime settings used by the CAI side
+# (categorise job, the three daily jobs, model endpoint, Streamlit app). The CDE
+# Spark jobs are self-contained: they take the same prefix via `--db-prefix`
+# (default rsingh_spend_anl) and use the same table names.
+#
+# Every key can be overridden with an env var: SPEND_<SECTION>_<KEY>,
+# e.g. SPEND_STORAGE_BACKEND=parquet, SPEND_IMPALA_PASSWORD=... .
+
+databases:
+  prefix: rsingh_spend_anl
+  bronze: "{prefix}_bronze"
+  silver: "{prefix}_silver"
+  gold: "{prefix}_gold"
+  ref: "{prefix}_ref"
+
+tables:
+  crm_customer: "{bronze}.crm_customer"
+  pincode_geo: "{ref}.pincode_geo"
+  mcc_category: "{ref}.mcc_category"
+  category_taxonomy: "{ref}.category_taxonomy"
+  atm_location: "{ref}.atm_location"
+  merchant_seed: "{ref}.merchant_seed"
+  calendar_weekly: "{ref}.calendar_weekly"
+  merchant_category_map: "{ref}.merchant_category_map"
+  archetype_truth: "{ref}.archetype_truth"
+  dq_results: "{ref}.dq_results"
+  customer: "{silver}.customer"
+  account: "{silver}.account"
+  spend_event: "{silver}.spend_event"
+  spend_features: "{gold}.spend_features"
+  spend_cohort_weekly: "{gold}.spend_cohort_weekly"
+  spend_mix_weekly: "{gold}.spend_mix_weekly"
+  customer_persona: "{gold}.customer_persona"
+  persona_profile: "{gold}.persona_profile"
+  persona_flow: "{gold}.persona_flow"
+  spend_forecast: "{gold}.spend_forecast"
+  spend_backtest: "{gold}.spend_backtest"
+  spend_signals: "{gold}.spend_signals"
+  spend_model_run: "{gold}.spend_model_run"
+
+storage:
+  # impala  -> Cloudera Data Warehouse (CDW) Impala over HTTPS (CAI jobs, endpoint, app on CAI)
+  # parquet -> local folder of parquet files, one per table (laptop / Docker / offline demo / CI)
+  backend: impala
+  parquet_dir: data/parquet
+  # Stage hand-off between the three daily CAI jobs, one folder per run date. On CAI this is
+  # the project filesystem (/home/cdsw/artifacts), which every job of the project mounts.
+  artifacts_dir: artifacts
+
+impala:
+  host: coordinator-default-impala-aws.dw-go01-demo-aws.ylcu-atmi.cloudera.site  # SPEND_IMPALA_HOST
+  port: 443
+  http_path: cliservice
+  use_ssl: true
+  use_http_transport: true
+  auth_mechanism: LDAP              # workload user/password; the JDBC URL's browser SSO (AuthMech=12) is interactive only
+  kerberos_service_name: impala
+  user: ""                          # SPEND_IMPALA_USER
+  password: ""                      # SPEND_IMPALA_PASSWORD (never commit)
+  insert_chunk: 500                 # rows per INSERT ... VALUES statement
+  bulk_insert_chunk: 5000           # customer_persona only (~one row per profiled customer per run)
+
+model:
+  embedder: sentence-transformers/all-MiniLM-L6-v2
+  forecaster: amazon/chronos-2
+  device: ""                        # "" = cuda if available, else cpu (both models run on CPU; see PLAN decisions)
+  local_dir: ""                     # air-gapped: folder holding both downloaded models (SPEND_MODEL_LOCAL_DIR)
+  embed_batch: 256
+
+endpoint:
+  url: ""                           # CAI model deployment URL (SPEND_ENDPOINT_URL)
+  access_key: ""                    # SPEND_ENDPOINT_ACCESS_KEY
+  api_key: ""                       # SPEND_ENDPOINT_API_KEY (Bearer token when auth is enabled)
+
+tracking:
+  experiment: spend-analytics       # CAI Experiments (MLflow); skipped when mlflow is absent
+  enabled: true

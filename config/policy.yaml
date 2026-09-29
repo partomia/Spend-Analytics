@@ -1,0 +1,40 @@
+# Settings a head of marketing analytics owns, not the models: categorisation
+# thresholds, persona search range, forecast horizon, the KPI gate and the
+# opportunity rules. Changing a signal rule re-lists customers on the next run
+# without touching any model.
+
+categorise:
+  min_similarity: 0.45        # below this the nearest seed is not trusted; fall back to category descriptions
+  knn: 5                      # seed merchants voting, weighted by cosine similarity
+  seed_holdout_share: 0.2     # seed merchants held out to measure accuracy on names the index never saw
+  mcc_holdout_rows: 5000      # card merchants whose MCC is hidden for the second accuracy check
+
+personas:
+  k_min: 5
+  k_max: 9
+  sample_rows: 20000          # silhouette is measured on a sample (it is O(n^2))
+  min_txn_13w: 5              # customers with fewer transactions in 13 weeks are not profiled
+  keep_k_within: 0.01         # keep the previous run's k unless another k beats its silhouette by more
+
+forecast:
+  horizon_weeks: 12
+  backtest_cutoffs: 4         # rolling cut-offs, each hiding the next 12 weeks
+  cutoff_step_weeks: 4
+  min_history_weeks: 52
+  quantiles: [0.1, 0.5, 0.9]
+  customer_categories: 3      # per-customer forecast on the endpoint: top N categories by 13-week spend
+
+gate:
+  min_category_accuracy: 0.85 # both the seed holdout and the hidden-MCC sample
+  max_wape_vs_naive: 0.90     # the forecast must beat same-week-last-year x trend by 10%
+  coverage_band: [0.60, 0.95] # share of actuals inside P10-P90
+  min_silhouette: 0.15
+  min_persona_stability: 0.80 # share of customers keeping their persona vs the previous run (skipped on the first)
+
+signals:
+  - {id: TRAVEL_SURGE, category: TRAVEL, ratio_4w_vs_norm: 3.0, min_amount_4w: 5000,
+     action: "Travel card / forex offer"}
+  - {id: FESTIVE_ELECTRONICS, category: ELECTRONICS, min_amount_4w: 50000, festival_weeks: true,
+     action: "EMI conversion offer"}
+  - {id: RELOCATION, away_share_4w: 0.7, max_prior_away_share: 0.3, min_txn_4w: 4,
+     action: "Offer home-branch change"}

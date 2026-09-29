@@ -1,0 +1,37 @@
+name: CI
+
+# Triggers:
+#   - Every push to main
+#   - Every pull request
+#   - Manual trigger from the Actions tab
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Unit tests + a small real pipeline run with GX gates
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Java (local Spark / Iceberg needs it)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install dependencies
+        run: pip install -r requirements-ci.txt
+
+      - name: Unit tests
+        run: pytest -q
