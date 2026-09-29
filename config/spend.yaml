@@ -48,7 +48,7 @@ storage:
   artifacts_dir: artifacts
 
 impala:
-  host: coordinator-default-impala-aws.dw-go01-demo-aws.ylcu-atmi.cloudera.site  # SPEND_IMPALA_HOST
+  host: coordinator-federal-impala-1.dw-federal-cdp-env.dp5i-5vkq.cloudera.site  # SPEND_IMPALA_HOST
   port: 443
   http_path: cliservice
   use_ssl: true

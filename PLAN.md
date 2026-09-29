@@ -52,11 +52,11 @@ Names:
 
 | What | Where / how |
 |---|---|
-| CDE vcluster | `https://2dbvrngw.cde-gvjmd7zs.go01-dem.ylcu-atmi.cloudera.site/dex/api/v1`; the `cde` CLI on this laptop is already authenticated (`~/.cde/config.yaml`) |
+| CDE vcluster | `https://bxjjm2cr.cde-lzjl69mv.federal.dp5i-5vkq.cloudera.site/dex/api/v1` (the `federal` environment, from 2026-09-29; the go01 cluster before). The `cde` CLI logs in with the workload user and password |
 | CDE Git credential | reuse `rsingh-github-pat`; the repo is public, a credential only avoids anonymous sync limits |
-| CDW Impala | `coordinator-default-impala-aws.dw-go01-demo-aws.ylcu-atmi.cloudera.site:443`, HTTP transport, LDAP workload user; `SPEND_IMPALA_USER` / `_PASSWORD` in `.env` (gitignored) |
-| Iceberg storage | `s3a://go01-demo/warehouse/tablespace/external/hive/<db>.db/<table>` |
-| CAI workbench | `https://ml-dbfc64d1-783.go01-dem.ylcu-atmi.cloudera.site`. No CAI CLI here: Ravi runs UI steps and pastes results back |
+| CDW Impala | `coordinator-federal-impala-1.dw-federal-cdp-env.dp5i-5vkq.cloudera.site:443`, HTTP transport, LDAP workload user; `SPEND_IMPALA_USER` / `_PASSWORD` in `.env` (gitignored) |
+| Iceberg storage | the environment's Hive warehouse, `<db>.db/<table>` (on go01: `s3a://go01-demo/warehouse/tablespace/external/hive`) |
+| CAI workbench | `https://federal-cml.federal.dp5i-5vkq.cloudera.site`, driven over the API v2 (`ci/setup_cai.py`) |
 | CAI keys | the app needs a **Model API key**; the Airflow trigger needs a separate **CAI API v2 key** (User Settings > API Keys) |
 | GitHub | `partomia/Spend-Analytics`, public; `gh` authenticated; commits as `Ravi <partomia@users.noreply.github.com>` |
 
