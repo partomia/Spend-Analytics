@@ -206,6 +206,23 @@ Names:
     categoriser holdout uses every MCC-mapped key of the pinned map snapshot,
     whatever its first_run_date: it measures the model, not a dated output, and
     a backfill date would otherwise see an empty map.
+17. **The per-customer forecast also returns a mean, and quotes its 12-week sum.**
+    One customer's weekly spend in a category is intermittent (unit 0 dines out
+    in 29% of weeks), so the weekly P50 is near 0: his DINING P50 summed over
+    12 weeks is INR 365 against INR 8,837 in the last 13 weeks. Quantiles do not
+    add across weeks, means do. Chronos-2 is asked for the 19 quantiles
+    0.05..0.95 as well, and their average approximates the mean (the integral of
+    the quantile function). The endpoint's `expected_12w` is its sum: unit 0's
+    DINING is INR 4,873 against a 52-week run rate of INR 5,386, and unit 2's
+    ELECTRONICS is INR 16,188 (Diwali 2026 falls in the horizon). P10 / P50 / P90
+    are unchanged (native levels), so the cohort backtest and the gate are too.
+18. **The endpoint's what-if re-assigns personas by nearest raw centroid.** The
+    run stores each persona's raw centroid (member mean) and the scaler, not the
+    KMeans centroid in clipped standardised space, so the endpoint's nearest
+    centroid is an approximation of the daily label: it agrees for 98.6% of the
+    19,333 customers profiled on 2026-09-25. The profile action reports the
+    daily run's label; what-if compares before and after with the same rule,
+    so a move is never an artefact of mixing the two.
 
 ## Method (demo policy, see `config/policy.yaml`)
 
@@ -251,7 +268,12 @@ Names:
   run on the laptop CPU. On the 2026-09-25 run every gate check passes: category
   accuracy 0.926 / 0.934, WAPE ratio 0.775, coverage 0.765, silhouette 0.166 (k=8),
   stability 0.958; ARI vs the hidden archetypes 0.654; 1,524 signals. 87 tests.
-- [ ] **6. CAI jobs + endpoint**: the four jobs + `daily_run.py`, backfill, `predict.py`, `test_endpoint.py`.
+- [x] **6. CAI jobs + endpoint**: `cai/jobs/{feature_engineering,train_models,evaluate_models,
+  daily_run,backfill_history}.py`, `spend/{tracking,scoring,client}.py`, `cai/model/{predict,
+  test_endpoint}.py`. Real models on the 20k book: the three jobs for 2026-09-25 in 2 s /
+  44 s / 1 s, the same KPIs as Phase 5, exit 0; stub exit 1 (0 with `--ignore-gate`);
+  a 3-Friday backfill in 90 s. Endpoint: context 17 s, profile 1.6-2.3 s, forecast
+  1-1.9 s, what-if and categorise < 0.25 s (decisions 17, 18). 114 tests.
 - [ ] **7. Spend Insights Console**: 10 tabs + AppTest.
 - [ ] **8. Orchestration + CI + docs**: DAG, deploy / backfill scripts, CI (test + train-validate), SQL, README, runbook.
 - [ ] **9. Live on Cloudera** (with Ravi).

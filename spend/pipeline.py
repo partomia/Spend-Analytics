@@ -59,6 +59,16 @@ def artifacts_dir(run_date: date, root: Path | str | None = None) -> Path:
     return base / run_date.isoformat()
 
 
+def latest_prepared_date(root: Path | str | None = None) -> date:
+    """Run date of the manifest feature engineering wrote last: the default for the
+    training and evaluation jobs when neither --run-date nor SPEND_RUN_DATE is set."""
+    base = artifacts_dir(date.today(), root).parent
+    manifests = sorted(base.glob("*/manifest.json"), key=lambda p: p.stat().st_mtime)
+    if not manifests:
+        raise FileNotFoundError(f"no manifest under {base}: run the feature engineering stage first")
+    return date.fromisoformat(_read_json(manifests[-1])["run_date"])
+
+
 def _dates(df: pd.DataFrame, *cols: str) -> pd.DataFrame:
     for c in cols:
         if c in df.columns:

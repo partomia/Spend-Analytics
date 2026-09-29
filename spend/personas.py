@@ -32,6 +32,7 @@ from spend.features import (CAT_SHARES, CATEGORIES, CH_SHARES, CHANNELS, LOG_SPE
 logger = logging.getLogger(__name__)
 
 CLIP = 3.0
+MIN_SCALE = 1e-6        # a constant feature's std is ~1e-16, not 0, and to_json would round it to 0
 SEED = 0
 CATEGORY_WORD = {"GROCERY": "family grocer", "FOOD_DELIVERY": "foodie", "DINING": "diner", "FUEL": "commuter",
                  "TRAVEL": "traveller", "APPAREL": "shopper", "ELECTRONICS": "gadget buyer",
@@ -55,7 +56,7 @@ class Scaler:
     @classmethod
     def fit(cls, raw: np.ndarray) -> "Scaler":
         scale = raw.std(axis=0)
-        return cls(raw.mean(axis=0), np.where(scale > 0, scale, 1.0))
+        return cls(raw.mean(axis=0), np.where(scale > MIN_SCALE, scale, 1.0))
 
     def transform(self, raw: np.ndarray) -> np.ndarray:
         return np.clip((np.asarray(raw, dtype=float) - self.mean) / self.scale, -CLIP, CLIP)
@@ -67,7 +68,8 @@ class Scaler:
     @classmethod
     def from_json(cls, text: str) -> "Scaler":
         d = json.loads(text)
-        return cls(np.array(d["mean"]), np.array(d["scale"]))
+        scale = np.array(d["scale"], dtype=float)
+        return cls(np.array(d["mean"], dtype=float), np.where(scale > MIN_SCALE, scale, 1.0))
 
 
 @dataclass

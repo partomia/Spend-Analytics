@@ -196,3 +196,71 @@ Churn; all local, none modified) and the Cloudera AI MLOps workshop. Adopted as
   chain IDs / stability / flow, reruns replace the day, stages need their
   inputs, run date must be a snapshot, Impala reads pinned with
   FOR SYSTEM_VERSION AS OF). `pytest -q`: 87 passed.
+
+### Phase 6: CAI jobs + endpoint
+
+- Jobs, each a thin wrapper over one `spend.pipeline` stage, in the Churn
+  `daily_score.py` shape (`SPEND_RUN_DATE` / `SPEND_TRIGGERED_BY`,
+  `parse_known_args`, exit only on failure):
+  - `feature_engineering.py`
+  - `train_models.py`
+  - `evaluate_models.py`, which exits 1 on a failed gate unless
+    `--ignore-gate`, and takes `--publish-on-fail` and `--dry-run`.
+  - `daily_run.py`, all three stages in-process.
+  - `backfill_history.py`, which loads the models once for the last N
+    Fridays.
+
+  With no run date, training and evaluation take the folder that feature
+  engineering prepared last. The MLflow tracker lives in `spend/tracking.py`,
+  shared by evaluation and `daily_run`.
+- Real models, `data/parquet`, 2026-09-25, the three jobs one after another:
+  - Timing: 1.7 s, 44 s and 0.8 s.
+  - KPIs identical to Phase 5, and every gate check passes: 0.926 / 0.934,
+    WAPE ratio 0.775, coverage 0.765, silhouette 0.166, stability 0.958.
+  - Exit code 0.
+- On a scratch copy of the store:
+  - The stub run exits 1 (WAPE ratio 1.000, coverage 0.500), and 0 with
+    `--ignore-gate`.
+  - A real `--dry-run` exits 0 and writes nothing.
+  - `backfill_history.py --weeks 3` runs 2026-09-11/18/25 in 90 s. All three
+    publish, with stability 0.955 and 0.958 against the previous Friday.
+- Endpoint (`spend/scoring.py`, `cai/model/predict.py`): four actions,
+  validated like Collections' `validate()`. Unexpected errors come back as
+  `{"error": ...}`, never a stack trace. The context is the latest *published*
+  run by run date, with its scaler, centroids and pinned snapshot IDs, plus
+  MiniLM, Chronos-2 and the seed index, loaded once per replica. Timing on the
+  laptop CPU:
+  - Context: 17 s.
+  - Unit 0 profile: 1.6-2.3 s. He is a Tier-1 traveller with a TRAVEL_SURGE
+    signal and INR 49k in Panaji.
+  - Forecast: 1-1.9 s.
+  - What-if: 0.1-0.2 s. TRAVEL x0 moves him to Tier-1 digital foodie.
+  - Categorise: 0.02 s for 6 texts.
+- Per-customer forecasts: the weekly P50 of an intermittent series is near 0,
+  so the endpoint also returns a quantile-average mean and its 12-week sum
+  (decision 17). Adding the 19 extra quantile levels left the cohort backtest
+  unchanged.
+- The endpoint's nearest-centroid persona agrees with the daily label for 98.6%
+  of profiled customers (decision 18). What-if shifts that move people, sampled
+  on 3,000 customers:
+  - TRAVEL x2 moves 67, mostly into Tier-1 traveller.
+  - ELECTRONICS x3 moves 235 into Tier-1 digital gadget buyer.
+  - ATM_CASH x0.2 moves 228, mostly out of the cash-first personas.
+- Categoriser limitation seen live: "PHONEPE*RAMESHKIRANA" comes out as DINING,
+  because the run-together name's nearest seed is "phonepe rameshcafe", while
+  "RAMESH KIRANA STORE" comes out as GROCERY. The demo request uses texts that
+  were checked with the real model.
+- Bug found by the scoring tests: a constant feature's standard deviation is
+  about 1e-16, not 0. It escaped the zero-variance guard and was then rounded to
+  0 in `scaler_json`, which gave NaN distances. Any scale at or below 1e-6 now
+  becomes 1, both when the scaler is fitted and when it is loaded. Real runs
+  were unaffected, since no persona feature is constant on the book.
+- Tests:
+  - `test_scoring.py`: validation messages, context from the published run,
+    profile, dense customer series, forecast and totals, what-if mix
+    consistency, categorise, never-raise, and the Impala read-back (by run
+    date; IDs as strings, Decimal as float).
+  - `test_cai_jobs.py`: MLflow tracker, three jobs chained through artifacts
+    with env-driven run date and Jupyter `-f` args, default run date, exit
+    codes, backfill Fridays, `predict.py`.
+  - `pytest -q`: 114 passed.

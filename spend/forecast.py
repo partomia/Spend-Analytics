@@ -15,8 +15,15 @@ Backtest: forecast.backtest_cutoffs rolling cut-offs, forecast.cutoff_step_weeks
 apart, each hiding the next horizon_weeks. WAPE = sum |actual - P50| / sum actual
 over every series, week and cut-off; coverage = share of actuals in [P10, P90].
 
+Each forecaster also returns `mean`, the expected weekly amount. One customer's
+weekly spend in a category is intermittent (unit 0 dines out in 29% of weeks),
+so its weekly P50 is near 0 and 12 summed medians understate the quarter ~15x.
+The mean is the integral of the quantile function, approximated by averaging
+the 19 quantiles 0.05..0.95; unlike quantiles it adds up across weeks (PLAN
+decision 17). The endpoint reports it; the gate stays on P50 and P10-P90.
+
 The stub forecaster (CI, no torch) *is* the seasonal-naive baseline with a
-+-20% band, so its WAPE ratio is 1.0 by construction.
++-20% band, so its WAPE ratio is 1.0 by construction; its mean is the P50.
 """
 
 from __future__ import annotations
@@ -35,6 +42,7 @@ TREND_WEEKS = 13
 SEASON = 52
 STUB_MODEL_ID = "stub-seasonal-naive"
 STUB_BAND = 0.2
+MEAN_LEVELS = [round(0.05 * i, 2) for i in range(1, 20)]   # mean ~ average of the 0.05..0.95 quantiles
 KEY = dict(id_column="series_id", timestamp_column="week_end", target="amount_inr")
 
 
@@ -95,13 +103,15 @@ class ChronosForecaster:
 
     def predict(self, hist: pd.DataFrame, future: pd.DataFrame, horizon: int, quantiles: list[float]) -> pd.DataFrame:
         cols = ["series_id", "week_end", "amount_inr", *COVARIATES]
+        levels = sorted({*map(float, quantiles), *MEAN_LEVELS})
         pred = self.pipe.predict_df(hist[cols], future_df=future[["series_id", "week_end", *COVARIATES]],
-                                    prediction_length=horizon, quantile_levels=list(quantiles), **KEY)
+                                    prediction_length=horizon, quantile_levels=levels, **KEY)
         lo, mid, hi = (str(q) for q in quantiles)
         out = pred[["series_id", "week_end"]].copy()
         out["week_end"] = pd.to_datetime(out["week_end"])
         for name, q in (("p10", lo), ("p50", mid), ("p90", hi)):
             out[name] = pred[q].clip(lower=0).astype(float).to_numpy()
+        out["mean"] = pred[[str(q) for q in MEAN_LEVELS]].clip(lower=0).mean(axis=1).astype(float).to_numpy()
         return out
 
 
@@ -113,7 +123,8 @@ class StubForecaster:
         weeks = sorted(pd.to_datetime(future["week_end"]).unique())
         out = seasonal_naive(hist, weeks).rename(columns={"naive": "p50"})
         out["p10"], out["p90"] = out["p50"] * (1 - STUB_BAND), out["p50"] * (1 + STUB_BAND)
-        return out[["series_id", "week_end", "p10", "p50", "p90"]]
+        out["mean"] = out["p50"]
+        return out[["series_id", "week_end", "p10", "p50", "p90", "mean"]]
 
 
 def load_forecaster(stub: bool = False):

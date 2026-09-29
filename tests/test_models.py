@@ -56,6 +56,8 @@ def test_scaler_clips_and_round_trips():
     assert x.max() <= ps.CLIP and (x[:, 1] == 0).all()          # zero variance column -> scale 1
     s2 = ps.Scaler.from_json(json.dumps({"mean": s.mean.tolist(), "scale": s.scale.tolist()}))
     np.testing.assert_allclose(s2.transform(raw), x)
+    near = ps.Scaler.fit(np.full((3, 1), 0.9) + np.array([[0.0], [1e-16], [0.0]]))   # float-noise std
+    assert ps.Scaler.from_json(near.to_json()).scale[0] == 1.0
 
 
 def test_fit_personas_finds_the_groups_and_names_are_unique():
