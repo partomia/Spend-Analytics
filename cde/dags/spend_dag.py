@@ -111,6 +111,8 @@ with DAG(
     start_date=datetime(2026, 9, 27, 21, 0),
     catchup=False,
     is_paused_upon_creation=True,
+    # Each run regenerates bronze and replaces its run date's outputs: two at once would collide.
+    max_active_runs=1,
     params={"as_of": ""},
     tags=["spend", "iceberg", "great-expectations", "minilm", "chronos-2", "kmeans"],
 ) as dag:
