@@ -365,3 +365,43 @@ Churn; all local, none modified) and the Cloudera AI MLOps workshop. Adopted as
 - README and `docs/DEMO_RUNBOOK.md`. Cluster numbers and IDs are left blank
   for Phase 9.
 - `pytest -q`: 132 passed.
+
+## Phase 8b: CAI MLOps hardening (2026-09-29)
+
+Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-23).
+
+- `tests/test_cai_contract.py`: every script under `cai/` plus `app/run.py`
+  follows the CAI job runtime rules. No module-level `__file__` (and an
+  `except NameError` fallback), `parse_known_args`, and no `sys.exit` on
+  success. A mutation to `sys.exit(main())` makes it fail.
+- Feature hash (`spend.features.feature_hash()`, `aa21012976534ed4` at logic
+  version 1.0.0):
+  - It is written to the manifest, `spend_model_run.feature_hash` and MLflow.
+  - Training refuses artifacts that carry another hash.
+  - The gate checks it against the code.
+  - The endpoint and app refuse a run with a different hash.
+- Non-regression against the champion, meaning the published run the candidate
+  would replace:
+  - 8-Friday backfill with real models on a scratch copy of the 20k book
+    (2026-08-07 to 2026-09-25): 235 s, every gate PASS.
+  - Accuracy was 0.926 / 0.934 every week. The WAPE ratio was 0.799, 0.801,
+    0.783, 0.788, 0.786, 0.791, 0.765, 0.775, so the largest weekly rise was
+    +0.010.
+  - Silhouette ranged 0.166-0.170 and stability 0.945-0.961.
+  - A same-day rerun of 2026-09-25 as a dry run reproduced a WAPE ratio of
+    0.775 against the champion's 0.775.
+  - Tolerances set from these numbers: accuracy may drop at most 0.01 and the
+    WAPE ratio may rise at most 0.03.
+- GitHub -> CAI:
+  - New `cai/jobs/sync_code.py` (job `spend-sync-code`) and `ci/cai_jobs.py`.
+  - `ci/trigger_cai_pipeline.py` uses the standard library only.
+  - `cai-pipeline` in `ci.yml` needs train-validate, runs on push only, is in
+    concurrency group `spend-analytics-cai`, and is a no-op until `CAI_URL` is
+    set.
+  - Evaluation reads `SPEND_DRY_RUN` from the environment.
+  - Runbook step 10 covers the three secrets.
+  - Tested against a fake API v2 (order, per-job environment, gate rejection
+    named, a failed job stops the chain, timeout, missing jobs) and a
+    throwaway git repo (reset to the pushed commit, untracked `artifacts/`
+    kept, a moved branch stops the chain).
+- `pytest -q`: 178 passed. Not yet run against the live workbench (Phase 9).

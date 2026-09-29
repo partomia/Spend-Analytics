@@ -63,6 +63,13 @@ def test_context_is_the_latest_published_run(ctx):
     assert set(ctx.centroids) == set(ctx.names) and all(len(c) == len(ctx.scaler.mean) for c in ctx.centroids.values())
 
 
+def test_context_refuses_a_run_built_with_other_features(ctx, monkeypatch):
+    assert ctx.meta["feature_hash"] == scoring.feature_hash()
+    monkeypatch.setattr(scoring, "feature_hash", lambda: "0" * 16)
+    with pytest.raises(RuntimeError, match="feature definition"):
+        scoring.load_context(stub=True, storage=ctx.storage)
+
+
 def test_profile_reads_one_cif(ctx):
     r = scoring.score({"action": "profile", "cif": CIF}, ctx)
     assert r["cif"] == CIF and r["as_of"] == D2.isoformat() and r["persona"]["source"] == "daily run"

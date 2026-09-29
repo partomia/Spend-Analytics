@@ -240,6 +240,41 @@ Names:
     over the API v2 between silver and gold for each date (the same four values
     as the DAG, from the environment), because gold joins the map and a fresh
     map would leave every key UNCATEGORISED and fail `dq_gold`.
+21. **A feature hash ties a run to the feature code that built it.** Not in the
+    spec; taken from the CXR Triage build guide. `spend.features.feature_hash()`
+    is 16 hex digits of SHA-256 over the feature columns, persona features and
+    clip, covariates, categories, channels and `FEATURE_LOGIC_VERSION` (bump it
+    when a formula changes but no name does). Feature engineering writes it to
+    the manifest; training refuses artifacts with another hash; the gate checks
+    it against the code; it is stored in `spend_model_run.feature_hash` and in
+    MLflow; the endpoint and app refuse to load a run with a different hash
+    (the scaler and centroids would be applied to other features). The first
+    run after an upgrade therefore has to be a fresh daily run, not a replay.
+22. **The gate adds non-regression against the champion, with tolerances from
+    a backfill.** The champion is the published run the candidate would
+    replace: the same run date's if published (a GitHub candidate, or a rerun,
+    is judged on the same data), else the last one before. Persona IDs and
+    stability still chain to the run strictly before. Each accuracy may drop at
+    most 0.01 and the WAPE ratio rise at most 0.03; skipped when nothing is
+    published. Measured with real models over 8 Fridays (2026-08-07 to
+    2026-09-25, 20k book, scratch copy): accuracy stayed 0.926 / 0.934 every
+    week (0.01 is 14 of 1,412 seed texts); the WAPE ratio ranged 0.765-0.801,
+    the largest weekly rise +0.010; a same-day rerun of 2026-09-25 reproduced
+    0.775 exactly. Coverage and silhouette keep only their absolute floors.
+23. **GitHub -> Train & Validate -> KPI Gate also runs on Cloudera AI.** A third
+    CI job, `cai-pipeline` (after `train-validate`, pushes to main only, one at
+    a time), calls the CAI API v2 from `ci/trigger_cai_pipeline.py`. Unlike CXR
+    Triage the jobs have no CAI dependencies (Airflow sequences them nightly),
+    so the trigger starts each job itself: `spend-sync-code` (new; git reset to
+    origin/main, stops if main moved past the pushed SHA), feature engineering
+    and training into `artifacts/github/`, and evaluation with
+    `SPEND_DRY_RUN=1`, i.e. the gate only. It is a candidate check, not a
+    publish: the nightly DAG publishes, with the synced code. `spend-categorise`
+    is left out because it writes the map. Jobs are looked up by name
+    (`ci/cai_jobs.py`, which the runbook table must match), so GitHub needs only
+    three secrets; without `CAI_URL` the job prints a notice and passes. Not
+    adopted from CXR: a deploy-champion job (the endpoint loads the latest
+    published run at start-up) and PSI drift.
 
 ## Method (demo policy, see `config/policy.yaml`)
 
@@ -255,6 +290,8 @@ Names:
 - **Forecast**: Chronos-2 on 16 cohorts x 14 categories, 12 weeks, calendar
   covariates. Gate: WAPE <= 0.90 x seasonal-naive WAPE, P10-P90 coverage in [0.60, 0.95].
 - **Signals**: TRAVEL_SURGE, FESTIVE_ELECTRONICS, RELOCATION (rules on gold features).
+- **Gate, besides the floors**: accuracy down <= 0.01 and WAPE ratio up <= 0.03 against the
+  champion (decision 22); the run's feature hash equals the code's (decision 21).
 
 ## Phases
 
@@ -304,4 +341,8 @@ Names:
   `tests/test_orchestration.py` cross-checks job names, prefixes, the chain, the Variables
   and the CI shape; `tests/test_reports_sql.py` checks every SQL column against the table
   definitions. 132 tests.
+- [x] **8b. CAI MLOps hardening** (from the CXR Triage build guide): feature hash (decision 21),
+  non-regression against the champion (decision 22), `cai-pipeline` with `spend-sync-code`
+  and `ci/trigger_cai_pipeline.py` (decision 23), `tests/test_cai_contract.py` (the CAI job
+  runtime rules on every CAI script). 178 tests.
 - [ ] **9. Live on Cloudera** (with Ravi).

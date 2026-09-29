@@ -26,12 +26,12 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
-from spend.features import (CAT_SHARES, CATEGORIES, CH_SHARES, CHANNELS, LOG_SPEND, PERSONA_FEATURES, TIER_SHARES,
-                            TIERS)
+from spend.features import (CAT_SHARES, CATEGORIES, CH_SHARES, CHANNELS, LOG_SPEND, PERSONA_CLIP, PERSONA_FEATURES,
+                            TIER_SHARES, TIERS)
 
 logger = logging.getLogger(__name__)
 
-CLIP = 3.0
+CLIP = PERSONA_CLIP
 MIN_SCALE = 1e-6        # a constant feature's std is ~1e-16, not 0, and to_json would round it to 0
 SEED = 0
 CATEGORY_WORD = {"GROCERY": "family grocer", "FOOD_DELIVERY": "foodie", "DINING": "diner", "FUEL": "commuter",

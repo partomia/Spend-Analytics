@@ -88,6 +88,29 @@ def test_stages_run_separately_and_need_their_inputs(store):
     assert out["model_run"]["run_id"] == manifest["run_id"] and not st.exists("spend_model_run")
 
 
+def test_champion_and_feature_hash_travel_with_the_run(store, monkeypatch):
+    st, art = store
+    r1 = pipeline.run_daily(st, D1, stub=True, root=art, publish_on_fail=True)
+    assert r1["manifest"]["champion_kpis"] is None
+    assert any("non-regression skipped" in line for line in r1["gate_detail"])
+    assert r1["model_run"]["feature_hash"] == pipeline.feature_hash()
+    assert st.read("spend_model_run").iloc[0]["feature_hash"] == pipeline.feature_hash()
+
+    again = pipeline.feature_engineering(st, D1, root=art)       # a rerun of D1 is judged against D1's run
+    assert again["champion_run_id"] == r1["model_run"]["run_id"] and again["prev_run_date"] is None
+    m2 = pipeline.feature_engineering(st, D2, root=art)
+    assert m2["champion_run_id"] == r1["model_run"]["run_id"] and m2["prev_run_date"] == D1.isoformat()
+    assert m2["champion_kpis"]["wape_ratio"] == pytest.approx(r1["model_run"]["wape_ratio"])
+    # artifacts prepared by other feature code are refused, not trained on
+    monkeypatch.setattr(pipeline, "feature_hash", lambda: "0" * 16)
+    with pytest.raises(ValueError, match="feature definition"):
+        pipeline.train_models(D2, stub=True, root=art)
+    monkeypatch.undo()
+    pipeline.train_models(D2, stub=True, root=art)
+    out = pipeline.evaluate_models(st, D2, write=False, root=art)
+    assert sum("champion" in line for line in out["gate_detail"]) == 3
+
+
 def test_run_date_must_be_a_snapshot(store):
     st, art = store
     with pytest.raises(ValueError, match="not a snapshot date"):

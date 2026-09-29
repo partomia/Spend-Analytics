@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 MLFLOW_PARAMS = ("run_id", "run_date", "snapshot_date", "triggered_by", "embedder_id", "forecaster_id",
                  "model_versions", "device", "features_snapshot_id", "cohort_snapshot_id", "map_snapshot_id",
-                 "k", "n_series", "n_customers_profiled", "map_keys")
+                 "feature_hash", "k", "n_series", "n_customers_profiled", "map_keys")
 MLFLOW_METRICS = ("category_accuracy_seed", "category_accuracy_mcc", "silhouette", "persona_stability",
                   "ari_hidden", "wape_model", "wape_naive", "wape_ratio", "coverage", "n_signals",
                   "uncategorised_share", "duration_s")

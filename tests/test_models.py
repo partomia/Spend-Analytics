@@ -233,7 +233,7 @@ GOOD = {"category_accuracy_seed": 0.93, "category_accuracy_mcc": 0.9, "wape_rati
 def test_gate_passes_and_each_check_can_fail():
     cfg = policy()["gate"]
     ok, lines = gate.evaluate(GOOD, cfg)
-    assert ok and len(lines) == 6 and all(line.startswith("PASS") for line in lines)
+    assert ok and len(lines) == 7 and all(line.startswith("PASS") for line in lines)
     for key, bad in [("category_accuracy_seed", 0.8), ("category_accuracy_mcc", None), ("wape_ratio", 0.95),
                      ("coverage", 0.97), ("coverage", 0.5), ("silhouette", 0.1), ("persona_stability", 0.7)]:
         ok, lines = gate.evaluate({**GOOD, key: bad}, cfg)
@@ -243,3 +243,39 @@ def test_gate_passes_and_each_check_can_fail():
 def test_gate_skips_stability_on_the_first_run():
     ok, lines = gate.evaluate({**GOOD, "persona_stability": None}, policy()["gate"])
     assert ok and any("skipped" in line for line in lines)
+
+
+def test_gate_non_regression_against_the_champion():
+    cfg = policy()["gate"]
+    drop, rise = cfg["max_accuracy_drop"], cfg["max_wape_ratio_rise"]
+    champ = {"category_accuracy_seed": 0.93, "category_accuracy_mcc": 0.9, "wape_ratio": 0.8 - rise / 2}
+    ok, lines = gate.evaluate(GOOD, cfg, champion=champ)
+    assert ok and sum("champion" in line for line in lines) == 3
+    # above every absolute floor, but worse than the model it would replace
+    ok, lines = gate.evaluate({**GOOD, "category_accuracy_mcc": 0.9 - 2 * drop}, cfg, champion=champ)
+    assert not ok and any(line.startswith("FAIL category_accuracy_mcc") and "champion" in line for line in lines)
+    ok, lines = gate.evaluate({**GOOD, "wape_ratio": champ["wape_ratio"] + 2 * rise}, cfg, champion=champ)
+    assert not ok and any(line.startswith("FAIL wape_ratio") and "champion" in line for line in lines)
+    # a champion KPI that was never measured is not a floor
+    ok, _ = gate.evaluate(GOOD, cfg, champion={**champ, "wape_ratio": None})
+    assert ok
+
+
+def test_gate_feature_hash_must_match_the_code():
+    cfg = policy()["gate"]
+    ok, lines = gate.evaluate({**GOOD, "feature_hash": "abc"}, cfg, code_hash="abc")
+    assert ok and any(line.startswith("PASS feature_hash") for line in lines)
+    for stored in ("old", None):
+        ok, lines = gate.evaluate({**GOOD, "feature_hash": stored}, cfg, code_hash="abc")
+        assert not ok and any(line.startswith("FAIL feature_hash") for line in lines)
+
+
+def test_feature_hash_follows_the_definition(monkeypatch):
+    from spend import features
+    h = features.feature_hash()
+    assert h == features.feature_hash() and len(h) == 16
+    monkeypatch.setattr(features, "PERSONA_CLIP", 2.5)
+    assert features.feature_hash() != h
+    monkeypatch.undo()
+    monkeypatch.setattr(features, "FEATURE_LOGIC_VERSION", "9.9.9")
+    assert features.feature_hash() != h

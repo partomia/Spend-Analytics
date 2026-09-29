@@ -5,7 +5,7 @@ name: CI
 #   - Every pull request
 #   - Manual trigger from the Actions tab
 #
-# Two jobs (PLAN.md decision 2):
+# Three jobs (PLAN.md decisions 2 and 23):
 #   test            unit tests, the Spark jobs and GX gates on local Spark + Iceberg
 #                   (small scale), the three CAI stages with the stubs, and the DQ
 #                   gate failing on cue. No torch.
@@ -13,6 +13,11 @@ name: CI
 #                   on the runner's CPU over the book test built, KPI gate enforced:
 #                   a regression in accuracy, WAPE vs naive, coverage or silhouette
 #                   turns the build red.
+#   cai-pipeline    needs train-validate, pushes to main only. The same three stages
+#                   on Cloudera AI through the CAI API v2 (ci/trigger_cai_pipeline.py):
+#                   sync-code to this commit, feature engineering, training, and
+#                   evaluation as a dry run; red if the KPI gate there rejects the
+#                   candidate. Prints a notice and passes until the CAI_URL secret is set.
 on:
   push:
     branches: [main]
@@ -116,3 +121,29 @@ jobs:
         env:
           SPEND_TRACKING_ENABLED: "false"
         run: python cai/jobs/daily_run.py --backend parquet
+
+  cai-pipeline:
+    name: GitHub -> Train & Validate -> KPI Gate on Cloudera AI (CAI API v2)
+    needs: train-validate
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    concurrency:            # one chain at a time against the CAI project; a newer push waits
+      group: spend-analytics-cai
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run the CAI job chain and wait for the KPI gate
+        env:
+          CAI_URL: ${{ secrets.CAI_URL }}
+          CAI_API_KEY: ${{ secrets.CAI_API_KEY }}
+          CAI_PROJECT_ID: ${{ secrets.CAI_PROJECT_ID }}
+        run: python ci/trigger_cai_pipeline.py

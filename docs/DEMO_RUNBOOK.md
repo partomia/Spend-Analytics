@@ -12,7 +12,7 @@ each time. Check every screenshot for keys and hostnames before committing it.
 | What | Name | ID |
 |---|---|---|
 | CAI project | `spend-analytics` | (fill in) |
-| CAI jobs | `spend-categorise`, `spend-feature-engineering`, `spend-model-training`, `spend-model-evaluation` | (fill in) |
+| CAI jobs | `spend-sync-code`, `spend-categorise`, `spend-feature-engineering`, `spend-model-training`, `spend-model-evaluation` | (fill in) |
 | Model | `spend-scorer` | (fill in) |
 | Application | `Spend Insights Console` | (fill in) |
 | CDE DAG job | `rsingh-spend-anl-orchestration` | dagID `spend_analytics_pipeline` |
@@ -115,11 +115,14 @@ first run).
 
 ### 4. CAI Jobs
 
-Jobs > New Job, four times, Python 3.11 runtime, arguments empty, schedule
-**Manual** (Airflow triggers them):
+Jobs > New Job, five times, Python 3.11 runtime, arguments empty, schedule
+**Manual** (Airflow triggers the last four; GitHub Actions triggers sync-code,
+feature engineering, training and evaluation, step 10), no job dependencies. The
+names must match `ci/cai_jobs.py`:
 
 | Job | Script | Resources |
 |---|---|---|
+| `spend-sync-code` | `cai/jobs/sync_code.py` | 1 vCPU / 2 GB |
 | `spend-categorise` | `cai/jobs/categorise.py` | 4 vCPU / 16 GB |
 | `spend-feature-engineering` | `cai/jobs/feature_engineering.py` | 2 vCPU / 8 GB |
 | `spend-model-training` | `cai/jobs/train_models.py` | 8 vCPU / 32 GB |
@@ -208,8 +211,40 @@ export SPEND_CAI_HOST=... SPEND_CAI_PROJECT_ID=... SPEND_CAI_API_KEY=... SPEND_C
 python cai/jobs/backfill_history.py --weeks 8                             # from a CAI session
 ```
 
-Don't trigger the DAG while either runs. Laptop: a 3-Friday backfill in 90 s,
-stability 0.955 and 0.958 against the previous Friday.
+Don't trigger the DAG while either runs. Laptop: an 8-Friday backfill
+(2026-08-07 to 2026-09-25) in 235 s, every gate PASS, stability 0.945-0.961
+against the previous Friday.
+
+### 10. GitHub -> Train & Validate -> KPI Gate on Cloudera AI
+
+The `cai-pipeline` job in `.github/workflows/ci.yml` runs after `train-validate`
+on every push to main. It prints a notice and passes until the secret
+`CAI_URL` is set. Repository Settings > Secrets and variables > Actions:
+
+| Secret | Value |
+|---|---|
+| `CAI_URL` | `https://<CDSW_DOMAIN>` (the `SPEND_CAI_HOST` of step 7) |
+| `CAI_API_KEY` | a CAI API key (User Settings > API Keys), typed into GitHub, never into a file |
+| `CAI_PROJECT_ID` | the `SPEND_CAI_PROJECT_ID` of step 7 |
+
+The runner must reach the workbench's API over HTTPS; on a private cluster use
+a self-hosted runner. `ci/trigger_cai_pipeline.py` starts four job runs one at
+a time and follows each:
+
+1. `spend-sync-code` with `EXPECTED_GIT_SHA`: the project is reset to the pushed
+   commit (a newer push stops this chain; its own runs next).
+2. `spend-feature-engineering` and `spend-model-training` into
+   `artifacts/github/` (`SPEND_STORAGE_ARTIFACTS_DIR`), apart from the nightly
+   run's folders.
+3. `spend-model-evaluation` with `SPEND_DRY_RUN=1`: the KPI gate, including
+   non-regression against the published run for the same date and the feature
+   hash; no table and no MLflow run is written.
+
+A rejection fails the check with `KPI GATE REJECTED the candidate`; the
+published run stays live. The nightly DAG publishes with the synced code, so
+push the fix (or a revert) before 21:00 UTC. Don't push while the DAG's
+`cai_*` tasks run: sync-code resets the code under them. **Ask before the
+first push with the secrets set** (it is the first CAI trigger from GitHub).
 
 ## Before the demo (30 minutes ahead)
 

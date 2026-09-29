@@ -42,7 +42,7 @@ from spend import signals as sg
 from spend.categorise import SeedIndex, accuracy, load_embedder, mcc_holdout_predictions, seed_holdout_predictions
 from spend.config import ROOT, settings, table
 from spend.config import policy as load_policy
-from spend.features import FEATURE_COLUMNS
+from spend.features import FEATURE_COLUMNS, feature_hash
 from spend.models import package_versions
 from spend.schema import OUTPUT_TABLES, RUN_OUTPUTS
 
@@ -51,6 +51,7 @@ logger = logging.getLogger(__name__)
 PRIOR_WEEKS = 4
 VERSION_PACKAGES = ("sentence-transformers", "chronos-forecasting", "torch", "scikit-learn")
 REF_INPUTS = ("merchant_seed", "category_taxonomy", "mcc_category")
+CHAMPION_KPIS = ("category_accuracy_seed", "category_accuracy_mcc", "wape_ratio", "coverage", "silhouette")
 
 
 def artifacts_dir(run_date: date, root: Path | str | None = None) -> Path:
@@ -90,20 +91,37 @@ def _read_json(p: Path) -> dict:
     return json.loads(p.read_text())
 
 
-def previous_run(storage, run_date: date) -> dict | None:
-    """The last published run before run_date: its row, customer personas and profile."""
+def _published(storage, run_date: date, same_day: bool) -> pd.Series | None:
     if not storage.exists("spend_model_run"):
         return None
     runs = _dates(storage.read("spend_model_run"), "run_date")
-    runs = runs[(runs["run_date"] < run_date) & runs["outputs_published"].astype(bool)]
-    if runs.empty:
+    before = runs["run_date"] <= run_date if same_day else runs["run_date"] < run_date
+    runs = runs[before & runs["outputs_published"].astype(bool)]
+    return None if runs.empty else runs.sort_values(["run_date", "run_ts"]).iloc[-1]
+
+
+def previous_run(storage, run_date: date) -> dict | None:
+    """The last published run before run_date, which persona IDs, stability and flow
+    chain to: its customer personas and profile."""
+    last = _published(storage, run_date, same_day=False)
+    if last is None:
         return None
-    last = runs.sort_values(["run_date", "run_ts"]).iloc[-1]
     prev_date = last["run_date"]
     assign = storage.read("customer_persona", where_run_date=prev_date, columns=["cif", "persona_id"])
     profile = storage.read("persona_profile", where_run_date=prev_date)
     return {"run_date": prev_date, "run_id": last["run_id"], "k": int(last["k"]), "assign": assign,
             "profile": profile}
+
+
+def champion_run(storage, run_date: date) -> dict | None:
+    """The published run a candidate for run_date would replace (the same day's, else the
+    last before it): what stays live if the candidate fails the gate, and the KPIs it must
+    not regress from."""
+    last = _published(storage, run_date, same_day=True)
+    if last is None:
+        return None
+    return {"run_date": last["run_date"].isoformat(), "run_id": last["run_id"],
+            "kpis": {k: (None if pd.isna(last.get(k)) else float(last[k])) for k in CHAMPION_KPIS}}
 
 
 # ---------------------------------------------------------------- stage 1
@@ -139,7 +157,7 @@ def feature_engineering(storage, run_date: date | None = None, triggered_by: str
 
     merchant = today["merchant_spend_13w"].sum()
     uncat = float((today["uncategorised_share"] * today["merchant_spend_13w"]).sum() / merchant) if merchant else None
-    prev = previous_run(storage, run_date)
+    prev, champ = previous_run(storage, run_date), champion_run(storage, run_date)
     run_id = f"{run_date:%Y%m%d}-{uuid.uuid4().hex[:8]}"
     d = artifacts_dir(run_date, root)
     d.mkdir(parents=True, exist_ok=True)
@@ -155,7 +173,9 @@ def feature_engineering(storage, run_date: date | None = None, triggered_by: str
         "n_series": int(cohort[["cohort", "category"]].drop_duplicates().shape[0]),
         "cohort_weeks": int(cohort["week_end"].nunique()), "map_keys": len(cmap), "uncategorised_share": uncat,
         "prev_run_date": prev and prev["run_date"].isoformat(), "prev_run_id": prev and prev["run_id"],
-        "prev_k": prev and prev["k"], "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "prev_k": prev and prev["k"], "champion_run_id": champ and champ["run_id"],
+        "champion_kpis": champ and champ["kpis"], "feature_hash": feature_hash(),
+        "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "stage_durations": {"feature_engineering": round(time.time() - t0, 1)},
     }
     (d / "manifest.json").write_text(json.dumps(manifest, indent=2))
@@ -173,6 +193,9 @@ def train_models(run_date: date, stub: bool = False, root: Path | str | None = N
     if not (d / "manifest.json").exists():
         raise FileNotFoundError(f"{d / 'manifest.json'} not found: run the feature engineering stage first")
     manifest = _read_json(d / "manifest.json")
+    if manifest.get("feature_hash") != feature_hash():
+        raise ValueError(f"{d} was prepared with feature definition {manifest.get('feature_hash')}, this code has "
+                         f"{feature_hash()}: rerun the feature engineering stage")
     pol = load_policy()
     timings = {}
 
@@ -252,7 +275,8 @@ def evaluate_models(storage, run_date: date, write: bool = True, publish_on_fail
         raise FileNotFoundError(f"{d / 'metrics.json'} not found: run the training stage first")
     manifest, metrics = _read_json(d / "manifest.json"), _read_json(d / "metrics.json")
     pol = load_policy()
-    passed, lines = kpi_gate.evaluate(metrics, pol["gate"])
+    passed, lines = kpi_gate.evaluate({**metrics, "feature_hash": manifest.get("feature_hash")}, pol["gate"],
+                                      code_hash=feature_hash(), champion=manifest.get("champion_kpis"))
     publish = passed or publish_on_fail
     run_id = manifest["run_id"]
     durations = {**manifest["stage_durations"], **metrics["stage_durations"]}
@@ -266,7 +290,7 @@ def evaluate_models(storage, run_date: date, write: bool = True, publish_on_fail
                                    "wape_model", "wape_naive", "wape_ratio", "coverage", "n_signals", "scaler_json")},
         "snapshot_date": date.fromisoformat(manifest["snapshot_date"]),
         **{k: manifest[k] for k in ("features_snapshot_id", "cohort_snapshot_id", "map_snapshot_id", "map_keys",
-                                    "uncategorised_share")},
+                                    "uncategorised_share", "feature_hash")},
         "gate_passed": passed, "gate_detail": " | ".join(lines), "outputs_published": publish,
         "policy_json": json.dumps(pol, sort_keys=True), "stage_durations_json": json.dumps(durations),
         "mlflow_run_id": None, "duration_s": None,

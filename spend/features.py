@@ -20,6 +20,13 @@ Shares, per CIF over the 13 weeks up to the snapshot:
 
 from __future__ import annotations
 
+import hashlib
+import json
+
+# Bump when the gold feature code or persona_matrix changes behaviour without
+# changing a list below; it is folded into feature_hash().
+FEATURE_LOGIC_VERSION = "1.0.0"
+
 CATEGORIES = ["GROCERY", "FOOD_DELIVERY", "DINING", "FUEL", "TRAVEL", "APPAREL", "ELECTRONICS", "UTILITIES",
               "TELECOM", "EMI_LOAN", "EDUCATION", "HEALTH", "ENTERTAINMENT", "OTHER"]
 UNCATEGORISED = "UNCATEGORISED"
@@ -44,9 +51,11 @@ NUMERIC = [*SHARE_COLUMNS, "home_share", "digital_share", "uncategorised_share",
            "spend_4w", "txn_4w", "away_share_4w", "away_weeks_4w", *CAT_4W]
 FEATURE_COLUMNS = [*KEY, *INFO, *NUMERIC]
 
-# KMeans input, standardised: the 24 shares + log1p(spend_13w) + digital and home share.
+# KMeans input, standardised: the 24 shares + log1p(spend_13w) + digital and home share,
+# clipped at +-PERSONA_CLIP standard deviations (PLAN decision 14).
 LOG_SPEND = "log_spend_13w"
 PERSONA_FEATURES = [*SHARE_COLUMNS, LOG_SPEND, "digital_share", "home_share"]
+PERSONA_CLIP = 3.0
 
 COHORT_KEY = ["cohort", "category", "week_end"]
 COHORT_COLUMNS = ["cohort", "segment", "city_tier", "category", "week_end", "amount_inr", "n_txn", "n_customers",
@@ -64,6 +73,15 @@ def cohort_name(segment: str, city_tier: int) -> str:
 
 def series_id(cohort: str, category: str) -> str:
     return f"{cohort}|{category}"
+
+
+def feature_hash() -> str:
+    """Fingerprint of the feature definition the models are trained on and the endpoint
+    re-applies (the stored scaler and centroids are only valid for the same one). Recorded
+    by feature engineering, checked by training, the gate and the endpoint."""
+    payload = {"logic": FEATURE_LOGIC_VERSION, "features": FEATURE_COLUMNS, "persona": PERSONA_FEATURES,
+               "clip": PERSONA_CLIP, "covariates": COVARIATES, "categories": CATEGORIES, "channels": CHANNELS}
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
 
 
 def split_series(sid: str) -> tuple[str, str]:

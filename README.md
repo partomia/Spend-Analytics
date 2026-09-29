@@ -39,7 +39,7 @@ flowchart LR
   I -. profile, forecast,<br/>what-if, categorise .-> K[CAI Model endpoint<br/>predict.py]
   AF[CDE Airflow DAG<br/>daily 02:30 IST] -. orchestrates .-> A
   AF -. API v2 .-> CAT & FE
-  GH[GitHub Actions<br/>test, train-validate] -. KPI gate on every push .-> TR
+  GH[GitHub Actions<br/>test, train-validate,<br/>cai-pipeline] -. API v2: sync-code, then the<br/>three jobs, gate as a dry run .-> FE
 ```
 
 | Layer | Cloudera service | Code |
@@ -53,7 +53,7 @@ flowchart LR
 | On-demand | CAI Model Deployment `spend-scorer` | `cai/model/predict.py` |
 | SQL + reports | CDW Impala (Hue) | `sql/reports.sql` |
 | Spend Insights Console | CAI Application (Streamlit) | `app/` |
-| CI: GitHub → Train & Validate → KPI Gate | GitHub Actions | `.github/workflows/ci.yml` |
+| CI: GitHub → Train & Validate → KPI Gate | GitHub Actions, then CAI Jobs via API v2 | `.github/workflows/ci.yml`, `ci/trigger_cai_pipeline.py` |
 
 Databases: `rsingh_spend_anl_{bronze,silver,gold,ref}` (prefix in
 `config/spend.yaml`, `--db-prefix` / `DB_PREFIX` on the CDE side; tables are
@@ -108,7 +108,10 @@ off through `artifacts/<run_date>/` (PLAN.md decision 1), and CI adds a
 - **KPI gate**: category accuracy ≥ 0.85 on a seed holdout and on card
   merchants with the MCC hidden; forecast WAPE ≤ 0.90 x the naive WAPE;
   P10-P90 coverage in [0.60, 0.95]; silhouette ≥ 0.15; persona stability ≥
-  0.80 against the previous run. A failed gate records the run
+  0.80 against the previous run; no regression against the champion (the
+  published run it would replace: accuracy down at most 0.01, WAPE ratio up
+  at most 0.03, set from an 8-Friday backfill, decision 22); and the run's
+  feature hash equal to the code's (decision 21). A failed gate records the run
   (`gate_passed = false`) and the backtest as evidence, keeps yesterday's
   personas, forecast and signals live, and exits 1.
 
@@ -174,6 +177,24 @@ Experiments go to scratch folders (`--warehouse /tmp/x --parquet-dir /tmp/y`,
   change that makes a model worse than the gate turns the commit red. Measured
   locally on the same 3,000-customer book: accuracy 0.926 / 0.935, WAPE ratio
   0.696, coverage 0.771, silhouette 0.166; gate PASS.
+- **`cai-pipeline`** (needs `train-validate`, pushes to main only, one at a
+  time): the same stages on Cloudera AI over the API v2
+  (`ci/trigger_cai_pipeline.py`, jobs in `ci/cai_jobs.py`). `spend-sync-code`
+  resets the CAI project to the pushed commit, then feature engineering and
+  training run into `artifacts/github/`, then evaluation runs the gate as a
+  dry run (`SPEND_DRY_RUN=1`) against the cluster's data and the published
+  champion. A rejection fails the check as `KPI GATE REJECTED the candidate`;
+  nothing is written, and the nightly DAG publishes. Until the `CAI_URL`
+  secret is set it prints a notice and passes (decision 23, runbook step 10).
+
+Every stage checks the **feature hash** (`spend.features.feature_hash()`: the
+feature columns, persona features and clip, covariates, categories, channels
+and a logic version): feature engineering stores it in the manifest, training
+refuses artifacts built with another, the gate checks it, it is stored in
+`spend_model_run` and MLflow, and the endpoint and app refuse to serve a run
+whose scaler and centroids came from other feature code.
+`tests/test_cai_contract.py` checks every CAI script against the job runtime:
+no module-level `__file__`, `parse_known_args`, no `sys.exit` on success.
 
 ## CDE
 
@@ -250,10 +271,12 @@ python cai/model/test_endpoint.py --local --context impala     # the four endpoi
 ```
 
 **Jobs**, all with no arguments (Airflow passes `SPEND_RUN_DATE` /
-`SPEND_TRIGGERED_BY` through the environment) and a Manual schedule:
+`SPEND_TRIGGERED_BY` through the environment, GitHub Actions the values in
+`ci/cai_jobs.py`) and a Manual schedule:
 
 | Job | Script | Resources |
 |---|---|---|
+| `spend-sync-code` | `cai/jobs/sync_code.py` | 1 vCPU / 2 GB |
 | `spend-categorise` | `cai/jobs/categorise.py` | 4 vCPU / 16 GB |
 | `spend-feature-engineering` | `cai/jobs/feature_engineering.py` | 2 vCPU / 8 GB |
 | `spend-model-training` | `cai/jobs/train_models.py` | 8 vCPU / 32 GB (or GPU) |
@@ -302,16 +325,19 @@ cde/jobs/            generate_spend_bronze, dq_check (GX), build_silver, build_g
 cde/dags/            spend_dag.py (daily Airflow DAG, 10 tasks)
 cde/scripts/         deploy_jobs.sh, deploy_dag.sh, backfill_drill.sh
 cde/resources/       requirements.txt for the CDE python-env (great_expectations==1.23.2)
-cai/jobs/            categorise, feature_engineering, train_models, evaluate_models, daily_run, backfill_history
+cai/jobs/            sync_code, categorise, feature_engineering, train_models, evaluate_models, daily_run,
+                      backfill_history
 cai/model/           predict.py (endpoint), test_endpoint.py
 app/                 Streamlit Spend Insights Console + CAI launcher
 config/              spend.yaml (names, storage, models), policy.yaml (categorise, personas, forecast, gate, signals)
+ci/                  cai_jobs.py (CAI job names), trigger_cai_pipeline.py (GitHub -> CAI API v2)
 scripts/             run_cde_local.py (CDE jobs on a laptop), spike_models.py
 sql/                 reports.sql (Hue)
 docs/                DEMO_RUNBOOK.md, PROJECT_LOG.md
-.github/workflows/   ci.yml (test, then train-validate with the KPI gate)
+.github/workflows/   ci.yml (test, train-validate with the KPI gate, cai-pipeline)
 tests/               pytest: generator, CDE jobs, categorise, models, pipeline, scoring, CAI jobs,
-                      orchestration, report SQL, headless app render
+                      CAI runtime contract, GitHub -> CAI trigger, orchestration, report SQL,
+                      headless app render
 ```
 
 ## Sources

@@ -31,6 +31,10 @@ gate:
   coverage_band: [0.60, 0.95] # share of actuals inside P10-P90
   min_silhouette: 0.15
   min_persona_stability: 0.80 # share of customers keeping their persona vs the previous run (skipped on the first)
+  # Non-regression against the champion (the published run the candidate would replace:
+  # the same run date's, else the last before), skipped when nothing is published (decision 22).
+  max_accuracy_drop: 0.01     # each accuracy >= champion - this; flat over 8 Fridays, 0.01 = 14 of 1,412 seed texts
+  max_wape_ratio_rise: 0.03   # wape_ratio <= champion + this; largest weekly rise over 8 Fridays +0.010
 
 signals:
   - {id: TRAVEL_SURGE, category: TRAVEL, ratio_4w_vs_norm: 3.0, min_amount_4w: 5000,

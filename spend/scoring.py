@@ -47,7 +47,7 @@ from spend import forecast as fc
 from spend import personas as ps
 from spend.categorise import SeedIndex, assign, normalise
 from spend.config import policy, settings
-from spend.features import (CAT_SHARES, CATEGORIES, CH_SHARES, CHANNELS, COVARIATES, DIGITAL_CHANNELS,
+from spend.features import (CAT_SHARES, CATEGORIES, feature_hash, CH_SHARES, CHANNELS, COVARIATES, DIGITAL_CHANNELS,
                             FEATURE_COLUMNS, MERCHANT_CHANNELS, PERSONA_FEATURES, TIER_SHARES, TIERS)
 
 logger = logging.getLogger(__name__)
@@ -60,7 +60,7 @@ WEEKS_13 = 13
 EVENT_COLUMNS = ["cif", "txn_date", "week_end", "amount", "channel", "merchant_key", "event_city", "event_city_tier",
                  "location_source", "is_home"]
 RUN_META = ("run_id", "run_date", "snapshot_date", "features_snapshot_id", "map_snapshot_id", "embedder_id",
-            "forecaster_id")
+            "forecaster_id", "feature_hash")
 
 
 @dataclass
@@ -438,6 +438,10 @@ def load_context(source: str = "auto", stub: bool = False, embedder=None, foreca
                     "merchant_category_map", "spend_event"):
             storage.refresh(key)
     run = latest_published_run(storage)
+    if run.get("feature_hash") != feature_hash():
+        raise RuntimeError(f"run {run['run_id']} was built with feature definition {run.get('feature_hash')}, this "
+                           f"code has {feature_hash()}: its scaler and centroids do not apply; rerun the daily job "
+                           f"with this code, then restart the endpoint")
     profile = storage.read("persona_profile", where_run_date=run["run_date"])
     if profile.empty:
         raise RuntimeError(f"persona_profile has no rows for run {run['run_id']} ({run['run_date']})")

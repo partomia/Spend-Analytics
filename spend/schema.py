@@ -56,7 +56,7 @@ OUTPUT_TABLES = {
         ("run_date", "DATE"), ("run_id", "STRING"), ("run_ts", "TIMESTAMP"), ("triggered_by", "STRING"),
         ("embedder_id", "STRING"), ("forecaster_id", "STRING"), ("model_versions", "STRING"), ("device", "STRING"),
         ("snapshot_date", "DATE"), ("features_snapshot_id", "STRING"), ("cohort_snapshot_id", "STRING"),
-        ("map_snapshot_id", "STRING"),
+        ("map_snapshot_id", "STRING"), ("feature_hash", "STRING"),
         ("n_customers_profiled", "INT"), ("k", "INT"), ("silhouette", "DOUBLE"), ("persona_stability", "DOUBLE"),
         ("ari_hidden", "DOUBLE"),
         ("category_accuracy_seed", "DOUBLE"), ("category_accuracy_mcc", "DOUBLE"), ("n_seed_holdout", "INT"),

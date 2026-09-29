@@ -96,6 +96,14 @@ def test_three_jobs_chain_through_artifacts(jobs_env):
     assert runs["triggered_by"].tolist() == ["airflow"] and not runs["outputs_published"].any()
 
 
+def test_evaluation_dry_run_from_the_environment(jobs_env):
+    st, art, run = jobs_env
+    assert run("feature_engineering", env={"SPEND_TRIGGERED_BY": "github"}) == 0
+    assert run("train_models", "--stub") == 0
+    assert run("evaluate_models", "--ignore-gate", env={"SPEND_DRY_RUN": "1"}) == 0
+    assert not st.exists("spend_model_run")
+
+
 def test_train_and_evaluate_default_to_the_last_prepared_date(jobs_env):
     st, art, run = jobs_env
     assert run("feature_engineering", "--run-date", D2.isoformat()) == 0

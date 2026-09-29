@@ -18,7 +18,9 @@ CAI Job spend-model-evaluation: stage 3 of 3 of the daily run (PLAN decision 1).
 
 Jobs > New Job: script cai/jobs/evaluate_models.py, Python 3.11 runtime,
 2 vCPU / 8 GB. Airflow passes the run date through SPEND_RUN_DATE; without it
-the job evaluates the folder feature engineering prepared last.
+the job evaluates the folder feature engineering prepared last. The GitHub chain
+(ci/trigger_cai_pipeline.py) sets SPEND_DRY_RUN=1: the gate decides, nothing is
+written.
 
   python cai/jobs/evaluate_models.py --dry-run                  # gate only, writes nothing
   python cai/jobs/evaluate_models.py --backend parquet --ignore-gate
@@ -57,7 +59,9 @@ def main() -> int:
     p.add_argument("--run-date", default=os.environ.get("SPEND_RUN_DATE") or None,
                    help="run date trained by spend-model-training, YYYY-MM-DD (default: the latest prepared)")
     p.add_argument("--backend", default=None, help="impala | parquet (default: config)")
-    p.add_argument("--dry-run", action="store_true", help="do not write any table or MLflow run")
+    p.add_argument("--dry-run", action="store_true",
+                   default=os.environ.get("SPEND_DRY_RUN", "").lower() in ("1", "true", "yes"),
+                   help="do not write any table or MLflow run (env SPEND_DRY_RUN=1, as the GitHub chain sets)")
     p.add_argument("--publish-on-fail", action="store_true", help="publish today's outputs even if the gate fails")
     p.add_argument("--ignore-gate", action="store_true", help="exit 0 even if the KPI gate fails")
     args, _ = p.parse_known_args()  # a Jupyter-kernel job runtime adds -f <kernel.json>
