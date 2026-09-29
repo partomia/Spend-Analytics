@@ -167,6 +167,15 @@ class ParquetStorage:
         self._cache.pop(key, None)
 
 
+def _q(column: str) -> str:
+    """Backtick-quote an identifier: Impala reserves words such as `method`."""
+    return f"`{column}`"
+
+
+def _cols(columns: list[str] | None) -> str:
+    return ", ".join(_q(c) for c in columns) if columns else "*"
+
+
 class ImpalaStorage:
     name = "impala"
 
@@ -238,7 +247,7 @@ class ImpalaStorage:
 
     def read(self, key: str, where_run_date: date | None = None, columns: list[str] | None = None,
              snapshot_id: str | None = None) -> pd.DataFrame:
-        sql = f"SELECT {', '.join(columns) if columns else '*'} FROM {self.source(key, snapshot_id)}"
+        sql = f"SELECT {_cols(columns)} FROM {self.source(key, snapshot_id)}"
         if where_run_date is not None:
             sql += f" WHERE run_date = {_d(where_run_date)}"
         return self.query(sql)
@@ -246,13 +255,13 @@ class ImpalaStorage:
     def read_where(self, key: str, column: str, values, columns: list[str] | None = None,
                    snapshot_id: str | None = None) -> pd.DataFrame:
         values = sorted(set(values))
-        cols = ", ".join(columns) if columns else "*"
+        cols = _cols(columns)
         src = self.source(key, snapshot_id)
         if not values:
             return self.query(f"SELECT {cols} FROM {src} LIMIT 0")
         typ = "DATE" if column in ("snapshot_date", "run_date", "week_end", "first_run_date") else "STRING"
         in_list = ", ".join(_sql_literal(v, typ) for v in values)
-        return self.query(f"SELECT {cols} FROM {src} WHERE {column} IN ({in_list})")
+        return self.query(f"SELECT {cols} FROM {src} WHERE {_q(column)} IN ({in_list})")
 
     def run_dates(self, key: str) -> list[date]:
         return self.distinct_dates(key, "run_date")
@@ -260,7 +269,7 @@ class ImpalaStorage:
     def distinct_dates(self, key: str, column: str, snapshot_id: str | None = None) -> list[date]:
         if not self.exists(key):
             return []
-        df = self.query(f"SELECT DISTINCT {column} FROM {self.source(key, snapshot_id)}")
+        df = self.query(f"SELECT DISTINCT {_q(column)} FROM {self.source(key, snapshot_id)}")
         return sorted(pd.to_datetime(df[column]).dt.date) if not df.empty else []
 
     def new_merchant_keys(self) -> pd.DataFrame:
@@ -276,7 +285,7 @@ class ImpalaStorage:
         if key in self._ensured:
             return
         full = table(key)
-        cols = ", ".join(f"{c} {t}" for c, t in OUTPUT_TABLES[key])
+        cols = ", ".join(f"{_q(c)} {t}" for c, t in OUTPUT_TABLES[key])
         part = f" PARTITIONED BY SPEC ({PARTITION[key]})" if PARTITION.get(key) else ""
         self.execute(f"CREATE DATABASE IF NOT EXISTS {full.split('.')[0]}")
         self.execute(f"CREATE TABLE IF NOT EXISTS {full} ({cols}){part} "
@@ -292,7 +301,7 @@ class ImpalaStorage:
             values = ",\n".join(
                 "(" + ", ".join(_sql_literal(r[c], t) for c, t in cols) + ")"
                 for r in records[i:i + chunk])
-            self.execute(f"INSERT INTO {full} ({', '.join(c for c, _ in cols)}) VALUES {values}")
+            self.execute(f"INSERT INTO {full} ({', '.join(_q(c) for c, _ in cols)}) VALUES {values}")
 
     def replace_run(self, key: str, df: pd.DataFrame, run_date: date) -> None:
         self.ensure_table(key)

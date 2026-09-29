@@ -110,12 +110,12 @@ ORDER BY s.signal_id, s.metric_value DESC
 LIMIT 25;
 
 -- 10. The categoriser: how merchant keys were mapped, and the newest keys
-SELECT method, category, COUNT(*) AS merchant_keys, ROUND(AVG(similarity), 3) AS avg_similarity
+SELECT `method`, category, COUNT(*) AS merchant_keys, ROUND(AVG(similarity), 3) AS avg_similarity
 FROM rsingh_spend_anl_ref.merchant_category_map
-GROUP BY method, category
-ORDER BY method, merchant_keys DESC;
+GROUP BY `method`, category
+ORDER BY `method`, merchant_keys DESC;
 
-SELECT first_run_date, merchant_key, category, method, ROUND(similarity, 3) AS similarity, nearest_seed
+SELECT first_run_date, merchant_key, category, `method`, ROUND(similarity, 3) AS similarity, nearest_seed
 FROM rsingh_spend_anl_ref.merchant_category_map
 ORDER BY first_run_date DESC, similarity
 LIMIT 25;

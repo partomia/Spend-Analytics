@@ -6,6 +6,7 @@ import pytest
 
 from spend import storage
 from spend.schema import OUTPUT_TABLES
+from tests.conftest import ROOT
 
 
 def _flow(run_date, n=2):
@@ -85,3 +86,26 @@ def test_sql_literals():
 def test_pinned_source():
     assert storage.ImpalaStorage.source("spend_features", "123").endswith("FOR SYSTEM_VERSION AS OF 123")
     assert "SYSTEM_VERSION" not in storage.ImpalaStorage.source("spend_features")
+
+
+IMPALA_RESERVED = {line.strip() for line in (ROOT / "tests" / "data" / "impala_reserved_words.txt").read_text().splitlines()
+                   if line.strip() and not line.startswith("#")}
+
+
+def test_impala_sql_quotes_every_column():
+    st = FakeImpala()
+    cols = [c for c, _ in OUTPUT_TABLES["merchant_category_map"]]
+    st.append("merchant_category_map", pd.DataFrame([{c: None for c in cols} | {"merchant_key": "k"}]))
+    st.read("merchant_category_map", columns=["merchant_key", "category", "method"])
+    create, insert, select = (next(s for s in st.sql if s.startswith(p)) for p in ("CREATE TABLE", "INSERT", "SELECT"))
+    assert "`method` STRING" in create and "`method`" in insert and "`method`" in select
+    assert all(f"`{c}`" in create for c in cols)
+
+
+def test_reserved_column_names_are_quoted_in_the_report_sql():
+    import re
+    reserved = {c for cols in OUTPUT_TABLES.values() for c, _ in cols} & IMPALA_RESERVED
+    assert reserved == {"method"}                       # a new one needs quoting in sql/reports.sql too
+    sql = re.sub(r"--.*", "", (ROOT / "sql" / "reports.sql").read_text())
+    for word in reserved:
+        assert not re.search(rf"(?<![`\w]){word}(?![`\w])", sql), word

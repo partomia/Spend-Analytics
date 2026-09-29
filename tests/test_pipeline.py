@@ -121,8 +121,8 @@ def test_run_date_must_be_a_snapshot(store):
 def test_impala_reads_are_pinned_to_the_snapshot():
     st = FakeImpala({"SHOW TABLES": pd.DataFrame({"name": ["spend_features"]})})
     st.read_where("spend_features", "snapshot_date", [D1], columns=["cif"], snapshot_id="42")
-    assert st.sql[-1] == ("SELECT cif FROM rsingh_spend_anl_gold.spend_features FOR SYSTEM_VERSION AS OF 42 "
-                          "WHERE snapshot_date IN (DATE '2026-08-21')")
+    assert st.sql[-1] == ("SELECT `cif` FROM rsingh_spend_anl_gold.spend_features FOR SYSTEM_VERSION AS OF 42 "
+                          "WHERE `snapshot_date` IN (DATE '2026-08-21')")
     st.distinct_dates("spend_features", "snapshot_date", "42")
-    assert st.sql[-1].startswith("SELECT DISTINCT snapshot_date FROM rsingh_spend_anl_gold.spend_features "
+    assert st.sql[-1].startswith("SELECT DISTINCT `snapshot_date` FROM rsingh_spend_anl_gold.spend_features "
                                  "FOR SYSTEM_VERSION AS OF 42")
