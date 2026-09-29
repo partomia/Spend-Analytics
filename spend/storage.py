@@ -116,7 +116,8 @@ class ParquetStorage:
             df = df[columns]
         return df.reset_index(drop=True)
 
-    def read_where(self, key: str, column: str, values, columns: list[str] | None = None) -> pd.DataFrame:
+    def read_where(self, key: str, column: str, values, columns: list[str] | None = None,
+                   snapshot_id: str | None = None) -> pd.DataFrame:
         df = self.read(key, columns=None)
         if column in ("snapshot_date", "run_date", "week_end"):
             df = df[pd.to_datetime(df[column]).dt.date.isin(set(values))]
@@ -125,9 +126,12 @@ class ParquetStorage:
         return (df[columns] if columns is not None else df).reset_index(drop=True)
 
     def run_dates(self, key: str) -> list[date]:
+        return self.distinct_dates(key, "run_date")
+
+    def distinct_dates(self, key: str, column: str, snapshot_id: str | None = None) -> list[date]:
         if not self.exists(key):
             return []
-        return sorted(pd.to_datetime(self.read(key, columns=["run_date"])["run_date"]).dt.date.unique())
+        return sorted(pd.to_datetime(self.read(key, columns=[column])[column]).dt.date.unique())
 
     def replace_run(self, key: str, df: pd.DataFrame, run_date: date) -> None:
         cols = OUTPUT_TABLES[key]
@@ -239,20 +243,25 @@ class ImpalaStorage:
             sql += f" WHERE run_date = {_d(where_run_date)}"
         return self.query(sql)
 
-    def read_where(self, key: str, column: str, values, columns: list[str] | None = None) -> pd.DataFrame:
+    def read_where(self, key: str, column: str, values, columns: list[str] | None = None,
+                   snapshot_id: str | None = None) -> pd.DataFrame:
         values = sorted(set(values))
         cols = ", ".join(columns) if columns else "*"
+        src = self.source(key, snapshot_id)
         if not values:
-            return self.query(f"SELECT {cols} FROM {table(key)} LIMIT 0")
-        typ = "DATE" if column in ("snapshot_date", "run_date", "week_end") else "STRING"
+            return self.query(f"SELECT {cols} FROM {src} LIMIT 0")
+        typ = "DATE" if column in ("snapshot_date", "run_date", "week_end", "first_run_date") else "STRING"
         in_list = ", ".join(_sql_literal(v, typ) for v in values)
-        return self.query(f"SELECT {cols} FROM {table(key)} WHERE {column} IN ({in_list})")
+        return self.query(f"SELECT {cols} FROM {src} WHERE {column} IN ({in_list})")
 
     def run_dates(self, key: str) -> list[date]:
+        return self.distinct_dates(key, "run_date")
+
+    def distinct_dates(self, key: str, column: str, snapshot_id: str | None = None) -> list[date]:
         if not self.exists(key):
             return []
-        df = self.query(f"SELECT DISTINCT run_date FROM {table(key)}")
-        return sorted(pd.to_datetime(df["run_date"]).dt.date) if not df.empty else []
+        df = self.query(f"SELECT DISTINCT {column} FROM {self.source(key, snapshot_id)}")
+        return sorted(pd.to_datetime(df[column]).dt.date) if not df.empty else []
 
     def new_merchant_keys(self) -> pd.DataFrame:
         """merchant_key, mcc, n_events for silver keys not yet in ref.merchant_category_map."""

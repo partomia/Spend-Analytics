@@ -181,6 +181,31 @@ Names:
     still one snapshot per load, and CDW Impala reads it without delete files.
     Merge-on-read (`write.merge.mode`) would write only the changes; it is
     worth trying live at 200k in Phase 9 only if gold load time matters.
+14. **Persona inputs are clipped at +-3 standard deviations.** On the spec's 27
+    standardised features, silhouette peaks at 0.149 (k=8), below the 0.15 gate:
+    a few customers with one huge ticket pull clusters of their own. Clipping the
+    standardised values at +-3 gives 0.166 (k=8) and improves recovery of the
+    hidden archetypes (ARI 0.60 -> 0.65 at k=8, 0.64 -> 0.68 at k=7), so it is a
+    better clustering, not just a better score. PCA would score higher (0.23-0.27),
+    but only because silhouette is then measured in fewer dimensions, so it is not
+    used. Four consecutive Fridays: silhouette 0.166-0.168, stability 0.945-0.958,
+    the same 8 IDs and names each week.
+15. **The seasonal-naive trend needs 4 weeks with a year-ago value.** Otherwise the
+    trend is 1.0. The earliest backtest cut-off has 53 weeks of history, so its
+    13-week trend would rest on one week and swing the baseline by tens of percent
+    (WAPE 0.28 against 0.19). 20k book, 4 cut-offs x 12 weeks x 224 series:
+    Chronos-2 with the 5 calendar covariates has WAPE 0.151 against 0.195 for
+    naive (ratio 0.775), and P10-P90 coverage 0.765. Without covariates WAPE is
+    0.177, so the covariates earn their place.
+16. **TRAVEL_SURGE compares the last 4 weeks with the 9 weeks before them.** A
+    13-week norm includes the surge, so 4 weeks against it can never exceed
+    13/4 = 3.25, and a 3x threshold would mean "almost all travel was recent".
+    On 2026-09-25: 1,004 TRAVEL_SURGE (unit 0 at 88x his norm), 512
+    FESTIVE_ELECTRONICS and 8 RELOCATION (unit 1). The volumes are a policy
+    setting, not a model output: `min_amount_4w` is the knob. The hidden-MCC
+    categoriser holdout uses every MCC-mapped key of the pinned map snapshot,
+    whatever its first_run_date: it measures the model, not a dated output, and
+    a backfill date would otherwise see an empty map.
 
 ## Method (demo policy, see `config/policy.yaml`)
 
@@ -221,7 +246,11 @@ Names:
   failed; uncategorised 0.0%; the category mix reconciles with the cohort series in
   every week. Planted customers visible: unit 0 TRAVEL INR 91k in 4 weeks, unit 1
   away 4 of 4 weeks, unit 2 ELECTRONICS INR 85k in the 4 weeks to 2025-10-24. 64 tests.
-- [ ] **5. Core ML**: personas, forecast, signals, gate, three-stage pipeline, storage.
+- [x] **5. Core ML**: `spend/{personas,forecast,signals,gate,pipeline}.py`, snapshot-pinned
+  storage reads. Real models on the 20k book, 2026-09-18 then 2026-09-25, 35-45 s a
+  run on the laptop CPU. On the 2026-09-25 run every gate check passes: category
+  accuracy 0.926 / 0.934, WAPE ratio 0.775, coverage 0.765, silhouette 0.166 (k=8),
+  stability 0.958; ARI vs the hidden archetypes 0.654; 1,524 signals. 87 tests.
 - [ ] **6. CAI jobs + endpoint**: the four jobs + `daily_run.py`, backfill, `predict.py`, `test_endpoint.py`.
 - [ ] **7. Spend Insights Console**: 10 tabs + AppTest.
 - [ ] **8. Orchestration + CI + docs**: DAG, deploy / backfill scripts, CI (test + train-validate), SQL, README, runbook.

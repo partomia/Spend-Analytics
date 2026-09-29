@@ -154,3 +154,45 @@ Churn; all local, none modified) and the Cloudera AI MLOps workshop. Adopted as
   families, uncategorised, salary weeks, trend, located away share and away
   weeks). Also the dense cohort grid over complete weeks only, and the mix
   category totals. `pytest -q`: 64 passed.
+
+### Phase 5: Core ML
+
+- Three stages in `spend/pipeline.py`, handing off through `artifacts/<run_date>/`:
+  - `feature_engineering` pins the snapshots of features, cohort and map, reads
+    the run's snapshot, the snapshot 4 weeks earlier, cohort weeks up to the
+    run date, the calendar, the categoriser inputs and the previous published
+    run. It writes `manifest.json` and the inputs.
+  - `train_models` fits the personas, runs the categoriser holdouts, the
+    backtest and forecast, and the signals, writing outputs and `metrics.json`.
+  - `evaluate_models` applies the gate, builds `spend_model_run`, calls the
+    tracker hook and writes the tables; `spend_model_run` goes last.
+  - A failed gate writes only `spend_model_run` and `spend_backtest`, as
+    evidence.
+- Measured before building:
+  - Chronos-2 vs seasonal naive on the 20k cohort series: 0.151 vs 0.195 WAPE,
+    coverage 0.765, about 2-3 s per cut-off on CPU.
+  - A single-week trend wrecks the earliest naive cut-off (0.28), which
+    became decision 15.
+  - KMeans silhouette topped out at 0.149. Clipping at +-3 sd gives 0.166
+    with better ARI (decision 14). Stability with warm start or Hungarian
+    matching is about 0.96 either way; Hungarian is kept, as the spec asks.
+- Signals: the TRAVEL_SURGE norm is the prior 9 weeks (decision 16). RELOCATION
+  needs `away_weeks_4w >= 3` (new `min_away_weeks` in the policy), a prior
+  away share <= 0.3 and 4 or more transactions. All three planted customers
+  fire: unit 0 TRAVEL_SURGE at 88x, unit 1 RELOCATION 100% for 4 of 4 weeks,
+  unit 2 FESTIVE_ELECTRONICS INR 85k on 2025-10-24.
+- Bug found by the first real two-date run: the 2026-09-18 run saw 0 map keys,
+  because the one local categorise run stamped every key 2026-09-25. The
+  hidden-MCC holdout was empty and the gate (rightly) failed an unmeasured KPI.
+  The holdout now uses the whole pinned map.
+- Real models, `data/parquet`, 2026-09-18 then 2026-09-25: both published. On
+  2026-09-25 every gate check passes (stability 0.958 vs 2026-09-18), in 35 s.
+  Stub run: 13 s, the gate fails on WAPE ratio 1.000 and coverage 0.500 by
+  construction.
+- Tests: `test_models.py` (scaler, fit, stable IDs across relabelled runs, new
+  IDs for extra clusters, keep-k, naive trend and its guard, backtest cut-offs,
+  KPIs, each signal rule and its negatives, each gate check failing) and
+  `test_pipeline.py` (failed gate keeps only the evidence, two published runs
+  chain IDs / stability / flow, reruns replace the day, stages need their
+  inputs, run date must be a snapshot, Impala reads pinned with
+  FOR SYSTEM_VERSION AS OF). `pytest -q`: 87 passed.

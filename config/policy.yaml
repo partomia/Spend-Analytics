@@ -37,5 +37,5 @@ signals:
      action: "Travel card / forex offer"}
   - {id: FESTIVE_ELECTRONICS, category: ELECTRONICS, min_amount_4w: 50000, festival_weeks: true,
      action: "EMI conversion offer"}
-  - {id: RELOCATION, away_share_4w: 0.7, max_prior_away_share: 0.3, min_txn_4w: 4,
+  - {id: RELOCATION, away_share_4w: 0.7, min_away_weeks: 3, max_prior_away_share: 0.3, min_txn_4w: 4,
      action: "Offer home-branch change"}
