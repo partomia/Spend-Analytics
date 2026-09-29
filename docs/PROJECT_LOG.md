@@ -524,3 +524,30 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
   `rsingh-spend-anl-orchestration`. The Airflow API shows `is_paused` true
   and 0 DAG runs; the next logical date is 2026-09-27 21:00 UTC, so
   unpausing runs as_of 2026-09-27.
+- First DAG run (unpaused 14:52 UTC, run 2390, as_of 2026-09-27): stopped
+  in `generate_spend_bronze` (run 2391) by cluster capacity, not by the code.
+  - The driver pod waited 17 min (14:55 to 15:12). Two executor pod requests
+    were withdrawn as "excess" at 15:12:41.
+  - After that, Spark logged "Initial job has not accepted any resources"
+    every 15 s for over an hour. No other run on the vcluster was active.
+  - Same job size as run 2377, which finished in about 4 min on 25 Sep:
+    driver 4 cores / 8 GB, executors 8 cores / 12 GB, 2 minimum / 4 initial
+    / 16 maximum. Larger executors would be harder to place, not easier.
+  - An Impala `DESCRIBE HISTORY` from the laptop hung for 13 min at the same
+    time.
+  - Ravi moved the project to another cluster. On this one, at 16:17 UTC,
+    runs 2390 and 2391 were killed and the DAG was paused again
+    (`is_paused` true), so the nightly 21:00 UTC run does not fire.
+- GitHub -> CAI: the secrets `CAI_URL`, `CAI_API_KEY` and `CAI_PROJECT_ID`
+  were set with `gh secret set` from `.env` (values never printed).
+  - Not exercised yet: the re-run of `cai-pipeline` was held while the DAG's
+    CAI tasks could still run, so that sync-code could not reset code under
+    them.
+  - Chest-X-ray-Triage, set up the same way today, could not connect from
+    GitHub's hosted runners to its workbench. Such workbenches are often not
+    reachable from the public internet, which calls for a self-hosted runner
+    (docs/DEMO_RUNBOOK.md step 10).
+  - While the secrets are set, every push to main runs the chain against
+    this workbench. If it is unreachable, the `cai-pipeline` check fails at
+    the first API call (listing jobs), before any job starts.
+
