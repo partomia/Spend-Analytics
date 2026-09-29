@@ -6,6 +6,7 @@
 categorise:
   min_similarity: 0.45        # below this the nearest seed is not trusted; fall back to category descriptions
   knn: 5                      # seed merchants voting, weighted by cosine similarity
+  taxonomy_prior: 1.0         # + this x the similarity to each category description (PLAN decision 11)
   seed_holdout_share: 0.2     # seed merchants held out to measure accuracy on names the index never saw
   mcc_holdout_rows: 5000      # card merchants whose MCC is hidden for the second accuracy check
 

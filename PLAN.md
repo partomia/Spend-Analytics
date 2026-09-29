@@ -153,11 +153,26 @@ Names:
     the 2026-09-25 run), a Hyderabad bill payer who relocates to Nagpur on
     2026-08-24 (RELOCATION), and a Pune online shopper buying ~INR 67k of electronics
     over Diwali 2025 (FESTIVE_ELECTRONICS on the Oct 2025 backfill runs).
+11. **EMBEDDING blends MiniLM with character n-grams, plus a category-description
+    prior.** MiniLM alone does not pass the 0.85 gate: best 0.82 on the seed holdout
+    (k in 1..10, with or without the prior) and at most 0.85 on card merchants that
+    miss the seed index. UPI payee names are truncated, have their vowels dropped or
+    are run together ("PHONEPE*RAMESHKIRANA"). MiniLM's word pieces lose those, and
+    owner names shared across shop types ("vivaan clinic" vs "vivaan diagnostics") then
+    dominate. Similarity is now 0.5 x MiniLM cosine + 0.5 x TF-IDF character 2-4 gram
+    cosine (`model.char_weight`). The 5-NN vote adds 1.0 x the similarity to each
+    category description (`categorise.taxonomy_prior`). On the 20k book: 0.926 on the
+    seed holdout (1,412 names), 0.934 on 2,932 card merchants with the MCC hidden
+    (0.901 on the 1,392 that miss the seed index). Character n-grams alone score about
+    the same here (0.938 / 0.933), because synthetic names carry their type in the
+    spelling. MiniLM stays in for what n-grams cannot do on real data: brand names with
+    no type word, and synonyms. The n-gram half alone is the stub (CI, no torch).
 
 ## Method (demo policy, see `config/policy.yaml`)
 
-- **Categorise**: MCC (card) -> SEED (exact normalised match) -> EMBEDDING (MiniLM,
-  5-NN similarity-weighted vote, similarity >= 0.45) -> FALLBACK (nearest category
+- **Categorise**: MCC (card) -> SEED (exact normalised match) -> EMBEDDING (MiniLM +
+  character n-grams, 5-NN similarity-weighted vote + category-description prior,
+  similarity >= 0.45, decision 11) -> FALLBACK (nearest category
   description, else OTHER). Gate: accuracy >= 0.85 on a 20% seed-variant holdout and
   on 5,000 card merchants with the MCC hidden.
 - **Personas**: KMeans on 27 standardised features for customers with >= 5
@@ -181,7 +196,11 @@ Names:
   68 bronze + 23 silver checks, 0 failed on the 20k book (silver 15 s: 19,416 customers,
   2.80M events, 0.0% unresolved, 48.2% home fallback); `--inject-bad-data` fails
   exactly one critical check (2.0% unknown payer VPAs) and `dq_bronze` exits 1. 49 tests.
-- [ ] **3. Categorise**: `spend/categorise.py`, `cai/jobs/categorise.py`, local stage, stub.
+- [x] **3. Categorise**: `spend/categorise.py`, `spend/models.py`, `cai/jobs/categorise.py`,
+  `new_merchant_keys()` on both storages, local stage, stub. 20k book: 21,466 keys in
+  29 s (SEED 6,776, MCC 2,932, EMBEDDING 11,756, FALLBACK 2). Every one of 1.98M
+  merchant events is mapped, and a rerun adds nothing. Accuracy 0.926 on the seed
+  holdout and 0.934 with the MCC hidden (decision 11). 60 tests.
 - [ ] **4. Gold + DQ gold**: `build_gold_features.py` (three gold tables, MERGE), gold checks.
 - [ ] **5. Core ML**: personas, forecast, signals, gate, three-stage pipeline, storage.
 - [ ] **6. CAI jobs + endpoint**: the four jobs + `daily_run.py`, backfill, `predict.py`, `test_endpoint.py`.

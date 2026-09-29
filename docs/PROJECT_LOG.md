@@ -100,3 +100,27 @@ Churn; all local, none modified) and the Cloudera AI MLOps workshop. Adopted as
   `upi_txn.payer_vpa in vpa_registry` at 1.999% orphans; exit 1.
 - `pytest -q`: 49 passed (the Spark `merchant_key` equals `spend.categorise.normalise`
   on ~1,000 payee names and variants).
+
+### Phase 3: Categorise
+
+- `spend/categorise.py`: MCC (modal MCC of a card key) -> SEED (exact normalised
+  name) -> EMBEDDING (5-NN vote over the seed names) -> FALLBACK (nearest category
+  description, else OTHER). `categorise_new` returns map rows with `model_id`,
+  `first_run_date` and `run_id`. The map is append-only, so a key keeps its first
+  category. The seed holdout (20% of variant names, by hash, never a canonical
+  name) and the hidden-MCC holdout (5,000 card keys) are the functions the Phase 5
+  evaluate stage gates on.
+- First measurement, MiniLM alone: 0.819 on the seed holdout, a fail. A grid over k
+  (1, 3, 5, 10) and a category-description prior (0 to 2) topped out at 0.82 on the
+  seed holdout and 0.85 on card keys the seed index misses. Most errors are
+  spelling-mangled payee names and shared owner names. A TF-IDF over character
+  2-4 grams scored 0.93-0.94 on the same splits. Blending the two 50/50 with the
+  prior gives 0.926 / 0.934 (decision 11), and the character half is the stub.
+- `cai/jobs/categorise.py` (CAI job spend-categorise), in the Churn job shape:
+  SPEND_RUN_DATE / SPEND_TRIGGERED_BY, `parse_known_args`, and exit only on
+  failure. It reads new keys with `new_merchant_keys()` (Impala LEFT ANTI JOIN
+  against the map, or pandas on parquet), appends them, and exits 1 if any key is
+  still unmapped.
+- Local stage on the 20k book: 21,466 keys in 29 s; 0 of 1,982,830 merchant events
+  unmapped; a second run is a no-op. OTHER holds 6.2% of merchant spend.
+- `pytest -q`: 60 passed.

@@ -66,6 +66,7 @@ model:
   device: ""                        # "" = cuda if available, else cpu (both models run on CPU; see PLAN decisions)
   local_dir: ""                     # air-gapped: folder holding both downloaded models (SPEND_MODEL_LOCAL_DIR)
   embed_batch: 256
+  char_weight: 0.5                  # EMBEDDING = (1 - w) MiniLM + w character n-gram cosine (PLAN decision 11)
 
 endpoint:
   url: ""                           # CAI model deployment URL (SPEND_ENDPOINT_URL)

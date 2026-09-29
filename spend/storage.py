@@ -142,6 +142,15 @@ class ParquetStorage:
         self._cache.pop(key, None)
         logger.info("wrote %d rows for %s to %s", (df["run_date"] == run_date).sum(), run_date, path.name)
 
+    def new_merchant_keys(self) -> pd.DataFrame:
+        """merchant_key, mcc, n_events for silver keys not yet in ref.merchant_category_map."""
+        ev = self.read("spend_event", columns=["merchant_key", "mcc"]).dropna(subset=["merchant_key"])
+        if self.exists("merchant_category_map"):
+            ev = ev[~ev["merchant_key"].isin(set(self.read("merchant_category_map", columns=["merchant_key"])
+                                                  ["merchant_key"]))]
+        return (ev.groupby(["merchant_key", "mcc"], dropna=False).size().reset_index(name="n_events")
+                .sort_values(["merchant_key", "mcc"]).reset_index(drop=True))
+
     def append(self, key: str, df: pd.DataFrame) -> None:
         cols = OUTPUT_TABLES[key]
         df = _cast(df[[c for c, _ in cols]], cols)
@@ -244,6 +253,15 @@ class ImpalaStorage:
             return []
         df = self.query(f"SELECT DISTINCT run_date FROM {table(key)}")
         return sorted(pd.to_datetime(df["run_date"]).dt.date) if not df.empty else []
+
+    def new_merchant_keys(self) -> pd.DataFrame:
+        """merchant_key, mcc, n_events for silver keys not yet in ref.merchant_category_map."""
+        anti = ""
+        if self.exists("merchant_category_map"):
+            anti = f" LEFT ANTI JOIN {table('merchant_category_map')} m ON e.merchant_key = m.merchant_key"
+        return self.query(f"SELECT e.merchant_key, e.mcc, COUNT(*) AS n_events FROM {table('spend_event')} e{anti} "
+                          f"WHERE e.merchant_key IS NOT NULL GROUP BY e.merchant_key, e.mcc "
+                          f"ORDER BY e.merchant_key, e.mcc")
 
     def ensure_table(self, key: str) -> None:
         if key in self._ensured:
