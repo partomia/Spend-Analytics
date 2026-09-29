@@ -609,4 +609,17 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
     `20260928-d0b1059b`, hash `aa21012976534ed4`.
   - The planted customer is Tier-1 traveller with TRAVEL_SURGE; the what-if
     moves him to Tier-1 digital foodie.
+- The DAG now sets `max_active_runs=1` (`57396ee`): each run regenerates
+  bronze and replaces its date's outputs, so a scheduled run must queue
+  behind an earlier one, not overlap it.
+  - Unpaused at 19:50 UTC. CDE run 17 (as_of 2026-09-27) started at once;
+    the 21:00 UTC run (as_of 2026-09-28) queues behind it.
+  - generate_spend_bronze 544 s, dq_bronze 324 s.
+- GitHub -> CAI on the federal workbench works from GitHub's hosted runners.
+  - The three secrets were set while CI for `57396ee` was running, but its
+    `cai-pipeline` job still skipped: a run keeps the secrets it started
+    with. Re-running that job picked them up.
+  - Chain: sync-code (EXPECTED_GIT_SHA 57396ee), feature engineering,
+    training and evaluation (dry run) all succeeded. "KPI gate passed for
+    commit 57396ee".
 
