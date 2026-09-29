@@ -182,16 +182,19 @@ def ensure_app(wb: Workbench, project: dict, ready: bool, dry_run: bool) -> None
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--skip-serving", action="store_true",
+                   help="no model or application yet (they serve the published run, so a new cluster needs one first)")
     args, _ = p.parse_known_args()
     wb = Workbench(os.environ["SPEND_CAI_HOST"], os.environ["SPEND_CAI_API_KEY"])
     project = ensure_project(wb, args.dry_run)
     if project is None:
         return 0
     ids = ensure_jobs(wb, project, args.dry_run)
-    model = ensure_model(wb, project, args.dry_run)
+    model = None if args.skip_serving else ensure_model(wb, project, args.dry_run)
     endpoint = endpoint_env(wb, model)
     ensure_env(wb, project, args.dry_run, endpoint)
-    ensure_app(wb, project, "SPEND_ENDPOINT_API_KEY" in endpoint, args.dry_run)
+    if not args.skip_serving:
+        ensure_app(wb, project, "SPEND_ENDPOINT_API_KEY" in endpoint, args.dry_run)
     print(f"\nSPEND_CAI_PROJECT_ID = {project['id']}")
     for name, var in (("spend-categorise", "SPEND_CAI_CATEGORISE_JOB_ID"),
                       ("spend-feature-engineering", "SPEND_CAI_FEATURES_JOB_ID"),

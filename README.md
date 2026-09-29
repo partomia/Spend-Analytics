@@ -210,7 +210,7 @@ silver and 27 gold checks, 0 failed.
 ```
 
 `deploy_jobs.sh` sizes each job for the vcluster's queue (a 4-core / 8 GB
-driver, executors of 8 cores / 12 GB from 2 to 16) and builds the
+driver, executors of 4 cores / 8 GB from 1 to 16, 2 at start) and builds the
 `rsingh-spend-anl-python-env` resource (Great Expectations only). After a
 code change: `git push`, then `cde repository sync --name
 rsingh-spend-anl-pipeline`. Run-time `--arg` values replace the job's own,

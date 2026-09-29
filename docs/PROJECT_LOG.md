@@ -551,3 +551,32 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
     this workbench. If it is unreachable, the `cai-pipeline` check fails at
     the first API call (listing jobs), before any job starts.
 
+### Phase 9b: the federal environment (from 2026-09-29)
+
+- Ravi moved all projects to a new environment. The committed hosts were
+  repointed in `523299c`.
+  - The `cde` CLI logs in with the workload user and password
+    (`auth-pass-file`): the environment is in another CDP account, so the
+    old access key fails with "Environment ... not found".
+  - `CAI_URL` was deleted from GitHub before that push, so `cai-pipeline`
+    skipped.
+- CDE: `deploy_jobs.sh` created the repository (cloned from GitHub), the
+  python-env (built from PyPI in about 6 min) and four jobs.
+- CAI: `setup_cai.py --skip-serving` created the project
+  (`gq4g-0gpd-etm4-0j7n`) and five jobs. The model and app wait for a
+  published run.
+  - `spend-sync-code` installed `requirements.txt` in 751 s, so the
+    workbench reaches PyPI.
+  - The runtime `python3.11-standard:2026.08.1-b5` exists here as well.
+- Airflow: the seven Variables were created. The DAG was registered paused
+  (`is_paused` true, 0 runs).
+- Bronze, run 1: rejected in 37 s. "queue root.dex-app-bxjjm2cr cannot fit
+  application: task group request memory 84 GB, vcore 36.1, pods 5 larger
+  than max queue allocation".
+  - The vcluster's quota is below the go01 sizing (driver plus 4 initial
+    8-core / 12 GB executors).
+  - The jobs now use 4-core / 8 GB executors, 1 minimum / 2 initial / 16
+    maximum (the new default in `deploy_jobs.sh`).
+  - Run 2 was admitted after about 2.5 min and succeeded in about 21 min
+    (about 4 min on go01 at the larger size).
+

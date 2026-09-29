@@ -17,11 +17,13 @@
 #   cde credential create --name my-github-pat --type basic --username <github-user>
 #   GIT_CREDENTIAL=my-github-pat ./cde/scripts/deploy_jobs.sh
 #
-# Resources (the sibling projects' sizing): a 4-core / 8 GB driver and
-# executors of 8 cores / 12 GB, 2 min / 4 initial / 16 max. The vcluster's
-# YuniKorn queue must fit the driver plus the initial executors up front
-# (PySpark adds 40% memory overhead); dynamic allocation adds executors as
-# capacity frees up.
+# Resources: a 4-core / 8 GB driver and executors of 4 cores / 8 GB, 1 min /
+# 2 initial / 16 max. The vcluster's YuniKorn queue must fit the driver plus
+# the initial executors up front (PySpark adds 40% memory overhead), or the run
+# is rejected ("larger than max queue allocation"; the federal vcluster rejected
+# 8-core / 12 GB x 4 initial, 36 vCPU / 84 GB). Dynamic allocation adds
+# executors as capacity frees up. EXECUTOR_CORES=8 EXECUTOR_MEMORY=12g
+# INITIAL_EXECUTORS=4 is the go01 sizing, for a larger quota.
 #
 # This script does not delete jobs it no longer defines; remove orphans by hand.
 
@@ -35,8 +37,8 @@ JOB_PREFIX="${JOB_PREFIX:-rsingh-spend-anl}"
 DB_PREFIX="${DB_PREFIX:-rsingh_spend_anl}"
 REQUIREMENTS="$(cd "$(dirname "$0")/.." && pwd)/resources/requirements.txt"
 RESOURCES=(--driver-cores 4 --driver-memory 8g
-           --executor-cores "${EXECUTOR_CORES:-8}" --executor-memory "${EXECUTOR_MEMORY:-12g}"
-           --min-executors 2 --initial-executors "${INITIAL_EXECUTORS:-4}" --max-executors "${MAX_EXECUTORS:-16}"
+           --executor-cores "${EXECUTOR_CORES:-4}" --executor-memory "${EXECUTOR_MEMORY:-8g}"
+           --min-executors 1 --initial-executors "${INITIAL_EXECUTORS:-2}" --max-executors "${MAX_EXECUTORS:-16}"
            --conf spark.sql.shuffle.partitions=256
            --conf spark.sql.adaptive.enabled=true
            --conf spark.sql.adaptive.coalescePartitions.enabled=true
