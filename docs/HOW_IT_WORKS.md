@@ -1,6 +1,6 @@
 # How it works
 
-Six questions about the design, answered from the code. File paths point to where
+Nine questions about the design, answered from the code. File paths point to where
 each piece lives. Numbers are from the run published on the federal cluster for
 2026-09-28 (run `20260928-d0b1059b`), unless another run is named.
 
@@ -349,3 +349,171 @@ CDW.
 In one process: `cai/jobs/daily_run.py` runs the three stages together (sessions,
 CI). `cai/jobs/backfill_history.py` replays past Fridays in order, each
 chained to the previous run.
+
+## 7. The banking data model and the semantic layer
+
+MDM is done by the pipeline (section 1), so the data model is the table layout
+itself. It is a small party-account-transaction model, not an industry model
+such as BIAN or Teradata FSLDM. There is no separate semantic-layer product:
+definitions live in shared code, and gold is built to be read as it is.
+
+**The model by layer.**
+
+| Layer | Entity | Tables | Key |
+|---|---|---|---|
+| bronze | one extract per source system | `crm_customer` (CRM / KYC), `cbs_accounts` (core banking), `card_master` + `card_txn` (card switch), `vpa_registry` + `upi_txn` (UPI switch), `nb_txn` (net banking), `atm_txn` (ATM switch) | the source's own key |
+| ref | reference data and dimensions | `pincode_geo`, `mcc_category`, `category_taxonomy`, `atm_location`, `merchant_seed`, `calendar_weekly`, `merchant_category_map` | pincode, MCC, category, merchant key, week |
+| silver | party | `customer` | `cif` |
+| silver | arrangement | `account` (product, branch, opened on, status) | `account_id` -> `cif` |
+| silver | transaction (one fact for all channels) | `spend_event` | `event_id`, with `cif`, `account_id`, `channel`, `merchant_key`, `week_end`, event location, `is_home` |
+| gold | marts | `spend_features` (customer x week), `spend_cohort_weekly` (cohort x category x week), `spend_mix_weekly` (week x dimension x channel) | as named |
+| gold | model outputs | `customer_persona`, `persona_profile`, `persona_flow`, `spend_forecast`, `spend_backtest`, `spend_signals`, `spend_model_run` | `run_date` plus the grain |
+
+- Card and UPI instruments are linked to the account, not to the customer
+  (`card_hash` and `vpa` -> `account_id` -> `cif`), as in a core banking model.
+  That is how silver resolves six sources to one CIF.
+- `spend_event` is one conformed transaction fact. The four transaction feeds
+  are mapped onto one column list (`EVENT_COLUMNS` in `build_silver.py`) with a
+  common channel set: CARD_POS, CARD_ECOM, UPI_P2M, UPI_P2P, NETBANKING and
+  ATM_CASH.
+- Gold is modelled for its readers. The app's book-wide charts read only
+  `spend_mix_weekly` and never scan silver. The models read `spend_features` and
+  `spend_cohort_weekly`.
+
+**Where the semantic definitions live.**
+
+Each business term is defined once, in code, and every engine uses that
+definition:
+
+| Term | Defined in | Kept in step by |
+|---|---|---|
+| Feature columns, the 14 categories, 6 channels, 4 tiers, cohorts (`segment\|T<tier>`) | `spend/features.py` | `tests/test_cde_jobs.py` checks the Spark gold job's column lists against it |
+| `merchant_key` | `build_silver.merchant_key()` (Spark) and `spend.categorise.normalise()` (Python) | the same test checks the two give the same key |
+| Week (Saturday to Friday, `week_end` = the Friday) | `build_silver.week_end()` and `spend.features` | tests |
+| Category descriptions, MCC to category | `ref.category_taxonomy`, `ref.mcc_category` | data-quality checks |
+| Shares, trend and away weeks | `build_gold_features.py` docstring and code, PLAN.md decision 3 | `dq_gold` (shares must sum to 1) |
+| Signal rules, thresholds and actions | `config/policy.yaml` | the gate and tests |
+| The feature definition as a whole | `feature_hash()` = `aa21012976534ed4` | the gate and the serving model refuse a mismatch (section 2) |
+
+- CDW Impala reads the same Iceberg tables through the shared metastore. Anyone
+  querying in Hue or CDW sees the same column names and grains as the app and
+  the models.
+- The app's Lineage tab shows the SQL to reproduce a run:
+  `SELECT ... FROM gold.spend_features FOR SYSTEM_VERSION AS OF <snapshot_id>`.
+
+**What is not there.**
+- No Impala views, no metrics layer (for example a dbt semantic model or a CDW
+  Data Visualization dataset), and no business glossary in a catalog. The
+  definitions are in code and docs, not in something an analyst can browse.
+- A cheap next step would be CDW views over gold with business names, plus a
+  Data Visualization dataset on `spend_mix_weekly` and `spend_signals`. Nothing
+  in the pipeline would change.
+
+## 8. SCD2 and history in Iceberg
+
+**No table here is SCD2.** No table has `valid_from` / `valid_to` /
+`is_current` rows. History is kept in two other ways: Iceberg snapshots
+(time travel) and tables whose key includes a date.
+
+**How each layer writes.**
+
+| Layer | Write | What happens to history |
+|---|---|---|
+| bronze, ref (generated), silver | `createOrReplace()` every run (`_write` in `generate_spend_bronze.py` and `build_silver.py`) | The table holds only the current state, SCD type 1. Each replace is a new Iceberg snapshot, and earlier snapshots are still readable. |
+| `silver.customer` | deduplicated by CIF, latest `ingested_at` wins, then replaced | One row per customer with today's attributes. A change of segment or home pincode overwrites the old value. |
+| gold marts | `MERGE INTO` (`bootstrap_or_merge` in `build_gold_features.py`): update changed rows, insert new ones, delete rows the rebuild no longer produces | One Iceberg snapshot per load. An unchanged week is not rewritten. |
+| `ref.merchant_category_map` | append-only | A merchant key keeps the category it was first given, with `first_run_date`, `run_id` and `model_id`. The category is never changed later. |
+| `ref.dq_results` | append-only | One row per check per run, with the checked table's snapshot ID. |
+| CAI outputs (`customer_persona` ... `spend_model_run`) | DELETE + INSERT for the run date (`spend/storage.py`) | Keyed by `run_date`, so every published day stays queryable. A rerun of a date replaces only that date. |
+
+**Time travel instead of SCD2.**
+- Each CAI run records the snapshot IDs it read (`features_snapshot_id`,
+  `cohort_snapshot_id`, `map_snapshot_id` in `spend_model_run`). It reads gold
+  with `FOR SYSTEM_VERSION AS OF`, so a past run can be reproduced exactly even
+  after gold has moved on.
+- `ref.dq_results` ties each quality result to the snapshot it checked.
+- The repo never runs `expire_snapshots`. How long snapshots survive depends on
+  the cluster's table maintenance, so time travel is not a long-term archive.
+
+**Where this matters.**
+- Gold's customer attributes (segment, age band, income band, home city, tier,
+  cohort) come from today's `silver.customer` and are joined onto every weekly
+  snapshot. `spend_event.is_home` uses today's home city too. If the CRM changes
+  a customer's segment or home pincode, the next gold MERGE restates that
+  customer's past weeks with the new values. The spend amounts don't change;
+  the attributes and home/away labels do.
+- The synthetic CRM has no attribute changes (one record per CIF plus re-sent
+  duplicates), so this hasn't happened in any run so far.
+
+**Adding SCD2 to the customer master (not built).**
+1. Add a `silver.customer_history` table with `valid_from`, `valid_to` and
+   `is_current`, keyed by CIF and `valid_from`.
+2. Load it each run with an Iceberg `MERGE INTO`: close the current row when a
+   tracked attribute changes, and insert the new version.
+3. In `build_gold_features.py`, join on
+   `snapshot_date BETWEEN valid_from AND valid_to` instead of the current row,
+   so each weekly snapshot carries the attributes in force that week.
+4. `silver.customer` becomes the `is_current` view of the history table, so
+   nothing else changes.
+
+## 9. Model management
+
+There are four models. Two are pretrained and used as they are, one is
+retrained daily, and one is a rule set:
+
+| Model | Kind | Trained | Stored as |
+|---|---|---|---|
+| Categoriser | MiniLM (`sentence-transformers/all-MiniLM-L6-v2`) blended with character n-grams, 5-NN | Never fine-tuned; new keys only | `ref.merchant_category_map` (append-only, `model_id` per key) |
+| Forecaster | Chronos-2 (`amazon/chronos-2`), zero-shot with calendar covariates | Never fine-tuned | Forecasts in `spend_forecast`, accuracy in `spend_backtest` |
+| Personas | KMeans, k from 5 to 9 by silhouette, IDs matched to the previous run | Retrained every run | Scaler in `spend_model_run.scaler_json`, centroids in `persona_profile.centroid_json` |
+| Signals | Rules and thresholds | Not trained | `config/policy.yaml`, versioned in git |
+
+**Versioning.** Each run writes one `spend_model_run` row. It records:
+- `run_id` and `run_date`, and what triggered it (`airflow`, `github`, or `cai-job` for a direct run).
+- `embedder_id`, `forecaster_id` and `model_versions`: the installed versions of
+  sentence-transformers, chronos-forecasting, torch and scikit-learn.
+- `feature_hash`, and the snapshot IDs of the data it read.
+- Every KPI, the gate verdict and detail, `outputs_published`, the stage
+  durations and the `mlflow_run_id`.
+
+`spend_model_run` is the registry of record: the latest row with
+`outputs_published = true` is the live model.
+
+**Experiment tracking.**
+- `spend/tracking.py` logs every run to the CAI Experiments (MLflow) experiment
+  `spend-analytics`: the same parameters, KPIs as metrics, gate tags, and the
+  gate detail and per-k silhouettes as artefacts.
+- A tracking error never fails the run. 2026-09-28 is MLflow run
+  `9jep-ssq2-t3wf-w8ql`.
+
+**Promotion and rollback (champion and challenger).**
+- Each run is a challenger. Its champion is the published run it would replace.
+- The KPI gate (`spend/gate.py`, `config/policy.yaml`) checks absolute floors and
+  non-regression against the champion: each accuracy may drop by at most 0.01,
+  and `wape_ratio` may rise by at most 0.03.
+- Pass: the outputs are published and the run becomes the champion.
+- Fail: only the evidence is written. The champion stays live, so rollback is
+  automatic and nobody has to act.
+- CI enforces the same gate: `train-validate` on every push, and the GitHub to
+  CAI chain on the cluster (section 2).
+
+**Deployment.**
+- `ci/setup_cai.py` creates the `spend-scorer` model, builds it (`cdsw-build.sh`)
+  and deploys it through the CAI API v2 with authentication on. It then points
+  the app at the endpoint.
+- At start-up the model loads the latest published run's scaler, centroids and
+  snapshot IDs. It refuses to start if that run's feature hash differs from its
+  own code.
+- A new daily run is served after a model restart. The build and the data are
+  versioned separately: the build is a git commit, the data is `run_id`.
+
+**Gaps.**
+- No MLflow Model Registry stages. Promotion is `outputs_published`, not a
+  registered model version.
+- The Hugging Face weights are not pinned to a revision, and `requirements.txt`
+  uses `>=`. `model_versions` records what ran, but a rebuild could pull newer
+  weights. For air-gapped or strict use, set `model.local_dir`
+  (`SPEND_MODEL_LOCAL_DIR`) to a vetted copy of the weights and pin the
+  packages.
+- The endpoint doesn't reload a new daily run by itself. Restarting it is a
+  runbook step, not a DAG task.
