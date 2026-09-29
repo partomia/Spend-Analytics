@@ -74,3 +74,29 @@ Churn; all local, none modified) and the Cloudera AI MLOps workshop. Adopted as
   in Nagpur (440xxx) with the CRM still in Hyderabad; unit 2 >= INR 50k electronics
   in the 4 weeks to 2025-10-24.
 - `pytest -q`: 40 passed.
+
+### Phase 2: DQ bronze + silver
+
+- `build_silver.py`: dedupe (latest ingested wins), CIF resolution (card_hash ->
+  card_master -> account; payer VPA -> vpa_registry -> account; NB and CRM carry the
+  CIF), one `spend_event` stream with channel, location, `merchant_key` and the
+  Friday `week_end`. 20k book: 19,416 customers, 22,987 accounts, 2,801,881 events in 15 s.
+- The first silver run put 57% of events on `home_fallback`. Two generator causes:
+  utility and EMI purchases were drawn both as random purchases and from the monthly
+  bill schedule (billers were 40% of UPI P2M), and every customer paid both bills
+  from this bank. Now bills and EMIs come from the schedule only, each customer pays
+  utility / phone bills here with 80% (heavy users) or 40% probability, local and chain
+  QR codes carry a pincode 95% / 85% of the time, and 72% of UPI P2M goes to local shops.
+  Result 48.2%; the rest is structural (decision 4). ~146 events per customer.
+- `dq_check.py` copied from Churn with only the constants and the check functions
+  replaced: 68 bronze checks (non-empty, keys, dates, batch, duplicates, amounts, MCC /
+  entry mode / txn type / biller type sets, 9 orphan checks incl. home pincode, raw
+  16-digit card numbers in 8 text columns), 23 silver checks (keys, dedupe ratios,
+  unresolved share, channels, tiers, fallback share, events per day, Friday week_end,
+  merchant_key presence, reconciliation per source against bronze recomputed
+  independently). Gold checks are written against the `spend/features.py` contract and
+  verified in Phase 4.
+- `--inject-bad-data` (3,000 customers, scratch warehouse): one critical failure,
+  `upi_txn.payer_vpa in vpa_registry` at 1.999% orphans; exit 1.
+- `pytest -q`: 49 passed (the Spark `merchant_key` equals `spend.categorise.normalise`
+  on ~1,000 payee names and variants).

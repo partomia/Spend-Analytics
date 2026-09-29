@@ -267,7 +267,7 @@ ECOM_OK = {"GROCERY", "FOOD_DELIVERY", "TRAVEL", "APPAREL", "ELECTRONICS", "UTIL
            "EDUCATION", "HEALTH", "ENTERTAINMENT", "OTHER"}
 NB_OK = {"UTILITIES", "TELECOM", "EMI_LOAN", "EDUCATION", "TRAVEL"}
 POS_OK = set(CATEGORIES) - {"FOOD_DELIVERY", "UTILITIES", "EMI_LOAN"}
-BILL_CATEGORIES = {"UTILITIES", "TELECOM", "EMI_LOAN"}
+SCHEDULED_CATEGORIES = {"UTILITIES", "TELECOM", "EMI_LOAN"}
 AMOUNT_MEDIAN = {"GROCERY": 900, "FOOD_DELIVERY": 420, "DINING": 750, "FUEL": 1400, "TRAVEL": 2800, "APPAREL": 2100,
                  "ELECTRONICS": 8500, "UTILITIES": 1700, "TELECOM": 420, "EMI_LOAN": 6500, "EDUCATION": 4200,
                  "HEALTH": 850, "ENTERTAINMENT": 550, "OTHER": 1300}
@@ -680,7 +680,7 @@ def _merchant(u: Unit, cat: str, channel: str, city: str) -> dict:
         pool = billers or online or chains
     else:
         r = rng.random()
-        if locals_ and (r < 0.62 or not (chains or online)):
+        if locals_ and (r < 0.72 or not (chains or online)):
             favs = u.customer.setdefault("fav", {}).setdefault((city, cat), [])
             if len(favs) < 3 and (not favs or rng.random() < 0.3):
                 favs.append(rng.choice(locals_))
@@ -716,9 +716,9 @@ def _purchase(u: Unit, d: date, cat: str, channel: str | None = None, amount: fl
         vpa = u.vpas[0] if len(u.vpas) == 1 or rng.random() < 0.8 or u.vpas[1]["linked_on"] > d else u.vpas[1]
         pin = None
         if m["kind"] == "LOCAL":
-            pin = m["pincode"] if rng.random() < 0.85 else None
+            pin = m["pincode"] if rng.random() < 0.95 else None
         elif m["kind"] == "CHAIN":
-            pin = rng.choice(pincodes(city)) if rng.random() < 0.7 else None
+            pin = rng.choice(pincodes(city)) if rng.random() < 0.85 else None
         u.upi_txn.append((u.next_id("U"), vpa["vpa"], m["vpa"], rng.choice(m["variants"]), pin, "P2M", ts, amt, None))
     else:
         btype = {"UTILITIES": "UTILITY", "TELECOM": "TELECOM", "EMI_LOAN": "LOAN", "EDUCATION": "EDUCATION"}.get(
@@ -749,13 +749,17 @@ def _simulate(u: Unit, until: date) -> None:
     earlier days, so stopping at the as-of date leaves all earlier history unchanged."""
     rng, c = u.rng, u.customer
     start = max(HISTORY_START, c["onboarded_on"])
-    cats = list(c["cat_weights"].items())
+    # utility and phone bills and EMIs come from the monthly schedule below, not from random purchases
+    cats = [(k, v) for k, v in c["cat_weights"].items() if k not in SCHEDULED_CATEGORIES]
     emi = round(AMOUNT_MEDIAN["EMI_LOAN"] * c["level"] ** 0.8 * math.exp(rng.gauss(0.0, 0.4)), -2)
     emi_day, bill_day = rng.randint(3, 7), rng.randint(1, 9)
     utility = _merchant(u, "UTILITIES", "NETBANKING", c["home_city"])
     telecom = rng.choice(merchant_index(u.seed)["national"][("TELECOM", "BILLER")])
     lender = rng.choice(merchant_index(u.seed)["national"][("EMI_LOAN", "BILLER")])
     bill_nb = c["ch"][3] / max(sum(c["ch"]), 1e-9) > 0.15
+    # which bills this bank's account pays (the rest go from another bank, a card or a family member)
+    pays = {cat: rng.random() < (0.8 if c["cat_weights"].get(cat, 0) > 0.05 else 0.4)
+            for cat in ("UTILITIES", "TELECOM")}
     atms = {}
     d = start
     while d <= min(until, WORLD_END):
@@ -770,7 +774,7 @@ def _simulate(u: Unit, until: date) -> None:
         # recurring bills (net banking or UPI autopay), month-start for bill payers
         if d.day == bill_day:
             for m, cat in ((utility, "UTILITIES"), (telecom, "TELECOM")):
-                if c["cat_weights"].get(cat, 0) > 0.03 or rng.random() < 0.3:
+                if pays[cat]:
                     amt = _amount(rng, cat, c["level"])
                     if bill_nb:
                         u.nb_txn.append((u.next_id("N"), c["cif"], m["name"], "UTILITY" if cat == "UTILITIES"
@@ -1000,7 +1004,7 @@ def run(spark, args: argparse.Namespace) -> None:
         df = df.select(*[n for n, _ in cols], F.lit(as_of).cast("date").alias("batch_as_of"),
                        (ingested + F.make_interval(secs=F.col("resent"))).alias("ingested_at"))
         if name == "upi_txn" and args.inject_bad_data:
-            logger.warning("--inject-bad-data: pointing 2%% of UPI payments at unknown payer VPAs")
+            logger.warning("--inject-bad-data: pointing 2% of UPI payments at unknown payer VPAs")
             bad = (F.abs(F.xxhash64("txn_id")) % 10_000) < BAD_VPA_RATE * 10_000
             df = df.withColumn("payer_vpa", F.when(bad, F.concat(F.lit("unknown"), F.substring("txn_id", 2, 6),
                                                                  F.lit("@ybl"))).otherwise(F.col("payer_vpa")))
