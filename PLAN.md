@@ -167,6 +167,20 @@ Names:
     the same here (0.938 / 0.933), because synthetic names carry their type in the
     spelling. MiniLM stays in for what n-grams cannot do on real data: brand names with
     no type word, and synonyms. The n-gram half alone is the stub (CI, no torch).
+12. **Away-from-home is measured on located spend only, and over weeks.**
+    `away_share_4w` leaves out home_fallback events: a bill or P2P transfer placed at
+    home only because it has no location diluted unit 1's move to Nagpur to 0.67.
+    Measured on located spend it is 1.0. A trip looks the same over 4 weeks, so
+    `away_weeks_4w` (a feature the spec does not list) counts the weeks in which at
+    least half the located spend was away. On 2026-09-25, unit 0's Goa trip peaks at
+    2 and unit 1 has 4. 142 of about 19,300 active customers have 3 or more.
+    RELOCATION uses both (Phase 5).
+13. **Gold MERGE is copy-on-write, as in the four earlier projects.** A rebuild from
+    the same inputs changes 0 rows, but `WHEN NOT MATCHED BY SOURCE` scans the whole
+    target, so Iceberg rewrites every data file (1.2M rows at 20k customers). It is
+    still one snapshot per load, and CDW Impala reads it without delete files.
+    Merge-on-read (`write.merge.mode`) would write only the changes; it is
+    worth trying live at 200k in Phase 9 only if gold load time matters.
 
 ## Method (demo policy, see `config/policy.yaml`)
 
@@ -201,7 +215,12 @@ Names:
   29 s (SEED 6,776, MCC 2,932, EMBEDDING 11,756, FALLBACK 2). Every one of 1.98M
   merchant events is mapped, and a rerun adds nothing. Accuracy 0.926 on the seed
   holdout and 0.934 with the MCC hidden (decision 11). 60 tests.
-- [ ] **4. Gold + DQ gold**: `build_gold_features.py` (three gold tables, MERGE), gold checks.
+- [x] **4. Gold + DQ gold**: `build_gold_features.py` (three gold tables, MERGE), gold checks.
+  20k book in 40-50 s: spend_features 1,208,205 rows (63 snapshots), cohort series
+  17,248 rows (224 series x 77 complete weeks), mix 37,669 rows. 27 gold checks, 0
+  failed; uncategorised 0.0%; the category mix reconciles with the cohort series in
+  every week. Planted customers visible: unit 0 TRAVEL INR 91k in 4 weeks, unit 1
+  away 4 of 4 weeks, unit 2 ELECTRONICS INR 85k in the 4 weeks to 2025-10-24. 64 tests.
 - [ ] **5. Core ML**: personas, forecast, signals, gate, three-stage pipeline, storage.
 - [ ] **6. CAI jobs + endpoint**: the four jobs + `daily_run.py`, backfill, `predict.py`, `test_endpoint.py`.
 - [ ] **7. Spend Insights Console**: 10 tabs + AppTest.

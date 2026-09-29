@@ -12,6 +12,10 @@ Shares, per CIF over the 13 weeks up to the snapshot:
   tier<n>_share   share of all spend by the city tier where it happened (4); sums to 1.
   home_share      share of all spend in the customer's home city.
   digital_share   share of all spend through UPI, card e-commerce and net banking.
+  away_share_4w   share of located spend (card_city, upi_pincode, atm) outside the home
+                  city in the last 4 weeks; home_fallback events are left out.
+  away_weeks_4w   weeks of the last 4 where at least half the located spend was away
+                  (a move persists, a trip does not).
 """
 
 from __future__ import annotations
@@ -37,7 +41,7 @@ KEY = ["cif", "snapshot_date"]
 INFO = ["segment", "age_band", "income_band", "home_city", "home_state", "city_tier", "cohort"]
 NUMERIC = [*SHARE_COLUMNS, "home_share", "digital_share", "uncategorised_share", "salary_week_share",
            "spend_13w", "txn_13w", "avg_ticket", "spend_trend_4v13", "merchant_spend_13w",
-           "spend_4w", "txn_4w", "away_share_4w", *CAT_4W]
+           "spend_4w", "txn_4w", "away_share_4w", "away_weeks_4w", *CAT_4W]
 FEATURE_COLUMNS = [*KEY, *INFO, *NUMERIC]
 
 # KMeans input, standardised: the 24 shares + log1p(spend_13w) + digital and home share.

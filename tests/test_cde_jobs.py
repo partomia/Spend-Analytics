@@ -148,6 +148,103 @@ def test_card_number_regex(spark, dq_job):
     assert not re.search(dq_job.CARD_NUMBER_REGEX, "SWIGGY*BLR 5521")
 
 
+def test_gold_constants_match_features(gold_job):
+    from spend import features
+
+    for name in ("CATEGORIES", "CHANNELS", "MERCHANT_CHANNELS", "DIGITAL_CHANNELS", "TIERS", "SEGMENTS",
+                 "SHARE_COLUMNS", "CAT_4W", "INFO", "NUMERIC", "FEATURE_COLUMNS", "COHORT_KEY", "COHORT_COLUMNS",
+                 "COVARIATES", "MIX_DIMENSIONS", "MIX_COLUMNS"):
+        assert getattr(gold_job, name) == getattr(features, name), name
+    assert gold_job.UNCATEGORISED == features.UNCATEGORISED
+
+
+def test_gold_snapshot_dates(gold_job):
+    assert gold_job.week_end_of(date(2026, 9, 19)) == date(2026, 9, 25)
+    assert gold_job.week_end_of(date(2026, 9, 25)) == date(2026, 9, 25)
+    assert gold_job.snapshot_dates(date(2025, 7, 11)) == [date(2025, 7, 4), date(2025, 7, 11)]
+    assert gold_job.snapshot_dates(date(2025, 7, 9)) == [date(2025, 7, 4), date(2025, 7, 9)]
+    assert gold_job.FIRST_SNAPSHOT == gold_job.FIRST_WEEK + timedelta(weeks=gold_job.WINDOW_WEEKS - 1)
+
+
+GOLD_AS_OF = date(2025, 7, 9)      # a Wednesday: snapshots 2025-07-04 and the as-of date
+
+
+@pytest.fixture(scope="module")
+def gold_tiny(spark, gold_job):
+    customer = spark.createDataFrame(
+        [("C1", "AFFLUENT", "26-35", "HIGH", "Bengaluru", "Karnataka", 1, "AFFLUENT|T1", date(2020, 1, 1)),
+         ("C2", "MASS", "18-25", "LOW", "Panaji", "Goa", 3, "MASS|T3", date(2025, 8, 1))],
+        "cif string, segment string, age_band string, income_band string, home_city string, home_state string, "
+        "city_tier int, cohort string, onboarded_on date")
+    first = date(2025, 4, 4)
+    calendar = spark.createDataFrame(
+        [(first + timedelta(weeks=i), int(first + timedelta(weeks=i) == date(2025, 7, 4)), 0, 0, 0, 0)
+         for i in range(20)],
+        "week_end date, salary_week int, festival_week int, month_end_week int, holiday_count int, "
+        "school_fee_week int")
+    ev = spark.createDataFrame([
+        # cif, txn_date, amount, channel, category, is_home, tier, location_source, state, city
+        ("C1", date(2025, 4, 2), 9999.0, "CARD_POS", "GROCERY", 1, 1, "card_city", "Karnataka", "Bengaluru"),
+        ("C1", date(2025, 7, 2), 1000.0, "CARD_POS", "GROCERY", 1, 1, "card_city", "Karnataka", "Bengaluru"),
+        ("C1", date(2025, 7, 1), 2000.0, "UPI_P2P", None, 1, 1, "home_fallback", "Karnataka", "Bengaluru"),
+        ("C1", date(2025, 7, 8), 3000.0, "CARD_POS", "TRAVEL", 0, 3, "card_city", "Goa", "Panaji"),
+        ("C1", date(2025, 7, 8), 500.0, "UPI_P2M", "UNCATEGORISED", 1, 1, "home_fallback", "Karnataka", "Bengaluru"),
+        ("C1", date(2025, 7, 9), 1000.0, "ATM_CASH", None, 0, 3, "atm", "Goa", "Panaji")],
+        "cif string, txn_date date, amount double, channel string, category string, is_home int, "
+        "event_city_tier int, location_source string, event_state string, event_city string")
+    from pyspark.sql import functions as F
+
+    ev = (ev.withColumn("week_end", F.date_add("txn_date", (F.lit(13) - F.dayofweek("txn_date")) % 7))
+          .withColumn("is_merchant", F.col("channel").isin(*gold_job.MERCHANT_CHANNELS)))
+    panel = gold_job.weekly_panel(spark, ev, customer, calendar, GOLD_AS_OF)
+    weeks = gold_job.complete_weeks(calendar, GOLD_AS_OF)
+    return dict(features={(r.cif, r.snapshot_date): r for r in
+                          gold_job.features(spark, panel, customer, GOLD_AS_OF).collect()},
+                cohort=gold_job.cohort_weekly(spark, ev, customer, weeks),
+                mix=gold_job.mix_weekly(ev, customer, weeks))
+
+
+def test_gold_features_windows_and_shares(gold_tiny, gold_job):
+    f = gold_tiny["features"]
+    assert set(f) == {("C1", date(2025, 7, 4)), ("C1", GOLD_AS_OF)}      # C2 not onboarded yet
+    friday = f[("C1", date(2025, 7, 4))]
+    assert friday.spend_13w == 3000.0 and friday.txn_13w == 2               # the April event is outside 13 weeks
+    assert friday.cat_grocery_share == 1.0 and friday.away_share_4w == 0.0
+
+    r = f[("C1", GOLD_AS_OF)]
+    assert list(r.asDict()) == gold_job.FEATURE_COLUMNS
+    assert (r.spend_13w, r.txn_13w, r.merchant_spend_13w, r.avg_ticket) == (7500.0, 5, 4500.0, 1500.0)
+    assert r.uncategorised_share == pytest.approx(500 / 4500, abs=1e-6)
+    assert (r.cat_grocery_share, r.cat_travel_share) == (0.25, 0.75)       # of categorised merchant spend
+    assert sum(getattr(r, c) for c in gold_job.CAT_SHARES) == pytest.approx(1.0)
+    assert sum(getattr(r, c) for c in gold_job.CH_SHARES) == pytest.approx(1.0)
+    assert (r.ch_upi_p2p_share, r.tier3_share) == (pytest.approx(2000 / 7500, abs=1e-6),
+                                                   pytest.approx(4000 / 7500, abs=1e-6))
+    assert r.home_share == pytest.approx(3500 / 7500, abs=1e-6)
+    assert r.digital_share == pytest.approx(2500 / 7500, abs=1e-6)
+    assert r.salary_week_share == pytest.approx(3000 / 7500, abs=1e-6)
+    assert (r.spend_4w, r.txn_4w, r.cat_travel_4w) == (7500.0, 5, 3000.0)
+    assert r.spend_trend_4v13 == 3.25
+    assert r.away_share_4w == 0.8           # located spend only: 4000 away of 5000 (fallback events left out)
+    assert r.away_weeks_4w == 1
+
+
+def test_gold_cohort_series_dense_and_mix_reconciles(gold_tiny, gold_job):
+    from pyspark.sql import functions as F
+
+    cohort, mix = gold_tiny["cohort"], gold_tiny["mix"]
+    weeks = [r.week_end for r in cohort.select("week_end").distinct().orderBy("week_end").collect()]
+    assert weeks[0] == gold_job.FIRST_WEEK and weeks[-1] == date(2025, 7, 4)   # complete weeks only
+    assert cohort.count() == 224 * len(weeks)
+    assert list(cohort.columns) == gold_job.COHORT_COLUMNS
+    got = cohort.where(F.col("amount_inr") > 0).collect()
+    assert [(r.cohort, r.category, r.week_end, r.amount_inr, r.n_customers, r.salary_week) for r in got] == [
+        ("AFFLUENT|T1", "GROCERY", date(2025, 7, 4), 1000.0, 1, 1)]
+    cat = {(r.dim_value, r.channel): r.amount_inr for r in mix.where("dim = 'category'").collect()}
+    assert cat == {("GROCERY", "CARD_POS"): 1000.0, ("NON_MERCHANT", "UPI_P2P"): 2000.0}
+    assert {r.dim for r in mix.select("dim").distinct().collect()} == set(gold_job.MIX_DIMENSIONS) - {"away_city"}
+
+
 def test_dq_constants_match_features(dq_job, silver_job):
     from spend import features
 

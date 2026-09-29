@@ -124,3 +124,33 @@ Churn; all local, none modified) and the Cloudera AI MLOps workshop. Adopted as
 - Local stage on the 20k book: 21,466 keys in 29 s; 0 of 1,982,830 merchant events
   unmapped; a second run is a no-op. OTHER holds 6.2% of merchant spend.
 - `pytest -q`: 60 passed.
+
+### Phase 4: Gold + DQ gold
+
+- `build_gold_features.py` builds a dense CIF x week panel (from the first extract
+  week to the as-of week) with 13- and 4-week window sums. It then keeps the
+  Friday snapshots from 2025-07-04 plus the as-of date; a mid-week as-of date gets
+  a partial last week. Customers are included from their onboarding date. Events
+  join the merchant map (broadcast); a merchant event whose key is not in the map
+  is UNCATEGORISED. Cohort series are dense (16 cohorts x 14 categories x
+  complete weeks, 0 when a week has no spend) and carry the calendar covariates.
+  The mix table explodes each event into its 8 dimensions. Values are rounded, so
+  a rebuild of the same inputs is bit-identical.
+- 20k book: 40-50 s per load. spend_features 1,208,205 rows, cohort 17,248, mix
+  37,669. `dq_gold`: 27 checks, 0 failed, including shares summing to 1,
+  uncategorised 0.0%, at least 52 weeks for all 224 series, the week vs the same
+  week last year within 30%, and the mix reconciling to the cohort series in all 77
+  weeks.
+- Rerun: 0 rows differ between the two Iceberg snapshots, but the copy-on-write
+  MERGE rewrote every file (decision 13).
+- First cut of `away_share_4w` counted fallback events as home, which put the
+  relocated demo customer at 0.67. Now it is measured on located spend only, plus
+  `away_weeks_4w` to tell a move from a trip (decision 12). Adding the column
+  meant dropping the local gold tables: MERGE `INSERT *` does not evolve the
+  schema, so a column change on the cluster also needs a drop and rebuild before
+  the first live load.
+- Tests: the gold constants match `spend/features.py`, snapshot dates, and exact
+  features for one customer with 6 events (13-week window edge, the four share
+  families, uncategorised, salary weeks, trend, located away share and away
+  weeks). Also the dense cohort grid over complete weeks only, and the mix
+  category totals. `pytest -q`: 64 passed.
