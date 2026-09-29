@@ -579,4 +579,34 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
     maximum (the new default in `deploy_jobs.sh`).
   - Run 2 was admitted after about 2.5 min and succeeded in about 21 min
     (about 4 min on go01 at the larger size).
+- The rest of the 2026-09-28 chain succeeded:
+  - dq bronze: 182 s, 68 checks.
+  - silver: 153 s.
+  - dq silver: 214 s, 23 checks.
+  - CAI categorise: 165 s, 21,551 keys.
+  - gold: 395 s.
+  - dq gold: 152 s, 27 checks.
+  - CAI feature engineering: 63 s.
+  - All 118 checks passed.
+- CAI training at 8 vCPU / 32 GB stayed in ENGINE_SCHEDULING for 20 min: the
+  workbench had no node that size free.
+  - Stopped and resized to 4 vCPU / 16 GB (now in `ci/cai_jobs.py`). It
+    started at once and succeeded in 184 s (321 s at 8 / 32 on go01).
+  - Evaluation: 205 s.
+- Published run `20260928-d0b1059b` (triggered_by `cai-job`, feature hash
+  `aa21012976534ed4`, MLflow `9jep-ssq2-t3wf-w8ql`):
+  - 193,456 customers, k=8, silhouette 0.163, ARI 0.635.
+  - Accuracy 0.926 / 0.934 (n=2,937).
+  - WAPE 0.0998 vs 0.1144 (ratio 0.872), coverage 0.779.
+  - 12,518 signals, gate PASS.
+  - Gold rows: customer_persona 193,456, spend_forecast 2,688.
+- Serving: model `spend-scorer` (`a9f47a25-97e5-4f99-a9f4-c91503d76028`) and
+  app `Spend Insights Console` (`801g-3mb1-mub1-c9t7`) created by
+  `setup_cai.py`. The endpoint key is the API v2 key, as on go01.
+  - Model build 550 s, deployed at 703 s. The app reached APPLICATION_RUNNING
+    in 31 s.
+  - `test_endpoint.py`: all four actions answer (categorise 0.20 s) and serve
+    `20260928-d0b1059b`, hash `aa21012976534ed4`.
+  - The planted customer is Tier-1 traveller with TRAVEL_SURGE; the what-if
+    moves him to Tier-1 digital foodie.
 

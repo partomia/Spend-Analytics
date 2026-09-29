@@ -11,10 +11,10 @@ each time. Check every screenshot for keys and hostnames before committing it.
 
 | What | Name | ID |
 |---|---|---|
-| CAI project | `rsingh-spend-analytics` | `8ze8-2kux-eik9-8pzv` |
+| CAI project | `rsingh-spend-analytics` | `gq4g-0gpd-etm4-0j7n` (federal; `8ze8-2kux-eik9-8pzv` on go01) |
 | CAI jobs | `spend-sync-code`, `spend-categorise`, `spend-feature-engineering`, `spend-model-training`, `spend-model-evaluation` | from `ci/setup_cai.py` (step 2) |
-| Model | `spend-scorer` | `30e2f08e-8fcc-4433-b803-cdb7f55e3675` (from `ci/setup_cai.py`) |
-| Application | `Spend Insights Console` | `4lrw-tk0m-9lr8-8x8m`, subdomain `rsingh-spend-insights` |
+| Model | `spend-scorer` | `a9f47a25-97e5-4f99-a9f4-c91503d76028` (from `ci/setup_cai.py`) |
+| Application | `Spend Insights Console` | `801g-3mb1-mub1-c9t7`, subdomain `rsingh-spend-insights` |
 | CDE DAG job | `rsingh-spend-anl-orchestration` | dagID `spend_analytics_pipeline` |
 
 ## Setup (one-time)
@@ -136,7 +136,7 @@ names must match `ci/cai_jobs.py`:
 | `spend-sync-code` | `cai/jobs/sync_code.py` | 2 vCPU / 8 GB |
 | `spend-categorise` | `cai/jobs/categorise.py` | 4 vCPU / 16 GB |
 | `spend-feature-engineering` | `cai/jobs/feature_engineering.py` | 2 vCPU / 8 GB |
-| `spend-model-training` | `cai/jobs/train_models.py` | 8 vCPU / 32 GB |
+| `spend-model-training` | `cai/jobs/train_models.py` | 4 vCPU / 16 GB |
 | `spend-model-evaluation` | `cai/jobs/evaluate_models.py` | 2 vCPU / 8 GB |
 
 Run feature engineering, training and evaluation once, in order, and confirm
