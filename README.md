@@ -300,7 +300,7 @@ says so. Ten tabs: Portfolio, Where, Channels, Personas, Customer 360
 (with the what-if), Forecast, Categoriser, Opportunities, Data quality,
 Lineage. The Docker image (`Dockerfile`) runs the same app without torch.
 
-Walkthrough: `docs/DEMO_RUNBOOK.md`.
+Walkthrough: `docs/DEMO_RUNBOOK.md`. Design questions (master data, CI/CD, orchestration, gold to AI, feature engineering, training and evaluation): `docs/HOW_IT_WORKS.md`.
 
 ## CDW
 
