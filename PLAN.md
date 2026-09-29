@@ -275,6 +275,14 @@ Names:
     three secrets; without `CAI_URL` the job prints a notice and passes. Not
     adopted from CXR: a deploy-champion job (the endpoint loads the latest
     published run at start-up) and PSI drift.
+24. **The first categorise and daily run were run from the laptop against CDW.**
+    The spec runs them as CAI jobs. There was no CAI API key when Phase 9
+    started, so `cai/jobs/categorise.py` and `daily_run.py` ran locally with
+    `SPEND_STORAGE_BACKEND=impala` (triggered_by `manual-laptop`): the same code
+    and the same tables. The CAI jobs take over from the next run date, and a
+    CAI rerun of 2026-09-25 replaces that day (DELETE + INSERT on run_date).
+    At 200k the laptop path spends about 9 min on Impala reads and about 18 min
+    on chunked INSERTs; inside CAI both should be closer to the warehouse.
 
 ## Method (demo policy, see `config/policy.yaml`)
 

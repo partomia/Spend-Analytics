@@ -441,3 +441,36 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
 - Impala from the laptop: `.env` (gitignored) holds `SPEND_IMPALA_USER` /
   `SPEND_IMPALA_PASSWORD`, the same workload credentials the sibling projects
   use against the same warehouse.
+- Categorise was the first CDW write, run from the laptop against Impala
+  because there's no CAI API key yet (decision 24).
+  - The first attempt failed on `CREATE TABLE` because `method` is reserved
+    since Impala 3.0, and nothing was written.
+  - `ImpalaStorage` now backtick-quotes every identifier it generates.
+    `reports.sql` quotes `method`, and a test checks our columns against
+    Impala's 409 reserved words.
+  - Retry: 21,551 keys in 561 s (EMBEDDING 11,816, SEED 6,796, MCC 2,937,
+    FALLBACK 2). Every silver key is mapped, with no duplicates.
+- build-gold-features, run 2381: succeeded in 466 s.
+  - spend_features has 12,075,228 rows over 65 snapshots, with 194,076
+    customers on 2026-09-25.
+  - Cohort series: 224 x 77 weeks. spend_mix_weekly: 39,717 rows.
+    Uncategorised share 0.0%.
+- dq-check gold, run 2387: 27 checks, 0 failed. It waited about 9 min in the
+  shared queue, and `cde job run --wait` returned while the run was still
+  "starting", so poll `cde run describe` instead.
+- Daily run on the 200k book, from the laptop against Impala:
+  - Dry run took 10 min; feature engineering's Impala reads were about 9 min
+    of that.
+  - Results: 193,370 customers profiled in 8 personas, silhouette 0.163, ARI
+    vs the hidden archetypes 0.649.
+  - Categoriser accuracy 0.925 (seed holdout) / 0.934 (hidden MCC, n=2,937).
+  - Forecast: WAPE 0.100 vs 0.114 naive (ratio 0.872), P10-P90 coverage
+    0.779, 14,908 signals. Every gate check PASS.
+  - The WAPE margin to the 0.90 limit is 0.028, against 0.125 at 20k: larger
+    cohorts are smoother, so seasonal naive does better.
+- Publish (evaluation from the same artifacts): 18 min in total.
+  - Rows: customer_persona 193,370 (about 8 min), persona_profile 8,
+    persona_flow 0 (first run), spend_forecast 2,688, spend_backtest 10,752,
+    spend_signals 14,908, spend_model_run 1.
+- `sql/reports.sql` on live Impala: all 20 statements OK, 6-12 s each.
+  Persona moves are empty on the first run.
