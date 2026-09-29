@@ -507,7 +507,10 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
     source impala.
   - The planted customer is Tier-1 traveller with TRAVEL_SURGE. The what-if
     moves him nearest to Tier-1 digital foodie (5.54 vs traveller 5.81).
-  - The app waits for a Model API key (`SPEND_ENDPOINT_API_KEY`).
+  - For now `SPEND_ENDPOINT_API_KEY` is the same API v2 key (Ravi's call); a
+    separate Model API key would be narrower. Rerunning `setup_cai.py` set it
+    and created the app `Spend Insights Console` (`4lrw-tk0m-9lr8-8x8m`,
+    subdomain `rsingh-spend-insights`), which reached APPLICATION_RUNNING.
 - Airflow: `cde/scripts/set_airflow_variables.py` created the seven
   `SPEND_CAI_*` Variables through the vcluster's Airflow API (Knox token for
   the workload user). The 16 other projects' variables are untouched.
@@ -517,3 +520,7 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
   - With `catchup=False` and `start_date` 27 Sep, an unpaused registration
     would at once run the latest closed interval.
   - The DAG now sets `is_paused_upon_creation=True` (decision 26).
+- After the push of `602e3f8`, `deploy_dag.sh` registered
+  `rsingh-spend-anl-orchestration`. The Airflow API shows `is_paused` true
+  and 0 DAG runs; the next logical date is 2026-09-27 21:00 UTC, so
+  unpausing runs as_of 2026-09-27.

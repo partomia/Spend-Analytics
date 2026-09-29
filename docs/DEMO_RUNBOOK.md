@@ -14,7 +14,7 @@ each time. Check every screenshot for keys and hostnames before committing it.
 | CAI project | `rsingh-spend-analytics` | `8ze8-2kux-eik9-8pzv` |
 | CAI jobs | `spend-sync-code`, `spend-categorise`, `spend-feature-engineering`, `spend-model-training`, `spend-model-evaluation` | from `ci/setup_cai.py` (step 2) |
 | Model | `spend-scorer` | `30e2f08e-8fcc-4433-b803-cdb7f55e3675` (from `ci/setup_cai.py`) |
-| Application | `Spend Insights Console` | (fill in) |
+| Application | `Spend Insights Console` | `4lrw-tk0m-9lr8-8x8m`, subdomain `rsingh-spend-insights` |
 | CDE DAG job | `rsingh-spend-anl-orchestration` | dagID `spend_analytics_pipeline` |
 
 ## Setup (one-time)
