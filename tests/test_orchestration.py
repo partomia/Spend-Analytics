@@ -102,3 +102,11 @@ def test_ci_runs_the_kpi_gate_after_the_tests():
     assert "--ignore-gate" not in train
     assert "--stub" not in train
     assert "--inject-bad-data" in CI.split("train-validate:")[0]
+
+
+def test_cde_python_env_has_what_the_jobs_import():
+    reqs = (ROOT / "cde" / "resources" / "requirements.txt").read_text()
+    jobs = "".join(p.read_text() for p in (ROOT / "cde" / "jobs").glob("*.py"))
+    if re.search(r"mapInArrow|mapInPandas|applyInPandas|pandas_udf|toPandas", jobs):
+        assert re.search(r"^pyarrow==", reqs, re.M)       # PySpark checks for it on the driver
+    assert re.search(r"^great_expectations==1\.23\.2", reqs, re.M)

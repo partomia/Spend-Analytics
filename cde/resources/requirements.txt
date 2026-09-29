@@ -1,5 +1,8 @@
-# CDE python-env for the spend Spark jobs: the generator and silver / gold jobs only
-# use PySpark and the standard library; dq_check.py needs Great Expectations.
+# CDE python-env for the spend Spark jobs: the silver / gold jobs only use PySpark and
+# the standard library; dq_check.py needs Great Expectations, the generator pyarrow.
 # A rebuild after a change takes ~6 minutes (measured in Collections). No torch here:
 # categorisation runs as a CAI job between silver and gold.
 great_expectations==1.23.2
+# The generator's mapInArrow checks for pyarrow on the driver; without it the job
+# dies right after the ref tables (the traceback is lost from `cde run logs`).
+pyarrow==25.0.1
