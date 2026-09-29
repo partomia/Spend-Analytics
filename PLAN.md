@@ -168,7 +168,10 @@ Names:
 - [x] **0. Scaffold + spike**: layout, config, requirement files, `spend/{config,
   features,schema,storage}.py`, `scripts/run_cde_local.py`, commit hook, model spike
   (decision 7). 15 tests.
-- [ ] **1. Bronze**: generator (8 bronze + 7 ref tables), `tests/test_generator.py`.
+- [x] **1. Bronze**: generator (8 bronze + 7 ref tables), `tests/test_generator.py`.
+  20k customers locally in 50 s (19,465 onboarded by 2026-09-25): 2.95M events,
+  ~151 per customer (~30M at 200k), 58% UPI (23% of UPI is P2P), 19% card, 8% net
+  banking, 14% ATM; 8,170 merchants with 2-5 variants, 31% of them seeds. 40 tests.
 - [ ] **2. DQ bronze + silver**: `dq_check.py`, `build_silver.py`, `tests/test_cde_jobs.py`.
 - [ ] **3. Categorise**: `spend/categorise.py`, `cai/jobs/categorise.py`, local stage, stub.
 - [ ] **4. Gold + DQ gold**: `build_gold_features.py` (three gold tables, MERGE), gold checks.
