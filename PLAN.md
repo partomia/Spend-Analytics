@@ -284,6 +284,17 @@ Names:
     At 200k the laptop path spends about 9 min on Impala reads and about 18 min
     on chunked INSERTs; inside CAI both should be closer to the warehouse.
 
+25. **The CAI project is `rsingh-spend-analytics`, set up over the API, and sync-code
+    installs the requirements.** The spec names the project `spend-analytics`; the
+    shared workbench holds 39 projects and the siblings are all `rsingh-*`, so the
+    prefix keeps it findable and collision-free (job names are per project and stay
+    `spend-*`). `ci/setup_cai.py` creates the project from Git, its environment
+    variables (Impala user and password from `.env`, never printed) and the jobs of
+    `ci/cai_jobs.py` on the runtime the siblings' jobs use (JupyterLab, Python
+    3.11, Standard, 2026.08.1-b5). There is no API to run a command in a session,
+    so `spend-sync-code` pip-installs `requirements.txt` whenever its hash changes;
+    packages persist in the project's `/home/cdsw/.local`, and a changed
+    requirements file pushed from GitHub is installed before the chain uses it.
 ## Method (demo policy, see `config/policy.yaml`)
 
 - **Categorise**: MCC (card) -> SEED (exact normalised match) -> EMBEDDING (MiniLM +

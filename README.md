@@ -249,7 +249,7 @@ python cai/jobs/backfill_history.py --weeks 3   # matching model runs, from a CA
 
 ## CAI
 
-Project `spend-analytics`, created from this GitHub repo, Python 3.11
+Project `rsingh-spend-analytics` (`ci/setup_cai.py`), created from this GitHub repo, Python 3.11
 runtime. Both models run fast on CPU (MiniLM 2,250 texts/s, Chronos-2 224
 series x 12 weeks in 0.9 s; decision 7), so no GPU is needed. Project
 environment variables:

@@ -11,8 +11,8 @@ each time. Check every screenshot for keys and hostnames before committing it.
 
 | What | Name | ID |
 |---|---|---|
-| CAI project | `spend-analytics` | (fill in) |
-| CAI jobs | `spend-sync-code`, `spend-categorise`, `spend-feature-engineering`, `spend-model-training`, `spend-model-evaluation` | (fill in) |
+| CAI project | `rsingh-spend-analytics` | `8ze8-2kux-eik9-8pzv` |
+| CAI jobs | `spend-sync-code`, `spend-categorise`, `spend-feature-engineering`, `spend-model-training`, `spend-model-evaluation` | from `ci/setup_cai.py` (step 2) |
 | Model | `spend-scorer` | (fill in) |
 | Application | `Spend Insights Console` | (fill in) |
 | CDE DAG job | `rsingh-spend-anl-orchestration` | dagID `spend_analytics_pipeline` |
@@ -67,7 +67,18 @@ FROM rsingh_spend_anl_ref.dq_results GROUP BY layer;
 
 ### 2. CAI project
 
-Projects > New Project: name `spend-analytics`, Git URL
+Either from the laptop, with `SPEND_CAI_HOST` and `SPEND_CAI_API_KEY` (a CAI API v2
+key, User Settings > API Keys) in `.env` next to `SPEND_IMPALA_*`:
+
+```bash
+set -a; source .env; set +a
+python ci/setup_cai.py --dry-run && python ci/setup_cai.py
+```
+
+which creates the project, its environment variables and the five jobs of step 4 and
+prints the IDs for step 7 (it finds by name, so a rerun changes nothing); then run the
+job `spend-sync-code` once: it installs `requirements.txt` into the project
+(PLAN decision 25). Or by hand: Projects > New Project: name `rsingh-spend-analytics`, Git URL
 `https://github.com/partomia/Spend-Analytics`, Python 3.11 runtime. A GPU is
 not needed (MiniLM and Chronos-2 are fast on CPU, PLAN decision 7). Project
 Settings > Advanced > Environment Variables:

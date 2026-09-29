@@ -106,13 +106,26 @@ def test_sync_code_resets_to_the_pushed_commit(tmp_path, monkeypatch, capsys):
     (project / "artifacts" / "keep.txt").write_text("untracked")
 
     job = _load(ROOT / "cai" / "jobs" / "sync_code.py")
+    installs = []
     monkeypatch.setattr(job, "_repo_root", lambda: project)
+    monkeypatch.setattr(job, "install_requirements", lambda root: installs.append(root))
     monkeypatch.setenv("EXPECTED_GIT_SHA", pushed[:12])
-    assert job.main() == 0
+    assert job.main() == 0 and installs == [project]
     assert (project / "a.txt").read_text() == "v2" and (project / "artifacts" / "keep.txt").exists()
 
     monkeypatch.setenv("EXPECTED_GIT_SHA", "deadbeef")                  # a newer push moved main on
     assert job.main() == 1 and "stopping the chain" in capsys.readouterr().out
+    assert installs == [project]                                        # a stopped chain installs nothing
+
+
+def test_sync_code_installs_requirements_only_when_they_change(tmp_path):
+    job = _load(ROOT / "cai" / "jobs" / "sync_code.py")
+    (tmp_path / "requirements.txt").write_text("pyyaml\n")
+    calls = []
+    assert job.install_requirements(tmp_path, pip=lambda: calls.append(1)) and calls == [1]
+    assert not job.install_requirements(tmp_path, pip=lambda: calls.append(1)) and calls == [1]
+    (tmp_path / "requirements.txt").write_text("pyyaml\nimpyla\n")
+    assert job.install_requirements(tmp_path, pip=lambda: calls.append(1)) and calls == [1, 1]
 
 
 def test_workflow_runs_the_cai_chain_after_train_validate():
@@ -123,3 +136,48 @@ def test_workflow_runs_the_cai_chain_after_train_validate():
     assert "python ci/trigger_cai_pipeline.py" in job
     for secret in ("CAI_URL", "CAI_API_KEY", "CAI_PROJECT_ID"):
         assert f"{secret}: ${{{{ secrets.{secret} }}}}" in job
+
+
+class FakeWorkbench:
+    def __init__(self, env="{}"):
+        self.calls, self.env, self.jobs, self.project = [], env, [], None
+
+    def __call__(self, method, path, body=None, params=None):
+        self.calls.append((method, path, body))
+        if path == "/projects" and method == "GET":
+            return {"projects": [self.project] if self.project else []}
+        if path == "/projects" and method == "POST":
+            self.project = {"id": "p1", "name": body["name"]}
+            return self.project
+        if path == "/projects/p1" and method == "GET":
+            return {"creation_status": "success", "environment": self.env}
+        if path == "/projects/p1" and method == "PATCH":
+            self.env = body["environment"]
+            return {}
+        if path == "/projects/p1/jobs" and method == "GET":
+            return {"jobs": self.jobs}
+        if path == "/projects/p1/jobs" and method == "POST":
+            self.jobs.append({"name": body["name"], "id": f"j{len(self.jobs)}", **body})
+            return self.jobs[-1]
+        raise AssertionError((method, path))
+
+
+def test_setup_cai_creates_once_and_never_prints_secrets(monkeypatch, capsys):
+    import json
+    from ci import setup_cai
+    monkeypatch.setenv("SPEND_IMPALA_USER", "u")
+    monkeypatch.setenv("SPEND_IMPALA_PASSWORD", "s3cret-value")
+    wb = FakeWorkbench()
+    project = setup_cai.ensure_project(wb, dry_run=False)
+    setup_cai.ensure_env(wb, project, dry_run=False)
+    ids = setup_cai.ensure_jobs(wb, project, dry_run=False)
+    assert project["name"] == setup_cai.CAI_PROJECT_NAME and set(ids) == {j["name"] for j in cai_jobs.JOBS}
+    assert json.loads(wb.env) == {"HF_HOME": "/home/cdsw/.hf_cache", "SPEND_IMPALA_USER": "u",
+                                  "SPEND_IMPALA_PASSWORD": "s3cret-value"}
+    assert all(j["runtime_identifier"] == setup_cai.RUNTIME and j["arguments"] == "" for j in wb.jobs)
+    n = len(wb.calls)
+    setup_cai.ensure_project(wb, dry_run=False)
+    setup_cai.ensure_env(wb, project, dry_run=False)
+    setup_cai.ensure_jobs(wb, project, dry_run=False)
+    assert not [c for c in wb.calls[n:] if c[0] in ("POST", "PATCH")]       # idempotent
+    assert "s3cret-value" not in capsys.readouterr().out
