@@ -264,3 +264,43 @@ Churn; all local, none modified) and the Cloudera AI MLOps workshop. Adopted as
     with env-driven run date and Jupyter `-f` args, default run date, exit
     codes, backfill Fridays, `predict.py`.
   - `pytest -q`: 114 passed.
+
+### Phase 7: Spend Insights Console
+
+- `app/streamlit_app.py` (10 tabs), `app/data.py` (cached gold reads, empty frames
+  on a cold start, endpoint requests cached by their JSON), and `app/run.py`
+  (the CAI Application launcher, copied from Churn).
+- Sidebar: the run date (every run, including gate failures), the gate status
+  and published flag, models and device, freshness as the last DQ run per layer,
+  and whether Customer 360 goes to the endpoint or runs in-process.
+- The tabs read gold and never scan silver:
+  - Portfolio, Where and Channels read `spend_mix_weekly`. Where puts a
+    caption on the home_fallback share.
+  - Personas and Channels read the persona centroids and `persona_flow`
+    (Sankey).
+  - Forecast reads `spend_forecast`, `spend_backtest` and the cohort series.
+  - Opportunities reads `spend_signals`, with filters, reach and a CSV
+    download.
+  - Data quality reads `dq_results`.
+  - Lineage reads `spend_model_run`, with Hue queries for the snapshot and
+    time travel.
+- Customer 360 and the Categoriser call the scorer: profile, forecast with a fan
+  chart and expected 12-week totals, what-if, and categorise.
+- `data/parquet`, 20k book, run 2026-09-25:
+  - All ten tabs render in 2.9 s with the stubs. With MiniLM and Chronos-2
+    in-process, the first render takes 22 s (model load) and is cached after.
+  - Portfolio shows INR 162.9 cr over 13 weeks, 488,446 transactions and 68.5%
+    digital.
+  - Unit 0's expected next 12 weeks: TRAVEL INR 19.8k, DINING INR 4.7k.
+  - `python app/run.py` serves, and `/_stcore/health` returns ok.
+- Tests (`test_app.py`, AppTest):
+  - Every tab renders, including the sidebar DQ state, the failed-check list
+    and the Sankey.
+  - Customer 360 profile, forecast and what-if; an unknown CIF.
+  - The live categoriser.
+  - A failed-gate run says so and shows no personas; switching back to the
+    earlier run clears the warning.
+  - Cold start with no tables at all.
+  - Cold start with only `spend_model_run`, where every tab shows its
+    "not yet" message.
+  - `pytest -q`: 121 passed.

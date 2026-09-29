@@ -223,6 +223,12 @@ Names:
     19,333 customers profiled on 2026-09-25. The profile action reports the
     daily run's label; what-if compares before and after with the same rule,
     so a move is never an artefact of mixing the two.
+19. **The console's state map is a bubble map, and what-if sits in Customer 360.**
+    The repo ships no Indian state boundaries (and must not fetch them at run
+    time on CAI), so Portfolio draws one bubble per state at the mean of its
+    `ref.pincode_geo` coordinates, with area proportional to spend. The spec's
+    ten tabs have no what-if tab, so the endpoint's what-if is a panel under the
+    customer's profile and forecast in Customer 360.
 
 ## Method (demo policy, see `config/policy.yaml`)
 
@@ -274,6 +280,11 @@ Names:
   44 s / 1 s, the same KPIs as Phase 5, exit 0; stub exit 1 (0 with `--ignore-gate`);
   a 3-Friday backfill in 90 s. Endpoint: context 17 s, profile 1.6-2.3 s, forecast
   1-1.9 s, what-if and categorise < 0.25 s (decisions 17, 18). 114 tests.
-- [ ] **7. Spend Insights Console**: 10 tabs + AppTest.
+- [x] **7. Spend Insights Console**: `app/{streamlit_app,data,run}.py`, 10 tabs (Portfolio, Where,
+  Channels, Personas, Customer 360, Forecast, Categoriser, Opportunities, Data quality, Lineage).
+  Book-wide views read gold only (`spend_mix_weekly`, run outputs); one customer comes from the
+  endpoint, or in-process with the stub fallback. 20k book: all tabs in 2.9 s with the stubs,
+  22 s on first load with the real models in-process (then cached). AppTest on every tab,
+  the live categoriser, what-if, a failed-gate run and two cold starts (decision 19). 121 tests.
 - [ ] **8. Orchestration + CI + docs**: DAG, deploy / backfill scripts, CI (test + train-validate), SQL, README, runbook.
 - [ ] **9. Live on Cloudera** (with Ravi).
