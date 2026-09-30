@@ -22,7 +22,7 @@ Same CDP environment as `partomia/Mule-Account-Identifier`,
 |---|---|---|
 | Ingest + medallion | CDE (Spark 3, Iceberg v2) | generate 8 bronze + 7 ref tables, silver (dedupe, CIF resolution, `spend_event`), gold (CIF x weekly snapshot, cohort x category x week, mix x week; MERGE) |
 | Data quality | CDE + Great Expectations 1.23.2 | `dq_check.py --layer bronze/silver/gold` after each layer, results in `ref.dq_results` |
-| Orchestration | CDE Airflow | daily DAG, 10 tasks: 4 CDE jobs, 3 DQ gates, 4 CAI jobs (API v2) |
+| Orchestration | CDE Airflow | daily DAG, 11 tasks: 4 CDE jobs, 3 DQ gates, 4 CAI jobs and the endpoint refresh (API v2) |
 | Categorisation | CAI Job `spend-categorise` | new merchant keys: MCC -> SEED -> MiniLM kNN -> FALLBACK, appended to `ref.merchant_category_map` |
 | Daily ML | CAI Jobs `spend-feature-engineering` -> `spend-model-training` -> `spend-model-evaluation` | features + covariates; KMeans personas, MiniLM holdouts, Chronos-2 backtest + forecast, signals; KPIs, KPI gate, MLflow, publish |
 | Experiment tracking | CAI Experiments (MLflow) | params, KPIs, gate detail per daily run |
@@ -308,6 +308,24 @@ Names:
     `start_date` is more than a day back runs the latest closed interval as soon
     as it is registered. That would be an unasked first trigger. Unpausing is
     the deliberate first run, and it needs no manual trigger.
+27. **MLOps on what exists: the registry versions the persona model, the DAG and CI
+    redeploy.** No retraining or serving redesign.
+    - The persona model is logged to MLflow as a stock scikit-learn pipeline
+      (`spend/registry.py`). It is not a custom pyfunc, which registry
+      deployments don't load.
+    - A passed, latest-dated run registers it as the next `spend-persona`
+      version, so the highest version is the champion. Its run ID comes from the
+      version's MLflow parameters, because tag updates through the API v2 never
+      returned (18 minutes).
+    - The DAG's `refresh_endpoint` restarts `spend-scorer` and checks it serves
+      the champion's run (560 s).
+    - A push touching the model code rebuilds `spend-scorer` after the CAI gate
+      (build 8 min, deploy 2 min 48 s).
+    - The signature is float64: MLflow rejects JSON numbers against a float32
+      tensor (HTTP 400 on version 1, reproduced locally).
+    - `ci/deploy_registered_model.py` deploys the champion version as its own
+      model, `spend-persona` (built in 182 s). Calls to it still time out after
+      30 s; the replica logs are needed.
 ## Method (demo policy, see `config/policy.yaml`)
 
 - **Categorise**: MCC (card) -> SEED (exact normalised match) -> EMBEDDING (MiniLM +

@@ -623,3 +623,42 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
     training and evaluation (dry run) all succeeded. "KPI gate passed for
     commit 57396ee".
 
+
+## 2026-09-30: MLOps on the federal cluster (PLAN decision 27)
+
+- The DAG's first two scheduled runs (as_of 2026-09-27 and 2026-09-28) both
+  succeeded, with 0 failed DQ checks and the gate passed. The 2026-09-28 run
+  (`20260928-9b0c34ed`) replaced the manual run of that date.
+- AI Registry `model-registry-ml-9fcffe29-d21` was created at 11:43 IST. Before
+  that, `GET /api/v2/registry/models` returned HTTP 500.
+- Commit `68825eb`:
+  - The persona model is logged to MLflow and registered. The DAG gained
+    `refresh_endpoint`, and CI rebuilds `spend-scorer` when model code changes.
+  - `deploy_dag.sh` updated the job and the schedule stayed enabled. Airflow
+    parsed 11 tasks with no import errors.
+  - GitHub chain: `model_code_changed=true`, gate passed, `spend-scorer` build
+    8 min 0 s, deployed 2 min 48 s later. The old deployment was stopped
+    automatically.
+  - Evaluation for 2026-09-28 rerun in real mode (306 s) registered
+    `spend-persona` version 1, `READY`. The version carries the MLflow run's
+    params (run ID, snapshot IDs, git commit) and metrics.
+  - The tags passed at creation were not stored. A version PATCH through the
+    API v2 did not return within 18 minutes, so the champion is simply the
+    highest version.
+  - `refresh_endpoint` run for real, outside Airflow: registry version 1 gave
+    run `20260928-9b0c34ed`. After the restart, the first correct answer came
+    at 560 s.
+- Commit `536fcb3`:
+  - Float64 signature; registry lookup by highest version; added
+    `ci/deploy_registered_model.py`.
+  - Evaluation rerun (285 s) registered version 2. The GitHub chain rebuilt
+    `spend-scorer` again, and it passed.
+  - `deploy_registered_model.py` created the workbench model `spend-persona`
+    from the registry. Version 1 build deployed, then version 2 built and
+    deployed in 182 s.
+  - Calls: version 1 answered HTTP 400 to every input format. A local MLflow
+    3.1.4 check shows a float32 tensor signature rejects float64 input, while
+    a float64 tensor accepts it.
+  - Version 2 times out after 30 s on every call ("context deadline
+    exceeded"), including 9 minutes after a restart. The replica logs are only
+    in the UI.

@@ -145,7 +145,8 @@ on demand. It has three jobs, each needing the one before.
 - `cde/scripts/set_airflow_variables.py` sets the seven `SPEND_CAI_*` Airflow
   Variables, and only those.
 - After a code change: push, then `cde repository sync` for CDE. The CAI side
-  syncs itself through `spend-sync-code`. Restart the model to serve new code.
+  syncs itself through `spend-sync-code`, and a push that changes the model
+  code rebuilds and redeploys `spend-scorer` after its gate passes (section 9).
 
 ## 3. Orchestration across CDE, CAI and CDW
 
@@ -156,8 +157,11 @@ runs the whole day. It is registered as the CDE job
 ```text
 generate_spend_bronze -> dq_bronze -> build_silver -> dq_silver -> cai_categorise
   -> build_gold_features -> dq_gold -> cai_feature_engineering -> cai_model_training
-  -> cai_model_evaluation
+  -> cai_model_evaluation -> refresh_endpoint
 ```
+
+- **`refresh_endpoint`** restarts `spend-scorer` over the CAI API v2 and checks
+  that it serves the run just registered (section 9).
 
 - **CDE tasks** use `CDEJobRunOperator` on the four Spark jobs, with run-time
   arguments `--db-prefix`, `--as-of` and, for data quality, `--layer` and
@@ -344,7 +348,8 @@ CDW.
    - It answers four actions: profile, 12-week forecast, what-if and live
      categorise.
    - The app and the Customer 360 tab call it.
-   - Restart the model after a daily run to serve that run.
+   - The DAG's `refresh_endpoint` task restarts it after each published run
+     and checks that it serves that run.
 
 In one process: `cai/jobs/daily_run.py` runs the three stages together (sessions,
 CI). `cai/jobs/backfill_history.py` replays past Fridays in order, each
@@ -476,44 +481,85 @@ retrained daily, and one is a rule set:
 - Every KPI, the gate verdict and detail, `outputs_published`, the stage
   durations and the `mlflow_run_id`.
 
-`spend_model_run` is the registry of record: the latest row with
-`outputs_published = true` is the live model.
+`spend_model_run` is the record of every run. The Cloudera AI Registry holds
+the approved persona models (below).
 
 **Experiment tracking.**
 - `spend/tracking.py` logs every run to the CAI Experiments (MLflow) experiment
   `spend-analytics`: the same parameters, KPIs as metrics, gate tags, and the
   gate detail and per-k silhouettes as artefacts.
-- A tracking error never fails the run. 2026-09-28 is MLflow run
-  `9jep-ssq2-t3wf-w8ql`.
+- It also logs the persona model itself under `model`: a plain scikit-learn
+  pipeline (standardise, clip at ±3, nearest centroid; `spend/registry.py`)
+  with a tensor signature of the 27 persona features and an input example.
+  It assigns exactly what the daily job assigns (`tests/test_registry.py`).
+- A tracking error never fails the run.
+
+**Registry (Cloudera AI Registry, `spend-persona`).**
+- After a published run's tables are written, the evaluation job registers
+  that MLflow run's model as a new version of `spend-persona`
+  (`spend.registry.registrar`, through `cmlapi` with the job's own
+  credentials).
+- A failed gate registers nothing, and neither does a backfilled date older
+  than the latest published one. So the highest version is always the
+  champion: the run the endpoint serves.
+- Each version carries its MLflow run's parameters and metrics: run ID,
+  snapshot IDs, feature hash, package versions, git commit and every KPI.
+  That is the lineage from a registered model back to the data it was
+  trained on.
+- On 2026-09-30, version 1 (run `20260928-9b0c34ed`, commit `68825eb`) and
+  version 2 (the same run, commit `536fcb3`, float64 signature) were
+  registered.
+- Updating a version's tags through the API v2 never returned on this
+  workbench (18 minutes), so nothing depends on tags.
 
 **Promotion and rollback (champion and challenger).**
 - Each run is a challenger. Its champion is the published run it would replace.
 - The KPI gate (`spend/gate.py`, `config/policy.yaml`) checks absolute floors and
   non-regression against the champion: each accuracy may drop by at most 0.01,
   and `wape_ratio` may rise by at most 0.03.
-- Pass: the outputs are published and the run becomes the champion.
+- Pass: the outputs are published, the model is registered, and the run becomes
+  the champion.
 - Fail: only the evidence is written. The champion stays live, so rollback is
   automatic and nobody has to act.
 - CI enforces the same gate: `train-validate` on every push, and the GitHub to
   CAI chain on the cluster (section 2).
 
-**Deployment.**
-- `ci/setup_cai.py` creates the `spend-scorer` model, builds it (`cdsw-build.sh`)
-  and deploys it through the CAI API v2 with authentication on. It then points
-  the app at the endpoint.
-- At start-up the model loads the latest published run's scaler, centroids and
-  snapshot IDs. It refuses to start if that run's feature hash differs from its
-  own code.
-- A new daily run is served after a model restart. The build and the data are
-  versioned separately: the build is a git commit, the data is `run_id`.
+**Deployment: a new model and new code reach the endpoint by themselves.**
+
+| What changed | What redeploys it | Measured on 2026-09-30 |
+|---|---|---|
+| A new daily run (retrained personas) | DAG task `refresh_endpoint`, after `cai_model_evaluation`: restarts `spend-scorer`, then calls it until it serves the champion version's run | Restart to first correct answer: 560 s |
+| Model code (`spend/`, `cai/model/`, `config/`, `requirements.txt`, `cdsw-build.sh`) | The GitHub to CAI chain, after its KPI gate passes: a new `spend-scorer` build of the commit, deployed when built; the previous deployment is stopped | Build 8 min, deploy 2 min 48 s (commit `68825eb`) |
+| Anything else (docs, tests) | Nothing | |
+
+- `spend-scorer` loads the latest published run's scaler, centroids and
+  snapshot IDs at start-up. It refuses to start if that run's feature hash
+  differs from its own code, and every response names the run it serves.
+- `refresh_endpoint` fails the DAG run if the endpoint doesn't serve the
+  expected run within 30 minutes.
+- The endpoint is down for the restart, about 9 minutes after each nightly
+  run (around 03:20 IST).
+
+**Deploying straight from the registry (`ci/deploy_registered_model.py`).**
+- Creates the workbench model `spend-persona` from the registered model and
+  builds it from the champion version, with no code file (1 vCPU / 2 GB).
+  Run again, it adds a build only when a newer version exists.
+- Version 2 built and deployed in 182 s.
+- Status: calls to it don't answer yet (see Gaps).
 
 **Gaps.**
-- No MLflow Model Registry stages. Promotion is `outputs_published`, not a
-  registered model version.
+- The registry-deployed `spend-persona` doesn't answer:
+  - Version 1 (float32 signature) rejected every request with HTTP 400, because
+    MLflow won't narrow JSON numbers to float32 (reproduced locally), hence
+    float64 in version 2.
+  - Version 2 times out after 30 s on every call, before and after a restart.
+    The replica logs (Model Deployments > spend-persona > Logs) are the next
+    place to look; the API v2 has no endpoint for them.
+  - `spend-scorer`, which the app uses, is not affected.
 - The Hugging Face weights are not pinned to a revision, and `requirements.txt`
   uses `>=`. `model_versions` records what ran, but a rebuild could pull newer
   weights. For air-gapped or strict use, set `model.local_dir`
   (`SPEND_MODEL_LOCAL_DIR`) to a vetted copy of the weights and pin the
   packages.
-- The endpoint doesn't reload a new daily run by itself. Restarting it is a
-  runbook step, not a DAG task.
+- Only the persona model is versioned in the registry. MiniLM and Chronos-2 are
+  recorded by name and package version in each run, not as registered models.

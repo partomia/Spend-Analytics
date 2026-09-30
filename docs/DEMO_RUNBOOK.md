@@ -14,6 +14,8 @@ each time. Check every screenshot for keys and hostnames before committing it.
 | CAI project | `rsingh-spend-analytics` | `gq4g-0gpd-etm4-0j7n` (federal; `8ze8-2kux-eik9-8pzv` on go01) |
 | CAI jobs | `spend-sync-code`, `spend-categorise`, `spend-feature-engineering`, `spend-model-training`, `spend-model-evaluation` | from `ci/setup_cai.py` (step 2) |
 | Model | `spend-scorer` | `a9f47a25-97e5-4f99-a9f4-c91503d76028` (from `ci/setup_cai.py`) |
+| Registered model | `spend-persona` (AI Registry) | `gk1q-e1gw-y1rk-y4v6`, a version per published run |
+| Model from the registry | `spend-persona` | `17eb2548-1c88-452b-940c-38161795b6f0` (from `ci/deploy_registered_model.py`) |
 | Application | `Spend Insights Console` | `801g-3mb1-mub1-c9t7`, subdomain `rsingh-spend-insights` |
 | CDE DAG job | `rsingh-spend-anl-orchestration` | dagID `spend_analytics_pipeline` |
 
@@ -163,8 +165,9 @@ tab:
 python cai/model/test_endpoint.py --print-request --action profile      # also forecast, what_if, categorise
 ```
 
-The response's `model` block names the run it serves. Restart the model after
-each new daily run to serve it. Laptop timings: context 17 s at start-up,
+The response's `model` block names the run it serves. The DAG's
+`refresh_endpoint` task restarts the model after each published run and checks
+that it serves it. Laptop timings: context 17 s at start-up,
 profile 1.6-2.3 s, forecast 1-1.9 s, what-if and categorise under 0.25 s.
 
 ### 6. Application: `Spend Insights Console`
@@ -271,11 +274,12 @@ first push with the secrets set** (it is the first CAI trigger from GitHub).
 
 ## Before the demo (30 minutes ahead)
 
-- CDE Airflow grid: last night's run green, all ten tasks, including the three
-  `dq_*` gates and the four `cai_*` jobs.
+- CDE Airflow grid: last night's run green, all eleven tasks, including the
+  three `dq_*` gates, the four `cai_*` jobs and `refresh_endpoint`.
 - App Lineage tab: today's run with `triggered_by = airflow`, gate PASS, and
   the backfilled run dates.
-- `spend-scorer` restarted after today's run; its Test tab shows today's run id.
+- `spend-scorer` serves today's run (its Test tab shows the run id), and
+  Registered Models shows `spend-persona` with today's version on top.
 - Run one Hue query 5 minutes before: the Impala warehouse auto-suspends.
 - Hue open on `sql/reports.sql`; Airflow UI open on the DAG grid; CAI
   Experiments open on `spend-analytics`.
