@@ -3,15 +3,20 @@
 persona_pipeline() turns a run's scaler and persona centroids into a plain
 scikit-learn Pipeline: standardise -> clip at +-PERSONA_CLIP -> nearest centroid.
 It assigns exactly what personas.assign() assigns, and it is built only from
-stock scikit-learn and numpy parts: the Registry -> AI Inference path (Triton)
-serves native flavours with a float32 TensorSpec signature and does not load
-custom pyfunc classes. Input: the 27 PERSONA_FEATURES in order (log_spend_13w =
-log1p(spend_13w)); output: persona_id.
+stock scikit-learn and numpy parts (a native flavour: registry deployments do
+not load custom pyfunc classes). Input: a float64 tensor of the 27
+PERSONA_FEATURES in order (log_spend_13w = log1p(spend_13w)); output:
+persona_id. float64, because a Model Deployment hands the model JSON numbers,
+which MLflow will not narrow to a float32 signature; the AI Inference (Triton)
+path would need float32 instead.
 
 register_champion() runs after a published run's outputs are written: the
-MLflow run's model becomes a new version of registry.model_name, tagged with the
-run, its KPIs and champion=true, and the previous champion's tag is set to false.
-A failed gate registers nothing, so every version passed the gate.
+MLflow run's model becomes a new version of registry.model_name. A failed gate
+or a backfilled (older) date registers nothing, so the highest version is the
+champion: the run the endpoint serves. Each version carries its MLflow run's
+parameters (run_id, snapshot IDs, feature hash, git commit) and KPIs, which is
+where champion_run_id() reads the run from. (Updating a version's tags through
+the API v2 did not return on the federal workbench, so nothing depends on it.)
 """
 
 from __future__ import annotations
@@ -52,14 +57,14 @@ def persona_signature():
     from mlflow.models.signature import ModelSignature
     from mlflow.types import Schema, TensorSpec
 
-    return ModelSignature(inputs=Schema([TensorSpec(np.dtype(np.float32), (-1, len(PERSONA_FEATURES)))]),
+    return ModelSignature(inputs=Schema([TensorSpec(np.dtype(np.float64), (-1, len(PERSONA_FEATURES)))]),
                           outputs=Schema([TensorSpec(np.dtype(np.int64), (-1,))]))
 
 
 def version_tags(model_run: dict, names: dict[int, str]) -> list[dict]:
     tags = {"run_id": model_run["run_id"], "run_date": str(model_run["run_date"]),
             "feature_hash": model_run["feature_hash"], "k": str(model_run["k"]),
-            "triggered_by": model_run["triggered_by"], "gate_passed": "true", "champion": "true",
+            "triggered_by": model_run["triggered_by"], "gate_passed": "true",
             "features": ",".join(PERSONA_FEATURES), "persona_names": json.dumps({str(k): v for k, v in names.items()}),
             **{k: f"{float(model_run[k]):.4f}" for k in TAG_KPIS if model_run.get(k) is not None}}
     return [{"key": k, "value": v} for k, v in tags.items()]
@@ -69,48 +74,40 @@ def _get(obj, key, default=None):
     return obj.get(key, default) if isinstance(obj, dict) else getattr(obj, key, default)
 
 
-def _tags(version) -> dict[str, str]:
-    return {_get(t, "key"): _get(t, "value") for t in (_get(version, "tags") or [])}
-
-
 def find_model(client, name: str):
     models = _get(client.list_registered_models(page_size=100), "models") or []
     return next((m for m in models if _get(m, "name") == name), None)
 
 
 def champion_version(client, name: str):
-    """The registered version tagged champion=true with the highest number, or None."""
+    """The highest registered version, or None."""
     model = find_model(client, name)
     if model is None:
         return None
     versions = _get(client.get_registered_model(_get(model, "model_id")), "model_versions") or []
-    champs = [v for v in versions if _tags(v).get("champion") == "true"]
-    return max(champs, key=lambda v: _get(v, "number") or 0) if champs else None
+    return max(versions, key=lambda v: _get(v, "number") or 0) if versions else None
+
+
+def run_id_of(version) -> str | None:
+    """The daily run a version was trained in: the run_id parameter of its MLflow run."""
+    mlflow_meta = _get(_get(version, "model_version_metadata") or {}, "mlflow_metadata") or {}
+    return next((_get(p, "value") for p in _get(mlflow_meta, "params") or [] if _get(p, "key") == "run_id"), None)
 
 
 def register_champion(client, model_run: dict, names: dict[int, str], experiment_id: str,
                       project_id: str | None = None, name: str | None = None) -> dict:
-    """Register the run's MLflow model as the new champion version; returns {model_id, version, number}."""
+    """Register the run's MLflow model as the new version; returns {model_id, version, number, previous}."""
     name = name or settings()["registry"]["model_name"]
     previous = champion_version(client, name)
-    tags = version_tags(model_run, names)
-    notes = f"run {model_run['run_id']} ({model_run['run_date']}), gate passed"
     created = client.create_registered_model({
         "project_id": project_id or os.environ.get("CDSW_PROJECT_ID", ""), "experiment_id": experiment_id,
-        "run_id": model_run["mlflow_run_id"], "model_path": MODEL_PATH, "model_name": name, "tags": tags,
+        "run_id": model_run["mlflow_run_id"], "model_path": MODEL_PATH, "model_name": name,
+        "tags": version_tags(model_run, names),
         "description": "Spend personas: standardise, clip, nearest centroid (published daily runs only)",
-        "notes": notes, "visibility": "PRIVATE"})
+        "notes": f"run {model_run['run_id']} ({model_run['run_date']}), gate passed", "visibility": "PRIVATE"})
     model_id = _get(created, "model_id")
     versions = _get(client.get_registered_model(model_id), "model_versions") or []
     new = max(versions, key=lambda v: _get(v, "number") or 0)
-    # the create call's tags may land on the model rather than the version
-    client.update_registered_model_version({"model_id": model_id, "model_version_id": _get(new, "model_version_id"),
-                                            "notes": notes, "tags": tags}, model_id)
-    if previous is not None and _get(previous, "model_version_id") != _get(new, "model_version_id"):
-        tags = [{"key": k, "value": "false" if k == "champion" else v} for k, v in _tags(previous).items()]
-        client.update_registered_model_version({"model_id": model_id,
-                                                "model_version_id": _get(previous, "model_version_id"),
-                                                "tags": tags}, model_id)
     out = {"model_id": model_id, "version": _get(new, "model_version_id"), "number": _get(new, "number"),
            "previous": _get(previous, "number") if previous is not None else None}
     logger.info("registered %s version %s for run %s (previous champion: %s)", name, out["number"],

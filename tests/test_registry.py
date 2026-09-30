@@ -25,15 +25,14 @@ def test_persona_pipeline_assigns_what_personas_assign_does():
     expected, _ = ps.assign(raw, scaler, centroids)
     pipe = registry.persona_pipeline(scaler, centroids)
     assert (pipe.predict(raw) == expected).all()
-    assert (pipe.predict(raw.astype(np.float32)) == expected).mean() > 0.99   # the served float32 tensor
     assert [s for s, _ in pipe.steps] == ["standardise", "clip", "nearest_persona"]
 
 
 class FakeRegistry:
-    """list / get / create / update of registered models and versions, as cmlapi returns them (dicts here)."""
+    """list / get / create of registered models and versions, as cmlapi returns them (dicts here)."""
 
     def __init__(self):
-        self.models, self.updates = {}, []
+        self.models = {}
 
     def list_registered_models(self, page_size=100):
         return {"models": [{"model_id": mid, "name": m["name"]} for mid, m in self.models.items()]}
@@ -47,14 +46,10 @@ class FakeRegistry:
             mid = f"m{len(self.models)}"
             self.models[mid] = {"name": body["model_name"], "versions": []}
         versions = self.models[mid]["versions"]
-        versions.append({"model_version_id": f"{mid}-v{len(versions) + 1}", "number": len(versions) + 1,
-                         "tags": [], "run": body["run_id"]})
+        run = {"key": "run_id", "value": body["tags"][0]["value"]}        # the MLflow run's params, as CAI copies them
+        versions.append({"model_version_id": f"{mid}-v{len(versions) + 1}", "number": len(versions) + 1, "tags": [],
+                         "model_version_metadata": {"mlflow_metadata": {"run_id": body["run_id"], "params": [run]}}})
         return {"model_id": mid}
-
-    def update_registered_model_version(self, body, model_id):
-        self.updates.append(body)
-        v = next(v for v in self.models[model_id]["versions"] if v["model_version_id"] == body["model_version_id"])
-        v["tags"] = body["tags"]
 
 
 def _model_run(run_id, day):
@@ -62,19 +57,18 @@ def _model_run(run_id, day):
             "mlflow_run_id": f"ml-{run_id}", "silhouette": 0.16, "wape_ratio": 0.87, "coverage": None}
 
 
-def test_register_champion_moves_the_champion_tag():
+def test_the_highest_version_is_the_champion_with_its_run():
     fake, names = FakeRegistry(), {0: "Tier-1 traveller"}
+    assert registry.champion_version(fake, "spend-persona") is None
     first = registry.register_champion(fake, _model_run("r1", D1), names, "exp", project_id="p", name="spend-persona")
     assert first["number"] == 1 and first["previous"] is None
     second = registry.register_champion(fake, _model_run("r2", D2), names, "exp", project_id="p",
                                         name="spend-persona")
     assert second["number"] == 2 and second["previous"] == 1
     champ = registry.champion_version(fake, "spend-persona")
-    tags = {t["key"]: t["value"] for t in champ["tags"]}
-    assert champ["number"] == 2 and tags["run_id"] == "r2" and tags["champion"] == "true"
-    assert tags["wape_ratio"] == "0.8700" and "coverage" not in tags
-    v1 = {t["key"]: t["value"] for t in fake.models["m0"]["versions"][0]["tags"]}
-    assert v1["champion"] == "false" and v1["run_id"] == "r1"
+    assert champ["number"] == 2 and registry.run_id_of(champ) == "r2"
+    tags = {t["key"]: t["value"] for t in registry.version_tags(_model_run("r2", D2), names)}
+    assert tags["wape_ratio"] == "0.8700" and "coverage" not in tags and tags["run_id"] == "r2"
 
 
 def test_only_a_passed_latest_run_is_registered(store, monkeypatch):  # noqa: F811
@@ -89,7 +83,7 @@ def test_only_a_passed_latest_run_is_registered(store, monkeypatch):  # noqa: F8
     pipeline.run_daily(st, D2, stub=True, root=art, tracker=tracker, registrar=registrar, publish_on_fail=True)
     assert calls == []                                       # published on fail, but the gate failed
     pipe, ex = seen[-1]["persona_model"], seen[-1]["persona_example"]
-    assert ex.dtype == np.float32 and ex.shape[1] == len(PERSONA_FEATURES) and len(pipe.predict(ex)) == len(ex)
+    assert ex.dtype == np.float64 and ex.shape[1] == len(PERSONA_FEATURES) and len(pipe.predict(ex)) == len(ex)
     assert set(seen[-1]["persona_names"]) == set(pipe.predict(ex)) | set(seen[-1]["persona_names"])
 
     monkeypatch.setattr(pipeline.kpi_gate, "evaluate", lambda *a, **k: (True, ["PASS forced"]))

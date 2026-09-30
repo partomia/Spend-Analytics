@@ -22,8 +22,8 @@ personas, forecast and signals stay live.
 
 refresh_endpoint runs only after a passed gate: it restarts the spend-scorer
 deployment (it loads the latest published run at start-up), then calls it until
-it answers with the run tagged champion in the Cloudera AI Registry
-(spend-persona), or, with no registry version, a run dated on or after as_of.
+it answers with the run of the champion (highest) spend-persona version in the
+Cloudera AI Registry, or, with no registry version, a run dated on or after as_of.
 Red if that does not happen within ENDPOINT_DEADLINE_MIN.
 
 Airflow Variables (CDE Airflow UI > Admin > Variables), set before the DAG is
@@ -103,7 +103,8 @@ def trigger_cai_job(as_of: str, job_var: str, **_):
 
 
 def _champion_run_id(api) -> str | None:
-    """run_id tag of the spend-persona version tagged champion=true, if the registry has one."""
+    """The daily run of the highest spend-persona version (its MLflow run's run_id parameter), if any.
+    Only a passed, latest-dated run is registered (spend/registry.py), so that is the run to serve."""
     try:
         models = api("GET", "/registry/models", params={"page_size": 100}).get("models", [])
     except requests.RequestException as e:
@@ -113,12 +114,13 @@ def _champion_run_id(api) -> str | None:
     if model is None:
         return None
     versions = api("GET", f"/registry/models/{model['model_id']}").get("model_versions", [])
-    champs = [v for v in versions if {t["key"]: t["value"] for t in v.get("tags") or []}.get("champion") == "true"]
-    if not champs:
+    if not versions:
         return None
-    best = max(champs, key=lambda v: v.get("number") or 0)
-    print(f"registry: {REGISTRY_MODEL} version {best.get('number')} is champion")
-    return {t["key"]: t["value"] for t in best["tags"]}.get("run_id")
+    best = max(versions, key=lambda v: v.get("number") or 0)
+    params = ((best.get("model_version_metadata") or {}).get("mlflow_metadata") or {}).get("params") or []
+    run_id = next((p["value"] for p in params if p.get("key") == "run_id"), None)
+    print(f"registry: {REGISTRY_MODEL} version {best.get('number')} is champion (run {run_id})")
+    return run_id
 
 
 def refresh_endpoint(as_of: str, **_):

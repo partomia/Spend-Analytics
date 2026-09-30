@@ -341,7 +341,7 @@ def persona_model(scaler_json: str, profile: pd.DataFrame) -> dict:
     from spend.registry import persona_pipeline
 
     centroids = ps.centroids_from_profile(profile)
-    example = np.stack([centroids[i] for i in sorted(centroids)[:3]]).astype(np.float32)
+    example = np.stack([centroids[i] for i in sorted(centroids)[:3]])
     return {"persona_model": persona_pipeline(ps.Scaler.from_json(scaler_json), centroids),
             "persona_example": example,
             "persona_names": dict(zip(profile["persona_id"].astype(int), profile["persona_name"]))}
