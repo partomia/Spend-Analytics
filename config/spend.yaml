@@ -76,3 +76,7 @@ endpoint:
 tracking:
   experiment: spend-analytics       # CAI Experiments (MLflow); skipped when mlflow is absent
   enabled: true
+
+registry:
+  enabled: true                     # a published run's persona model becomes a version in the Cloudera AI Registry
+  model_name: spend-persona

@@ -47,10 +47,12 @@ def test_dag_and_drill_only_run_deployed_jobs():
     assert set(re.findall(r'"\$\{JOB_PREFIX\}-([\w-]+)"', DRILL)) == deployed
 
 
-def test_dag_has_ten_tasks_in_pipeline_order():
-    chain = re.search(r"^\s+(generate >> .+)$", DAG, re.M).group(1).split(" >> ")
-    assert chain == ["generate", "dq_bronze", "silver", "dq_silver", "categorise", "gold", "dq_gold",
-                     "features", "train", "evaluate"]
+def test_dag_has_eleven_tasks_in_pipeline_order():
+    chain = re.search(r"^\s+\((generate >> [^)]+)\)", DAG, re.M | re.S).group(1)
+    assert [t.strip() for t in chain.split(">>")] == [
+        "generate", "dq_bronze", "silver", "dq_silver", "categorise", "gold", "dq_gold",
+        "features", "train", "evaluate", "refresh"]
+    assert 'task_id="refresh_endpoint", python_callable=refresh_endpoint' in DAG
     assert re.findall(r'dq_task\("(\w+)", "(\w+)"\)', DAG) == [
         ("dq_bronze", "bronze"), ("dq_silver", "silver"), ("dq_gold", "gold")]
     assert re.findall(r'cai_task\("(\w+)", "(\w+)"\)', DAG) == [
@@ -59,7 +61,7 @@ def test_dag_has_ten_tasks_in_pipeline_order():
         ("cai_model_training", "SPEND_CAI_TRAIN_JOB_ID"),
         ("cai_model_evaluation", "SPEND_CAI_EVALUATE_JOB_ID")]
     task_ids = re.findall(r'task_id="(\w+)"', DAG) + [t for t, _ in re.findall(r'_task\("(\w+)", "(\w+)"\)', DAG)]
-    assert len(set(task_ids)) == 10
+    assert len(set(task_ids)) == 11
 
 
 def test_every_overridden_run_repeats_the_db_prefix():
@@ -110,3 +112,11 @@ def test_cde_python_env_has_what_the_jobs_import():
     if re.search(r"mapInArrow|mapInPandas|applyInPandas|pandas_udf|toPandas", jobs):
         assert re.search(r"^pyarrow==", reqs, re.M)       # PySpark checks for it on the driver
     assert re.search(r"^great_expectations==1\.23\.2", reqs, re.M)
+
+
+def test_endpoint_refresh_names_the_model_and_the_registry_model():
+    from ci.cai_jobs import MODEL
+
+    assert re.search(r'^ENDPOINT_MODEL = "([\w-]+)"', DAG, re.M).group(1) == MODEL["name"]
+    assert re.search(r'^REGISTRY_MODEL = "([\w-]+)"', DAG, re.M).group(1) == settings()["registry"]["model_name"]
+    assert ":restart" in DAG and '"action": "categorise"' in DAG

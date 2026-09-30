@@ -188,7 +188,7 @@ def test_setup_cai_creates_once_and_never_prints_secrets(monkeypatch, capsys):
     assert project["name"] == setup_cai.CAI_PROJECT_NAME and set(ids) == {j["name"] for j in cai_jobs.JOBS}
     assert json.loads(wb.env) == {"HF_HOME": "/home/cdsw/.hf_cache", "SPEND_IMPALA_USER": "u",
                                   "SPEND_IMPALA_PASSWORD": "s3cret-value"}
-    assert all(j["runtime_identifier"] == setup_cai.RUNTIME and j["arguments"] == "" for j in wb.jobs)
+    assert all(j["runtime_identifier"] == cai_jobs.RUNTIME and j["arguments"] == "" for j in wb.jobs)
     n = len(wb.calls)
     setup_cai.ensure_project(wb, dry_run=False)
     setup_cai.ensure_env(wb, project, dry_run=False)
@@ -263,3 +263,55 @@ def test_airflow_variables_upsert_only_the_spend_keys_and_never_print_values(cap
     assert ("PATCH", "/variables/SPEND_CAI_HOST") in calls
     assert not [p for m, p in calls if m != "GET" and "SPEND_CAI_PROJECT_ID" in p]   # unchanged
     assert "api-key-value" not in capsys.readouterr().out
+
+
+class FakeModelApi(FakeApi):
+    """FakeApi plus the spend-scorer model: a build that goes built, then its deployment deployed."""
+
+    def __init__(self, build_final="built", deploy_final="deployed"):
+        super().__init__()
+        self.base = "https://cai/api/v2/projects/proj-1"
+        self.build_final, self.deploy_final, self.builds, self.n = build_final, deploy_final, [], 0
+
+    def __call__(self, method, path, body=None, params=None):
+        if not path.startswith("/models"):
+            return super().__call__(method, path, body, params)
+        if path == "/models":
+            return {"models": [{"name": cai_jobs.MODEL["name"], "id": "mod-1"}]}
+        if method == "POST":
+            self.builds.append(body)
+            return {"id": "b-1"}
+        self.n += 1
+        if path.endswith("/deployments"):
+            return {"model_deployments": [{"status": self.deploy_final if self.n > 3 else "pending"}]}
+        return {"status": self.build_final if self.n > 1 else "building"}
+
+
+def test_a_model_code_push_rebuilds_the_scorer_after_the_gate(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(tmp_path / "summary.md"))
+    api = FakeModelApi()
+    assert trig.run_chain(api, SHA, poll_s=0, rebuild=True) == 0
+    b = api.builds[0]
+    assert b["project_id"] == "proj-1" and b["model_id"] == "mod-1" and b["auto_deploy_model"]
+    assert b["file_path"] == cai_jobs.MODEL["file"] and b["comment"] == f"github {SHA[:7]}"
+    assert "redeployed with commit" in capsys.readouterr().out
+    assert "rebuild` | deployed" in (tmp_path / "summary.md").read_text()
+
+
+def test_no_rebuild_without_model_code_or_after_a_rejected_gate():
+    api = FakeModelApi()
+    assert trig.run_chain(api, SHA, poll_s=0) == 0 and api.builds == []
+    api = FakeModelApi()
+    api.final = {"spend-model-evaluation": "ENGINE_FAILED"}
+    assert trig.run_chain(api, SHA, poll_s=0, rebuild=True) == 1 and api.builds == []
+
+
+def test_a_failed_build_fails_the_check(capsys):
+    assert trig.run_chain(FakeModelApi(build_final="build failed"), SHA, poll_s=0, rebuild=True) == 1
+    assert "the running deployment is unchanged" in capsys.readouterr().out
+
+
+def test_workflow_passes_the_model_code_check_to_the_chain():
+    job = (ROOT / ".github" / "workflows" / "ci.yml").read_text().split("\n  cai-pipeline:")[1]
+    assert "fetch-depth: 0" in job and "touches_model" in job
+    assert "MODEL_CODE_CHANGED: ${{ steps.changes.outputs.model_code_changed }}" in job

@@ -17,7 +17,9 @@ name: CI
 #                   on Cloudera AI through the CAI API v2 (ci/trigger_cai_pipeline.py):
 #                   sync-code to this commit, feature engineering, training, and
 #                   evaluation as a dry run; red if the KPI gate there rejects the
-#                   candidate. Prints a notice and passes until the CAI_URL secret is set.
+#                   candidate. Then, if the push changed the model code, a new
+#                   spend-scorer build and deployment. Prints a notice and passes
+#                   until the CAI_URL secret is set.
 on:
   push:
     branches: [main]
@@ -135,15 +137,33 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
+      # A push that touches the model code (ci/cai_jobs.MODEL_CODE) also rebuilds and
+      # redeploys spend-scorer after its KPI gate passes; docs-only pushes do not.
+      - name: Does this push change the model code?
+        id: changes
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            git diff --name-only "$BEFORE" "$GITHUB_SHA" > changed.txt
+          else
+            git diff --name-only HEAD~1 HEAD > changed.txt
+          fi
+          python -c "import sys; from ci.cai_jobs import touches_model; print('model_code_changed=' + str(touches_model(open('changed.txt').read().split())).lower())" >> "$GITHUB_OUTPUT"
+          cat "$GITHUB_OUTPUT"
+
       - name: Run the CAI job chain and wait for the KPI gate
         env:
           CAI_URL: ${{ secrets.CAI_URL }}
           CAI_API_KEY: ${{ secrets.CAI_API_KEY }}
           CAI_PROJECT_ID: ${{ secrets.CAI_PROJECT_ID }}
+          MODEL_CODE_CHANGED: ${{ steps.changes.outputs.model_code_changed }}
         run: python ci/trigger_cai_pipeline.py

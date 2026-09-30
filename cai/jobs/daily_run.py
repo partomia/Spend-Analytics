@@ -35,6 +35,7 @@ sys.path.insert(0, str(_repo_root()))
 
 from spend.pipeline import run_daily, summary_lines  # noqa: E402
 from spend.storage import get_storage  # noqa: E402
+from spend.registry import registrar  # noqa: E402
 from spend.tracking import mlflow_tracker  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -55,7 +56,7 @@ def main() -> int:
     run_date = datetime.strptime(args.run_date, "%Y-%m-%d").date() if args.run_date else None
     out = run_daily(get_storage(args.backend), run_date, stub=args.stub, triggered_by=args.triggered_by,
                     write=not args.dry_run, publish_on_fail=args.publish_on_fail,
-                    tracker=None if args.dry_run else mlflow_tracker)
+                    tracker=None if args.dry_run else mlflow_tracker, registrar=None if args.dry_run else registrar)
     print()
     for line in summary_lines(out):
         print(line)

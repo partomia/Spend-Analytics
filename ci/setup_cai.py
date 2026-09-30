@@ -29,16 +29,13 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from ci.cai_jobs import JOBS  # noqa: E402
+from ci.cai_jobs import JOBS, MODEL, RUNTIME, model_build_body  # noqa: E402
 from ci.trigger_cai_pipeline import Api  # noqa: E402
 
 CAI_PROJECT_NAME = "rsingh-spend-analytics"
 GIT_URL = "https://github.com/partomia/Spend-Analytics"
-RUNTIME = "docker.repository.cloudera.com/cloudera/cdsw/ml-runtime-pbj-jupyterlab-python3.11-standard:2026.08.1-b5"
 PROJECT_ENV_FROM_CALLER = ("SPEND_IMPALA_USER", "SPEND_IMPALA_PASSWORD")
 PROJECT_ENV = {"HF_HOME": "/home/cdsw/.hf_cache"}
-MODEL = {"name": "spend-scorer", "file": "cai/model/predict.py", "cpu": 4, "memory": 16,
-         "description": "Spend profile, 12-week forecast, what-if and live categorise for one customer"}
 APP = {"name": "Spend Insights Console", "subdomain": "rsingh-spend-insights", "script": "app/run.py",
        "cpu": 2, "memory": 4, "description": "Streamlit console over the published spend run"}
 
@@ -140,10 +137,7 @@ def ensure_model(wb: Workbench, project: dict, dry_run: bool) -> dict | None:
     model = wb("POST", f"/projects/{pid}/models", body={
         "project_id": pid, "name": MODEL["name"], "description": MODEL["description"],
         "disable_authentication": False})
-    build = wb("POST", f"/projects/{pid}/models/{model['id']}/builds", body={
-        "project_id": pid, "model_id": model["id"], "file_path": MODEL["file"], "function_name": "predict",
-        "kernel": "python3", "runtime_identifier": RUNTIME, "auto_deploy_model": True,
-        "auto_deployment_config": {"cpu": MODEL["cpu"], "memory": MODEL["memory"], "replicas": 1}})
+    build = wb("POST", f"/projects/{pid}/models/{model['id']}/builds", body=model_build_body(pid, model["id"]))
     print(f"model {MODEL['name']}: created ({model['id']}), build {build['id']} deploys when built")
     return wb("GET", f"/projects/{pid}/models/{model['id']}")
 

@@ -7,14 +7,18 @@ CAI Job spend-model-evaluation: stage 3 of 3 of the daily run (PLAN decision 1).
   2. KPI gate (config/policy.yaml, spend/gate.py): categoriser accuracy on both
      holdouts, WAPE against seasonal naive, P10-P90 coverage, silhouette and
      persona stability.
-  3. Logs params, KPIs and the gate detail to MLflow (CAI Experiments) before
-     the tables are written, so spend_model_run.mlflow_run_id links the two; a
-     missing mlflow does not fail the job.
+  3. Logs params, KPIs, the gate detail and the persona model (a scikit-learn
+     pipeline, spend/registry.py) to MLflow (CAI Experiments) before the tables
+     are written, so spend_model_run.mlflow_run_id links the two; a missing
+     mlflow does not fail the job.
   4. Writes gold (DELETE + INSERT on run_date). Gate passed: customer_persona,
      persona_profile, persona_flow, spend_forecast, spend_backtest,
      spend_signals, then spend_model_run. Gate failed: only spend_backtest and
      spend_model_run (gate_passed = false) as evidence; yesterday's personas,
      forecast and signals stay live, and the job exits 1 so the DAG shows red.
+  5. Gate passed: the persona model becomes the champion version of
+     spend-persona in the Cloudera AI Registry (a registry error is logged, not
+     raised: the outputs are already published).
 
 Jobs > New Job: script cai/jobs/evaluate_models.py, Python 3.11 runtime,
 2 vCPU / 8 GB. Airflow passes the run date through SPEND_RUN_DATE; without it
@@ -49,6 +53,7 @@ sys.path.insert(0, str(_repo_root()))
 
 from spend.pipeline import evaluate_models, latest_prepared_date, summary_lines  # noqa: E402
 from spend.storage import get_storage  # noqa: E402
+from spend.registry import registrar  # noqa: E402
 from spend.tracking import mlflow_tracker  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -68,12 +73,16 @@ def main() -> int:
 
     run_date = datetime.strptime(args.run_date, "%Y-%m-%d").date() if args.run_date else latest_prepared_date()
     out = evaluate_models(get_storage(args.backend), run_date, write=not args.dry_run,
-                          publish_on_fail=args.publish_on_fail, tracker=None if args.dry_run else mlflow_tracker)
+                          publish_on_fail=args.publish_on_fail, tracker=None if args.dry_run else mlflow_tracker,
+                          registrar=None if args.dry_run else registrar)
     print()
     for line in summary_lines(out):
         print(line)
     for line in out["gate_detail"]:
         print(f"gate: {line}")
+    if out.get("registered"):
+        r = out["registered"]
+        print(f"registry: spend-persona version {r['number']} is champion (previous: {r['previous']})")
     if args.dry_run:
         print("dry run: nothing written")
     if not out["gate_passed"] and not args.ignore_gate:

@@ -16,6 +16,13 @@ publishes.
 from __future__ import annotations
 
 GITHUB_ARTIFACTS_DIR = "artifacts/github"
+RUNTIME = "docker.repository.cloudera.com/cloudera/cdsw/ml-runtime-pbj-jupyterlab-python3.11-standard:2026.08.1-b5"
+
+MODEL = {"name": "spend-scorer", "file": "cai/model/predict.py", "cpu": 4, "memory": 16,
+         "description": "Spend profile, 12-week forecast, what-if and live categorise for one customer"}
+# A push touching these rebuilds and redeploys spend-scorer once its KPI gate passes: the
+# build snapshots the project files and installs requirements.txt (cdsw-build.sh).
+MODEL_CODE = ("spend/", "cai/model/", "config/", "requirements.txt", "cdsw-build.sh")
 
 JOBS = [
     # name, script, vCPU, memory GB (the runbook's job table)
@@ -31,6 +38,17 @@ DEADLINE_MIN = 90                     # per job run, as the DAG (cde/dags/spend_
 # categorise is left out: it writes merchant_category_map, which is a publish
 GITHUB_CHAIN = ["spend-sync-code", "spend-feature-engineering", "spend-model-training", "spend-model-evaluation"]
 GATE_JOB = "spend-model-evaluation"
+
+
+def model_build_body(project_id: str, model_id: str, comment: str = "") -> dict:
+    """A spend-scorer build that deploys itself when built."""
+    return {"project_id": project_id, "model_id": model_id, "file_path": MODEL["file"], "function_name": "predict",
+            "kernel": "python3", "runtime_identifier": RUNTIME, "comment": comment, "auto_deploy_model": True,
+            "auto_deployment_config": {"cpu": MODEL["cpu"], "memory": MODEL["memory"], "replicas": 1}}
+
+
+def touches_model(paths: list[str]) -> bool:
+    return any(p == m or p.startswith(m) for p in paths for m in MODEL_CODE)
 
 
 def github_env(name: str, sha: str) -> dict:

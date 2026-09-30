@@ -39,8 +39,26 @@ def mlflow_tracker(model_run: dict) -> str | None:
             extra = {k: model_run[k] for k in ("silhouette_by_k", "signals_by_rule", "stage_durations_json")
                      if k in model_run}
             mlflow.log_text(json.dumps(extra, indent=2, default=str), "run_detail.json")
+            if model_run.get("persona_model") is not None:
+                _log_persona_model(mlflow, model_run)
         logger.info("logged run %s to MLflow experiment %s", model_run["run_id"], cfg["experiment"])
         return run.info.run_id
     except Exception as e:  # tracking must never fail the run
         logger.warning("MLflow logging failed: %s", e)
         return None
+
+
+def _log_persona_model(mlflow, model_run: dict) -> None:
+    """The run's persona model (spend.registry.persona_pipeline) under artifacts/model, registrable as it is."""
+    try:
+        import mlflow.sklearn
+
+        from spend.registry import MODEL_PATH, persona_signature
+
+        mlflow.sklearn.log_model(model_run["persona_model"], MODEL_PATH, signature=persona_signature(),
+                                 input_example=model_run["persona_example"])
+        mlflow.log_dict({str(k): v for k, v in model_run["persona_names"].items()}, "persona_names.json")
+        mlflow.set_tag("persona_model", MODEL_PATH)
+    except Exception as e:
+        logger.warning("persona model not logged: %s", e)
+        mlflow.set_tag("persona_model", "not logged")

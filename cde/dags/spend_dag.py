@@ -1,10 +1,11 @@
 """
-Airflow DAG (CDE): daily spend analytics pipeline, 10 tasks.
+Airflow DAG (CDE): daily spend analytics pipeline, 11 tasks.
 
   generate_spend_bronze -> dq_bronze -> build_silver -> dq_silver            (CDE Spark)
     -> cai_categorise                                                        (CAI Job: new merchant keys -> map)
     -> build_gold_features -> dq_gold                                        (CDE Spark)
     -> cai_feature_engineering -> cai_model_training -> cai_model_evaluation (CAI Jobs: the daily ML, PLAN decision 1)
+    -> refresh_endpoint                                                      (CAI API: restart spend-scorer, verify)
 
 dq_bronze/dq_silver/dq_gold are the same CDE job (cde/jobs/dq_check.py, Great
 Expectations) run three times with --layer overridden per task. Critical
@@ -18,6 +19,12 @@ silver.spend_event to ref.merchant_category_map. The three ML jobs hand off
 through artifacts/<run_date>/ on the CAI project filesystem; a failed KPI gate
 fails cai_model_evaluation (exit 1) after recording the run, and yesterday's
 personas, forecast and signals stay live.
+
+refresh_endpoint runs only after a passed gate: it restarts the spend-scorer
+deployment (it loads the latest published run at start-up), then calls it until
+it answers with the run tagged champion in the Cloudera AI Registry
+(spend-persona), or, with no registry version, a run dated on or after as_of.
+Red if that does not happen within ENDPOINT_DEADLINE_MIN.
 
 Airflow Variables (CDE Airflow UI > Admin > Variables), set before the DAG is
 deployed:
@@ -59,6 +66,9 @@ TERMINAL_OK = {"succeeded"}
 TERMINAL_BAD = {"failed", "stopped", "timedout"}
 DAILY = "0 21 * * *"
 CAI_DEADLINE_MIN = 90
+ENDPOINT_MODEL = "spend-scorer"
+REGISTRY_MODEL = "spend-persona"
+ENDPOINT_DEADLINE_MIN = 30
 
 
 def trigger_cai_job(as_of: str, job_var: str, **_):
@@ -90,6 +100,81 @@ def trigger_cai_job(as_of: str, job_var: str, **_):
         if status in TERMINAL_BAD:
             raise AirflowException(f"CAI job run {run_id} ended with status {status}")
     raise AirflowException(f"CAI job run {run_id} did not finish within {CAI_DEADLINE_MIN} minutes")
+
+
+def _champion_run_id(api) -> str | None:
+    """run_id tag of the spend-persona version tagged champion=true, if the registry has one."""
+    try:
+        models = api("GET", "/registry/models", params={"page_size": 100}).get("models", [])
+    except requests.RequestException as e:
+        print(f"registry not reachable ({e}): checking the run date instead")
+        return None
+    model = next((m for m in models if m.get("name") == REGISTRY_MODEL), None)
+    if model is None:
+        return None
+    versions = api("GET", f"/registry/models/{model['model_id']}").get("model_versions", [])
+    champs = [v for v in versions if {t["key"]: t["value"] for t in v.get("tags") or []}.get("champion") == "true"]
+    if not champs:
+        return None
+    best = max(champs, key=lambda v: v.get("number") or 0)
+    print(f"registry: {REGISTRY_MODEL} version {best.get('number')} is champion")
+    return {t["key"]: t["value"] for t in best["tags"]}.get("run_id")
+
+
+def refresh_endpoint(as_of: str, **_):
+    """Restart the spend-scorer deployment so it loads the run just published, then check that it serves it."""
+    host = Variable.get("SPEND_CAI_HOST", default_var="").rstrip("/")
+    if not host:
+        raise AirflowSkipException("SPEND_CAI_HOST not set: skipping the endpoint refresh")
+    project = Variable.get("SPEND_CAI_PROJECT_ID")
+    key = Variable.get("SPEND_CAI_API_KEY")
+    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+
+    def api(method, path, params=None):
+        r = requests.request(method, f"{host}/api/v2{path}", params=params, headers=headers, timeout=60)
+        r.raise_for_status()
+        return r.json() if r.text else {}
+
+    pid = f"/projects/{project}"
+    model = next((m for m in api("GET", f"{pid}/models", params={"page_size": 100}).get("models", [])
+                  if m["name"] == ENDPOINT_MODEL), None)
+    if model is None:
+        raise AirflowSkipException(f"model {ENDPOINT_MODEL} not deployed: nothing to refresh")
+    mid = model["id"]
+    deployed = []
+    for b in api("GET", f"{pid}/models/{mid}/builds", params={"page_size": 100}).get("model_builds", []):
+        for d in api("GET", f"{pid}/models/{mid}/builds/{b['id']}/deployments").get("model_deployments", []):
+            if str(d.get("status", "")).lower() == "deployed":
+                deployed.append((b["id"], d["id"]))
+    if not deployed:
+        raise AirflowException(f"{ENDPOINT_MODEL} has no running deployment to restart")
+    build, dep = deployed[0]
+    expected = _champion_run_id(api)
+    api("POST", f"{pid}/models/{mid}/builds/{build}/deployments/{dep}:restart")
+    print(f"restarted {ENDPOINT_MODEL} deployment {dep} (build {build}); expecting run "
+          f"{expected or 'dated on or after ' + as_of}")
+
+    domain = host.split("://", 1)[1]
+    url = f"https://modelservice.{domain}/model"
+    probe = {"accessKey": model["access_key"],
+             "request": {"action": "categorise", "merchant_texts": ["UBER TRIP 8841"]}}
+    t0 = time.time()
+    deadline = t0 + ENDPOINT_DEADLINE_MIN * 60
+    time.sleep(60)
+    while time.time() < deadline:
+        try:
+            r = requests.post(url, json=probe, headers=headers, timeout=120)
+            served = (r.json().get("response") or {}).get("model") or {} if r.ok else {}
+        except (requests.RequestException, ValueError):
+            served = {}
+        if served:
+            ok = served.get("run_id") == expected if expected else served.get("run_date", "") >= as_of
+            print(f"endpoint serves run {served.get('run_id')} ({served.get('run_date')}, feature hash "
+                  f"{served.get('feature_hash')}) after {time.time() - t0:.0f} s")
+            if ok:
+                return served.get("run_id")
+        time.sleep(30)
+    raise AirflowException(f"{ENDPOINT_MODEL} did not serve the expected run within {ENDPOINT_DEADLINE_MIN} minutes")
 
 
 default_args = {
@@ -154,5 +239,9 @@ with DAG(
     features = cai_task("cai_feature_engineering", "SPEND_CAI_FEATURES_JOB_ID")
     train = cai_task("cai_model_training", "SPEND_CAI_TRAIN_JOB_ID")
     evaluate = cai_task("cai_model_evaluation", "SPEND_CAI_EVALUATE_JOB_ID")
+    # retries=0: a restart that never serves the new run needs a look, not a second restart
+    refresh = PythonOperator(task_id="refresh_endpoint", python_callable=refresh_endpoint,
+                             op_kwargs={"as_of": AS_OF}, retries=0)
 
-    generate >> dq_bronze >> silver >> dq_silver >> categorise >> gold >> dq_gold >> features >> train >> evaluate
+    (generate >> dq_bronze >> silver >> dq_silver >> categorise >> gold >> dq_gold >> features >> train >> evaluate
+     >> refresh)

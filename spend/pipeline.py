@@ -9,7 +9,9 @@ artifacts/<run_date>/ on the CAI project filesystem:
   train_models         KMeans personas with stable IDs, the categoriser holdouts
                        (MiniLM + character n-grams), the Chronos-2 backtest and
                        12-week forecast, signals. Writes outputs + metrics.json.
-  evaluate_models      KPI gate, spend_model_run, MLflow (tracker), gold writes.
+  evaluate_models      KPI gate, spend_model_run, MLflow (tracker, with the persona
+                       model), gold writes, then a passed run's persona model
+                       becomes the champion version in the registry (registrar).
                        A failed gate writes spend_model_run (gate_passed = false)
                        and the backtest as evidence but not today's personas,
                        forecast or signals: yesterday's stay live. Exit 1.
@@ -268,7 +270,7 @@ def train_models(run_date: date, stub: bool = False, root: Path | str | None = N
 # ---------------------------------------------------------------- stage 3
 
 def evaluate_models(storage, run_date: date, write: bool = True, publish_on_fail: bool = False, tracker=None,
-                    root: Path | str | None = None) -> dict:
+                    root: Path | str | None = None, registrar=None) -> dict:
     t0 = time.time()
     d = artifacts_dir(run_date, root)
     if not (d / "metrics.json").exists():
@@ -297,9 +299,12 @@ def evaluate_models(storage, run_date: date, write: bool = True, publish_on_fail
     }
     for line in lines:
         logger.info("gate: %s", line)
+    profile = _load(d, "persona_profile")
+    names = dict(zip(profile["persona_id"].astype(int), profile["persona_name"]))
     if tracker is not None:
         model_run["mlflow_run_id"] = tracker({**model_run, "silhouette_by_k": metrics["silhouette_by_k"],
-                                              "signals_by_rule": metrics["signals_by_rule"]})
+                                              "signals_by_rule": metrics["signals_by_rule"],
+                                              **persona_model(model_run["scaler_json"], profile)})
     model_run["duration_s"] = round((now - started).total_seconds() + time.time() - t0, 1)
 
     out = {"spend_model_run": pd.DataFrame([model_run])}
@@ -319,17 +324,36 @@ def evaluate_models(storage, run_date: date, write: bool = True, publish_on_fail
     if write:
         for key in sorted(out, key=lambda k: k == "spend_model_run"):
             storage.replace_run(key, out[key], run_date)
+    registered = None
+    if write and passed and registrar is not None:
+        # a backfilled date is not what the endpoint serves (the latest run date is), so not a champion
+        latest = _published(storage, date.max, same_day=True)
+        if latest is not None and latest["run_date"] > run_date:
+            logger.info("registry: %s is older than the published %s, not registered", run_date, latest["run_date"])
+        else:
+            registered = registrar(model_run, names)
     return {"model_run": model_run, "outputs": out, "gate_passed": passed, "gate_detail": lines,
-            "outputs_published": publish}
+            "outputs_published": publish, "registered": registered}
+
+
+def persona_model(scaler_json: str, profile: pd.DataFrame) -> dict:
+    """The tracker's persona_model / _example / _names: what the registry versions."""
+    from spend.registry import persona_pipeline
+
+    centroids = ps.centroids_from_profile(profile)
+    example = np.stack([centroids[i] for i in sorted(centroids)[:3]]).astype(np.float32)
+    return {"persona_model": persona_pipeline(ps.Scaler.from_json(scaler_json), centroids),
+            "persona_example": example,
+            "persona_names": dict(zip(profile["persona_id"].astype(int), profile["persona_name"]))}
 
 
 def run_daily(storage, run_date: date | None = None, stub: bool = False, triggered_by: str = "manual",
               write: bool = True, publish_on_fail: bool = False, tracker=None, root: Path | str | None = None,
-              embedder=None, forecaster=None) -> dict:
+              embedder=None, forecaster=None, registrar=None) -> dict:
     manifest = feature_engineering(storage, run_date, triggered_by, root)
     run_date = date.fromisoformat(manifest["run_date"])
     metrics = train_models(run_date, stub, root, embedder=embedder, forecaster=forecaster)
-    result = evaluate_models(storage, run_date, write, publish_on_fail, tracker, root)
+    result = evaluate_models(storage, run_date, write, publish_on_fail, tracker, root, registrar)
     return {"manifest": manifest, "metrics": metrics, **result}
 
 
