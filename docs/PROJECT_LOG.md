@@ -662,3 +662,32 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
   - Version 2 times out after 30 s on every call ("context deadline
     exceeded"), including 9 minutes after a restart. The replica logs are only
     in the UI.
+
+## 2026-10-01: Public AI Registry, nightly run with refresh_endpoint
+
+- The private registry was deleted. `model-registry-ml-83cd393d-eba` (internet
+  access Public) was Ready at 00:46 IST, and `GET /api/v2/registry/models`
+  answered 200 with no models.
+- The evaluation rerun for 2026-09-28 (287 s) registered `spend-persona`
+  (`ggkt-8lv2-u8hh-i0x0`) version 1, run `20260928-9b0c34ed`.
+- The old workbench model `spend-persona` still pointed at the deleted
+  registry. The API v2 refuses to delete a model (HTTP 501), and after it was
+  deleted in the UI the API still listed it. So the registry model is now
+  `spend-persona-registry` (`27b57519-fea0-4288-a7bb-335b8de23888`).
+- Version 1 build: the build stayed "pushing" for the script's whole
+  45-minute deadline, but its deployment came up. The script now waits on the
+  deployment.
+- Calls to it (8 persona centroids of 2026-09-29) returned personas 0 to 7:
+  4.2 s for the first call, then 0.4 s, in all three MLflow request formats.
+  So the private registry caused the timeouts.
+- DAG run for 2026-09-29 (scheduled 21:00 UTC): all 11 tasks succeeded.
+  - `generate_spend_bronze` 1,107 s; the DQ gates 444, 625 and 264 s; the
+    CAI jobs 214, 513, 184 and 303 s.
+  - Evaluation registered version 2, run `20260929-d12f93a1`, at 04:57 IST.
+  - `refresh_endpoint` (63 s): `spend-scorer` served `20260929-d12f93a1`
+    60 s after its restart. Its registry lookup returned nothing 40 s after
+    version 2 was created, so it checked the run date instead. The same
+    lookup finds version 2 now, and the task now logs why it falls back.
+- `deploy_registered_model.py` moved `spend-persona-registry` to version 2
+  in 185 s, and it answered personas 0 to 7 (3.1 s, then 0.3 s). A rerun is a
+  no-op.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Deploy the champion spend-persona version from the Cloudera AI Registry as the
-workbench model spend-persona: Registered Models -> Model Deployments, with no
+workbench model spend-persona-registry: Registered Models -> Model Deployments, with no
 code file (the build packages the registered MLflow model).
 
   - No workbench model yet: creates it from the registered model, built from the
@@ -30,7 +30,7 @@ from ci.cai_jobs import RUNTIME  # noqa: E402
 from ci.setup_cai import Workbench  # noqa: E402
 
 REGISTERED = "spend-persona"
-WORKBENCH_MODEL = {"name": "spend-persona", "cpu": 1, "memory": 2,
+WORKBENCH_MODEL = {"name": "spend-persona-registry", "cpu": 1, "memory": 2,
                    "description": "Champion spend-persona version from the AI Registry: 27 features -> persona_id"}
 POLL_S, DEADLINE_S = 20, 45 * 60
 
@@ -82,6 +82,9 @@ def main() -> int:
             "auto_build_model": True, "auto_build_config": build_cfg,
             "auto_deploy_model": True, "auto_deployment_config": deploy_cfg})
         print(f"model {model['name']}: created ({model['id']}) from the registry")
+    elif model.get("registered_model_id") != reg["model_id"]:
+        raise SystemExit(f"model {model['name']} ({model['id']}) belongs to another registered model "
+                         f"({model.get('registered_model_id')}): delete it in the workbench UI and rerun")
     else:
         builds = wb("GET", f"{base}/{model['id']}/builds", params={"page_size": 100}).get("model_builds", [])
         if any(b.get("registered_model_version_id") == version["model_version_id"] for b in builds):
@@ -100,14 +103,17 @@ def main() -> int:
         return max(builds, key=lambda b: b.get("created_at") or "") if builds else {"status": "waiting"}
 
     t0 = time.time()
-    if wait(latest_build, {"built", "succeeded"}, "build") not in {"built", "succeeded"}:
-        return 1
+    time.sleep(POLL_S)
     build = latest_build()
 
     def deployment():
+        status = str(wb("GET", f"{base}/{model['id']}/builds/{build['id']}").get("status", "")).lower()
+        if "fail" in status:
+            return {"status": f"build {status}"}
         deps = wb("GET", f"{base}/{model['id']}/builds/{build['id']}/deployments").get("model_deployments", [])
-        return deps[0] if deps else {"status": "waiting"}
+        return deps[0] if deps else {"status": f"build {status or 'waiting'}"}
 
+    # A registry build can report "pushing" after its deployment is up: the deployment is what counts.
     if wait(deployment, {"deployed"}, "deployment") != "deployed":
         return 1
     print(f"{model['name']} serves {REGISTERED} version {version['number']} ({time.time() - t0:.0f} s)")

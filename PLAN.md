@@ -324,8 +324,9 @@ Names:
     - The signature is float64: MLflow rejects JSON numbers against a float32
       tensor (HTTP 400 on version 1, reproduced locally).
     - `ci/deploy_registered_model.py` deploys the champion version as its own
-      model, `spend-persona` (built in 182 s). Calls to it still time out after
-      30 s; the replica logs are needed.
+      model, `spend-persona-registry` (version 2 in 185 s; 0.3 s calls).
+    - The AI Registry has public internet access: from the private one, every
+      call to a registry-deployed model timed out after 30 s.
 ## Method (demo policy, see `config/policy.yaml`)
 
 - **Categorise**: MCC (card) -> SEED (exact normalised match) -> EMBEDDING (MiniLM +

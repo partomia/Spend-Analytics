@@ -14,8 +14,9 @@ each time. Check every screenshot for keys and hostnames before committing it.
 | CAI project | `rsingh-spend-analytics` | `gq4g-0gpd-etm4-0j7n` (federal; `8ze8-2kux-eik9-8pzv` on go01) |
 | CAI jobs | `spend-sync-code`, `spend-categorise`, `spend-feature-engineering`, `spend-model-training`, `spend-model-evaluation` | from `ci/setup_cai.py` (step 2) |
 | Model | `spend-scorer` | `a9f47a25-97e5-4f99-a9f4-c91503d76028` (from `ci/setup_cai.py`) |
-| Registered model | `spend-persona` (AI Registry) | `gk1q-e1gw-y1rk-y4v6`, a version per published run |
-| Model from the registry | `spend-persona` | `17eb2548-1c88-452b-940c-38161795b6f0` (from `ci/deploy_registered_model.py`) |
+| AI Registry | `model-registry-ml-83cd393d-eba` | Internet access Public (the private one timed out every call) |
+| Registered model | `spend-persona` | `ggkt-8lv2-u8hh-i0x0`, a version per published run |
+| Model from the registry | `spend-persona-registry` | `27b57519-fea0-4288-a7bb-335b8de23888` (from `ci/deploy_registered_model.py`) |
 | Application | `Spend Insights Console` | `801g-3mb1-mub1-c9t7`, subdomain `rsingh-spend-insights` |
 | CDE DAG job | `rsingh-spend-anl-orchestration` | dagID `spend_analytics_pipeline` |
 
@@ -280,6 +281,8 @@ first push with the secrets set** (it is the first CAI trigger from GitHub).
   the backfilled run dates.
 - `spend-scorer` serves today's run (its Test tab shows the run id), and
   Registered Models shows `spend-persona` with today's version on top.
+  `python ci/deploy_registered_model.py` moves `spend-persona-registry` to
+  that version (about 3 minutes; a no-op if it already serves it).
 - Run one Hue query 5 minutes before: the Impala warehouse auto-suspends.
 - Hue open on `sql/reports.sql`; Airflow UI open on the DAG grid; CAI
   Experiments open on `spend-analytics`.

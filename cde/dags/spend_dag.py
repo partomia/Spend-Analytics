@@ -112,9 +112,11 @@ def _champion_run_id(api) -> str | None:
         return None
     model = next((m for m in models if m.get("name") == REGISTRY_MODEL), None)
     if model is None:
+        print(f"registry has no {REGISTRY_MODEL} ({len(models)} models listed): checking the run date instead")
         return None
     versions = api("GET", f"/registry/models/{model['model_id']}").get("model_versions", [])
     if not versions:
+        print(f"registry {REGISTRY_MODEL} has no versions yet: checking the run date instead")
         return None
     best = max(versions, key=lambda v: v.get("number") or 0)
     params = ((best.get("model_version_metadata") or {}).get("mlflow_metadata") or {}).get("params") or []

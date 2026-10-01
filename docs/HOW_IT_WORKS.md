@@ -506,9 +506,10 @@ the approved persona models (below).
   snapshot IDs, feature hash, package versions, git commit and every KPI.
   That is the lineage from a registered model back to the data it was
   trained on.
-- On 2026-09-30, version 1 (run `20260928-9b0c34ed`, commit `68825eb`) and
-  version 2 (the same run, commit `536fcb3`, float64 signature) were
-  registered.
+- The registry (`model-registry-ml-83cd393d-eba`) has public internet access.
+  The first one was private, and calls to models deployed from it timed out.
+- Version 1 is run `20260928-9b0c34ed` (an evaluation rerun on 2026-10-01).
+  Version 2 is run `20260929-d12f93a1`, registered by the nightly DAG run.
 - Updating a version's tags through the API v2 never returned on this
   workbench (18 minutes), so nothing depends on tags.
 
@@ -528,7 +529,7 @@ the approved persona models (below).
 
 | What changed | What redeploys it | Measured on 2026-09-30 |
 |---|---|---|
-| A new daily run (retrained personas) | DAG task `refresh_endpoint`, after `cai_model_evaluation`: restarts `spend-scorer`, then calls it until it serves the champion version's run | Restart to first correct answer: 560 s |
+| A new daily run (retrained personas) | DAG task `refresh_endpoint`, after `cai_model_evaluation`: restarts `spend-scorer`, then calls it until it serves the champion version's run | Restart to first correct answer: 560 s by hand; 60 s in the DAG run for 2026-09-29 |
 | Model code (`spend/`, `cai/model/`, `config/`, `requirements.txt`, `cdsw-build.sh`) | The GitHub to CAI chain, after its KPI gate passes: a new `spend-scorer` build of the commit, deployed when built; the previous deployment is stopped | Build 8 min, deploy 2 min 48 s (commit `68825eb`) |
 | Anything else (docs, tests) | Nothing | |
 
@@ -541,21 +542,27 @@ the approved persona models (below).
   run (around 03:20 IST).
 
 **Deploying straight from the registry (`ci/deploy_registered_model.py`).**
-- Creates the workbench model `spend-persona` from the registered model and
-  builds it from the champion version, with no code file (1 vCPU / 2 GB).
-  Run again, it adds a build only when a newer version exists.
-- Version 2 built and deployed in 182 s.
-- Status: calls to it don't answer yet (see Gaps).
+- Creates the workbench model `spend-persona-registry` from the registered
+  model and builds it from the champion version, with no code file
+  (1 vCPU / 2 GB). Run again, it adds a build only when a newer version exists.
+- Moving it from version 1 to version 2 took 185 s, build to deployed.
+- It answers one call: rows of the 27 persona features, in order, to
+  `persona_id`. The `inputs`, `instances` and `dataframe_split` request formats
+  all work. The 8 centroids of the 2026-09-29 run come back as personas 0 to 7
+  (the traveller is 4): 3 to 4 s for the first call, 0.3 s after that.
+- The signature is float64: MLflow won't narrow JSON numbers to a float32
+  tensor (HTTP 400 on every call, reproduced locally).
+- A registry build can still report "pushing" after its deployment is up, so
+  the script waits on the deployment.
 
 **Gaps.**
-- The registry-deployed `spend-persona` doesn't answer:
-  - Version 1 (float32 signature) rejected every request with HTTP 400, because
-    MLflow won't narrow JSON numbers to float32 (reproduced locally), hence
-    float64 in version 2.
-  - Version 2 times out after 30 s on every call, before and after a restart.
-    The replica logs (Model Deployments > spend-persona > Logs) are the next
-    place to look; the API v2 has no endpoint for them.
-  - `spend-scorer`, which the app uses, is not affected.
+- Nothing redeploys `spend-persona-registry` nightly; run the script (or add it
+  as a DAG task) to move it to the newest version. `spend-scorer`, which the
+  app uses, is refreshed every night.
+- In the 2026-09-29 DAG run, `refresh_endpoint` found no registry version
+  40 s after version 2 was created and fell back to the run-date check (it
+  passed). The same lookup finds version 2 now; the task now logs why it falls
+  back.
 - The Hugging Face weights are not pinned to a revision, and `requirements.txt`
   uses `>=`. `model_versions` records what ran, but a rebuild could pull newer
   weights. For air-gapped or strict use, set `model.local_dir`
