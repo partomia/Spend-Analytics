@@ -22,7 +22,7 @@ Same CDP environment as `partomia/Mule-Account-Identifier`,
 |---|---|---|
 | Ingest + medallion | CDE (Spark 3, Iceberg v2) | generate 8 bronze + 7 ref tables, silver (dedupe, CIF resolution, `spend_event`), gold (CIF x weekly snapshot, cohort x category x week, mix x week; MERGE) |
 | Data quality | CDE + Great Expectations 1.23.2 | `dq_check.py --layer bronze/silver/gold` after each layer, results in `ref.dq_results` |
-| Orchestration | CDE Airflow | daily DAG, 11 tasks: 4 CDE jobs, 3 DQ gates, 4 CAI jobs and the endpoint refresh (API v2) |
+| Orchestration | CDE Airflow | daily DAG, 12 tasks: 4 CDE jobs, 3 DQ gates, 4 CAI jobs, the endpoint refresh and the registry deployment (API v2) |
 | Categorisation | CAI Job `spend-categorise` | new merchant keys: MCC -> SEED -> MiniLM kNN -> FALLBACK, appended to `ref.merchant_category_map` |
 | Daily ML | CAI Jobs `spend-feature-engineering` -> `spend-model-training` -> `spend-model-evaluation` | features + covariates; KMeans personas, MiniLM holdouts, Chronos-2 backtest + forecast, signals; KPIs, KPI gate, MLflow, publish |
 | Experiment tracking | CAI Experiments (MLflow) | params, KPIs, gate detail per daily run |
@@ -324,7 +324,9 @@ Names:
     - The signature is float64: MLflow rejects JSON numbers against a float32
       tensor (HTTP 400 on version 1, reproduced locally).
     - `ci/deploy_registered_model.py` deploys the champion version as its own
-      model, `spend-persona-registry` (version 2 in 185 s; 0.3 s calls).
+      model, `spend-persona-registry` (version 2 in 185 s; 0.3 s calls). After
+      that, the DAG task `deploy_registry_model` builds each night's new version
+      into it, beside `refresh_endpoint`.
     - The AI Registry has public internet access: from the private one, every
       call to a registry-deployed model timed out after 30 s.
 ## Method (demo policy, see `config/policy.yaml`)

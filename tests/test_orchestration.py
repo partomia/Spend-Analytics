@@ -47,7 +47,7 @@ def test_dag_and_drill_only_run_deployed_jobs():
     assert set(re.findall(r'"\$\{JOB_PREFIX\}-([\w-]+)"', DRILL)) == deployed
 
 
-def test_dag_has_eleven_tasks_in_pipeline_order():
+def test_dag_has_twelve_tasks_in_pipeline_order():
     chain = re.search(r"^\s+\((generate >> [^)]+)\)", DAG, re.M | re.S).group(1)
     assert [t.strip() for t in chain.split(">>")] == [
         "generate", "dq_bronze", "silver", "dq_silver", "categorise", "gold", "dq_gold",
@@ -61,7 +61,9 @@ def test_dag_has_eleven_tasks_in_pipeline_order():
         ("cai_model_training", "SPEND_CAI_TRAIN_JOB_ID"),
         ("cai_model_evaluation", "SPEND_CAI_EVALUATE_JOB_ID")]
     task_ids = re.findall(r'task_id="(\w+)"', DAG) + [t for t, _ in re.findall(r'_task\("(\w+)", "(\w+)"\)', DAG)]
-    assert len(set(task_ids)) == 11
+    assert 'task_id="deploy_registry_model", python_callable=deploy_registry_model' in DAG
+    assert re.search(r"^\s+evaluate >> registry_deploy$", DAG, re.M)
+    assert len(set(task_ids)) == 12
 
 
 def test_every_overridden_run_repeats_the_db_prefix():
@@ -120,3 +122,13 @@ def test_endpoint_refresh_names_the_model_and_the_registry_model():
     assert re.search(r'^ENDPOINT_MODEL = "([\w-]+)"', DAG, re.M).group(1) == MODEL["name"]
     assert re.search(r'^REGISTRY_MODEL = "([\w-]+)"', DAG, re.M).group(1) == settings()["registry"]["model_name"]
     assert ":restart" in DAG and '"action": "categorise"' in DAG
+
+
+def test_registry_deploy_matches_the_script_and_the_features():
+    from ci.deploy_registered_model import WORKBENCH_MODEL
+    from spend.features import PERSONA_FEATURES
+
+    assert re.search(r'^REGISTRY_ENDPOINT = "([\w-]+)"', DAG, re.M).group(1) == WORKBENCH_MODEL["name"]
+    assert int(re.search(r"^PERSONA_FEATURE_COUNT = (\d+)", DAG, re.M).group(1)) == len(PERSONA_FEATURES)
+    assert (f'"cpu": {WORKBENCH_MODEL["cpu"]}, "memory": {WORKBENCH_MODEL["memory"]}, "replicas": 1'
+            in DAG.split("def deploy_registry_model")[1])

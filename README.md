@@ -217,18 +217,20 @@ rsingh-spend-anl-pipeline`. Run-time `--arg` values replace the job's own,
 so always repeat `--db-prefix`.
 
 Orchestrated by `cde/dags/spend_dag.py`, DAG `spend_analytics_pipeline`,
-**11 tasks**, daily at 21:00 UTC (02:30 IST), between Mule (20:30) and
+**12 tasks**, daily at 21:00 UTC (02:30 IST), between Mule (20:30) and
 Churn (22:00):
 
 ```
 generate_spend_bronze >> dq_bronze >> build_silver >> dq_silver >> cai_categorise
   >> build_gold_features >> dq_gold >> cai_feature_engineering >> cai_model_training >> cai_model_evaluation
   >> refresh_endpoint
+cai_model_evaluation >> deploy_registry_model
 ```
 
 The four `cai_*` tasks start a CAI job run over the API v2 with
 `SPEND_RUN_DATE` / `SPEND_TRIGGERED_BY=airflow` in its environment and poll
-it every 30 s.
+it every 30 s. `deploy_registry_model` builds the night's new `spend-persona`
+registry version into `spend-persona-registry`, beside `refresh_endpoint`.
 
 ```bash
 ./cde/scripts/deploy_dag.sh       # CDE job rsingh-spend-anl-orchestration (--type airflow)
@@ -325,7 +327,7 @@ names against the table definitions.
 spend/               shared logic: config, features, categorise, personas, forecast, signals,
                       gate, pipeline (three stages), storage, schema, scoring, client, tracking
 cde/jobs/            generate_spend_bronze, dq_check (GX), build_silver, build_gold_features
-cde/dags/            spend_dag.py (daily Airflow DAG, 11 tasks)
+cde/dags/            spend_dag.py (daily Airflow DAG, 12 tasks)
 cde/scripts/         deploy_jobs.sh, deploy_dag.sh, backfill_drill.sh
 cde/resources/       requirements.txt for the CDE python-env (great_expectations==1.23.2)
 cai/jobs/            sync_code, categorise, feature_engineering, train_models, evaluate_models, daily_run,

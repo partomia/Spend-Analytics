@@ -531,6 +531,7 @@ the approved persona models (below).
 |---|---|---|
 | A new daily run (retrained personas) | DAG task `refresh_endpoint`, after `cai_model_evaluation`: restarts `spend-scorer`, then calls it until it serves the champion version's run | Restart to first correct answer: 560 s by hand; 60 s in the DAG run for 2026-09-29 |
 | Model code (`spend/`, `cai/model/`, `config/`, `requirements.txt`, `cdsw-build.sh`) | The GitHub to CAI chain, after its KPI gate passes: a new `spend-scorer` build of the commit, deployed when built; the previous deployment is stopped | Build 8 min, deploy 2 min 48 s (commit `68825eb`) |
+| A new registry version (the same nightly run) | DAG task `deploy_registry_model`, beside `refresh_endpoint`: a build of the new version into `spend-persona-registry`, deployed when built, then one call | Version 2 build to deployed: 185 s (by hand, same API calls) |
 | Anything else (docs, tests) | Nothing | |
 
 - `spend-scorer` loads the latest published run's scaler, centroids and
@@ -553,16 +554,19 @@ the approved persona models (below).
 - The signature is float64: MLflow won't narrow JSON numbers to a float32
   tensor (HTTP 400 on every call, reproduced locally).
 - A registry build can still report "pushing" after its deployment is up, so
-  the script waits on the deployment.
+  the script and the DAG task wait on the deployment.
+- A request made only of whole numbers (`0.0`, `1.0`) reaches MLflow as
+  integers and gets HTTP 400. One fractional value anywhere in the request is
+  enough, so real feature rows are fine; the DAG's check call uses 0.5s.
+- After that, the DAG task `deploy_registry_model` moves it to each night's new
+  version. It skips (no failure) if the registry lists no version for the
+  night's date within 5 minutes.
 
 **Gaps.**
-- Nothing redeploys `spend-persona-registry` nightly; run the script (or add it
-  as a DAG task) to move it to the newest version. `spend-scorer`, which the
-  app uses, is refreshed every night.
 - In the 2026-09-29 DAG run, `refresh_endpoint` found no registry version
   40 s after version 2 was created and fell back to the run-date check (it
-  passed). The same lookup finds version 2 now; the task now logs why it falls
-  back.
+  passed). Both registry tasks now wait up to 5 minutes for the night's
+  version and log why they fall back.
 - The Hugging Face weights are not pinned to a revision, and `requirements.txt`
   uses `>=`. `model_versions` records what ran, but a rebuild could pull newer
   weights. For air-gapped or strict use, set `model.local_dir`

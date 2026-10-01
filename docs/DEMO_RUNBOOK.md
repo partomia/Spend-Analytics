@@ -275,14 +275,16 @@ first push with the secrets set** (it is the first CAI trigger from GitHub).
 
 ## Before the demo (30 minutes ahead)
 
-- CDE Airflow grid: last night's run green, all eleven tasks, including the
-  three `dq_*` gates, the four `cai_*` jobs and `refresh_endpoint`.
+- CDE Airflow grid: last night's run green, all twelve tasks, including the
+  three `dq_*` gates, the four `cai_*` jobs, `refresh_endpoint` and
+  `deploy_registry_model`.
 - App Lineage tab: today's run with `triggered_by = airflow`, gate PASS, and
   the backfilled run dates.
 - `spend-scorer` serves today's run (its Test tab shows the run id), and
   Registered Models shows `spend-persona` with today's version on top.
-  `python ci/deploy_registered_model.py` moves `spend-persona-registry` to
-  that version (about 3 minutes; a no-op if it already serves it).
+  `spend-persona-registry` has a build of that version (the DAG's
+  `deploy_registry_model`; `python ci/deploy_registered_model.py` does the
+  same by hand).
 - Run one Hue query 5 minutes before: the Impala warehouse auto-suspends.
 - Hue open on `sql/reports.sql`; Airflow UI open on the DAG grid; CAI
   Experiments open on `spend-analytics`.

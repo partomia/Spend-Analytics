@@ -691,3 +691,14 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
 - `deploy_registered_model.py` moved `spend-persona-registry` to version 2
   in 185 s, and it answered personas 0 to 7 (3.1 s, then 0.3 s). A rerun is a
   no-op.
+- New DAG task `deploy_registry_model` (12 tasks), beside `refresh_endpoint`.
+  Run outside Airflow against the live API:
+  - As-of 2026-09-29: the version 2 build exists, deployed, and the check call
+    answered in 3 s.
+  - As-of 2026-09-30, before tonight's run: no version for that date after
+    1 minute (shortened for the test), so it skipped.
+  - The first check call used all zeros and got HTTP 400. Requests of only
+    whole numbers (0.0 or 1.0) fail; 0.5 or 1.5, or a single fractional value
+    in the request, answer. The check uses 0.5s.
+- `refresh_endpoint` and the new task both wait up to 5 minutes for the
+  night's registry version.
