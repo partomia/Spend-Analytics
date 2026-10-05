@@ -755,3 +755,16 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
 - The connection caches results for 30 minutes, so a changed view (city tier
   as "Tier N", the gate floors as DOUBLE) shows in CDV after the cache expires.
 - `tests/test_dataviz.py`: 8 offline tests. pytest: 210 passed.
+
+## 2026-10-05: manual DAG run confirms the deploy_registry_model fix
+
+- The scheduled run for 2026-10-04 (21:00 UTC) started before the fixed DAG was
+  deployed (04:05 UTC), and `deploy_registry_model` failed with the same kernel HTTP 400.
+- The Airflow REST API refuses a manual trigger for the workload user (HTTP 403).
+  `cde job run --name rsingh-spend-anl-orchestration` started run 342 (as_of 2026-10-04):
+  - All 12 tasks succeeded, in 49 min (05:49 to 06:38 UTC).
+  - Bronze took 10.8 min; training 5.5 min; evaluation 5.1 min.
+  - `refresh_endpoint`: spend-persona version 7 is champion (run 20261004-0e40dba8).
+    `spend-scorer` served it after 60 s.
+  - `deploy_registry_model`: new build of version 7 into `spend-persona-registry`,
+    deployed after 181 s; a row of 0.5s scored persona 5 at 184 s.
