@@ -702,3 +702,25 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
     in the request, answer. The check uses 0.5s.
 - `refresh_endpoint` and the new task both wait up to 5 minutes for the
   night's registry version.
+
+## 2026-10-05: deploy_registry_model fix, CDV dashboard guide
+
+- DAG runs for 2026-09-30 to 2026-10-03: every data, DQ and CAI task and
+  `refresh_endpoint` (63 s each night) succeeded, and registry versions 3 to 6
+  were registered. Each run was still marked failed:
+  - `deploy_registry_model` failed after 3 s with HTTP 400 "Problem with field
+    Kernel: value must be in list [python3 python2 r]". It copied the previous
+    build's kernel, which the API reports as "Python 3.11".
+  - The 2026-10-01 live test missed it: a build of version 2 already existed,
+    so no build was created.
+  - Fixed (kernel `python3`, tested). Run outside Airflow for 2026-10-03: new
+    build of version 6, deployed at 183 s, answered at 188 s.
+- `docs/CDV_DASHBOARD.md`: five SQL datasets for the CDV instance
+  `IndianBank-Spend-analytics`, each tested on Impala (3 to 5 s):
+  `ds_spend_mix` 13,854 rows (26 weeks), `ds_personas` 193,682,
+  `ds_signals` 11,271, `ds_model_runs` 7, `ds_dq` 998.
+  - Every `dim` of the mix sums to the same INR 3,297 crore, so each visual
+    filters one `dim`.
+  - Persona change in the 2026-10-03 run: 181,868 stayed, 11,748 moved, 66 new.
+  - CDV has no URL in the CDW API, and sign-in is browser SSO, so the
+    dashboard is built in the UI from the guide.

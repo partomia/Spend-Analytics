@@ -224,7 +224,8 @@ def deploy_registry_model(as_of: str, **_):
         build = api("POST", base, body={
             "project_id": pid.rsplit("/", 1)[1], "model_id": model["id"],
             "registered_model_version_id": champion["model_version_id"],
-            "runtime_identifier": last["runtime_identifier"], "kernel": last.get("kernel") or "python3",
+            # a build reports its kernel as "Python 3.11", but a new build accepts only python3 / python2 / r
+            "runtime_identifier": last["runtime_identifier"], "kernel": "python3",
             "comment": f"registry {REGISTRY_MODEL} v{champion.get('number')} (DAG {as_of})",
             "auto_deploy_model": True, "auto_deployment_config": {"cpu": 1, "memory": 2, "replicas": 1}})
         print(f"{REGISTRY_ENDPOINT}: new build {build['id']} of version {champion.get('number')}")

@@ -130,5 +130,6 @@ def test_registry_deploy_matches_the_script_and_the_features():
 
     assert re.search(r'^REGISTRY_ENDPOINT = "([\w-]+)"', DAG, re.M).group(1) == WORKBENCH_MODEL["name"]
     assert int(re.search(r"^PERSONA_FEATURE_COUNT = (\d+)", DAG, re.M).group(1)) == len(PERSONA_FEATURES)
-    assert (f'"cpu": {WORKBENCH_MODEL["cpu"]}, "memory": {WORKBENCH_MODEL["memory"]}, "replicas": 1'
-            in DAG.split("def deploy_registry_model")[1])
+    task = DAG.split("def deploy_registry_model")[1]
+    assert f'"cpu": {WORKBENCH_MODEL["cpu"]}, "memory": {WORKBENCH_MODEL["memory"]}, "replicas": 1' in task
+    assert '"kernel": "python3"' in task

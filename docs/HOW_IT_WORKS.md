@@ -410,9 +410,10 @@ definition:
 - No Impala views, no metrics layer (for example a dbt semantic model or a CDW
   Data Visualization dataset), and no business glossary in a catalog. The
   definitions are in code and docs, not in something an analyst can browse.
-- A cheap next step would be CDW views over gold with business names, plus a
-  Data Visualization dataset on `spend_mix_weekly` and `spend_signals`. Nothing
-  in the pipeline would change.
+- `docs/CDV_DASHBOARD.md` builds a Data Visualization dashboard on five SQL
+  datasets over gold (mix, personas, signals, model runs, DQ), each reading the
+  latest run. It is built in the CDV UI, not stored in this repo. CDW views
+  with business names would be the next step; nothing in the pipeline changes.
 
 ## 8. SCD2 and history in Iceberg
 

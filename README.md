@@ -305,7 +305,7 @@ says so. Ten tabs: Portfolio, Where, Channels, Personas, Customer 360
 (with the what-if), Forecast, Categoriser, Opportunities, Data quality,
 Lineage. The Docker image (`Dockerfile`) runs the same app without torch.
 
-Walkthrough: `docs/DEMO_RUNBOOK.md`. Design questions (master data, CI/CD, orchestration, gold to AI, feature engineering, training and evaluation, data model and semantic layer, SCD2 in Iceberg, model management): `docs/HOW_IT_WORKS.md`. Analytics queries for CDW Impala / Hue: `docs/cdw_queries.sql`.
+Walkthrough: `docs/DEMO_RUNBOOK.md`. Design questions (master data, CI/CD, orchestration, gold to AI, feature engineering, training and evaluation, data model and semantic layer, SCD2 in Iceberg, model management): `docs/HOW_IT_WORKS.md`. Analytics queries for CDW Impala / Hue: `docs/cdw_queries.sql`. Cloudera Data Visualization dashboard (datasets and sheets): `docs/CDV_DASHBOARD.md`.
 
 ## CDW
 
