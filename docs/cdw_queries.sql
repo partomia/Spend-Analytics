@@ -1,6 +1,7 @@
 -- Spend Analytics: analytics queries for CDW Impala (Hue / Data Explorer).
--- Every query reads gold or ref only. "Latest run" means the latest run whose
--- outputs were published (it passed the KPI gate).
+-- Queries 1 to 20 read gold or ref only; 21 to 27 follow one customer from the
+-- source systems (bronze) through silver to gold. "Latest run" means the latest
+-- run whose outputs were published (it passed the KPI gate).
 
 -- 1. Daily run scorecard: what ran, when, and whether it passed the gate.
 SELECT run_date, run_id, triggered_by, n_customers_profiled, k,
@@ -198,3 +199,114 @@ UNION ALL
 SELECT 'current', COUNT(*), ROUND(AVG(spend_13w), 0)
 FROM rsingh_spend_anl_gold.spend_features
 WHERE snapshot_date = '2026-09-28';
+
+-- 21. One customer across systems (C89870022: Affluent, Lucknow, a travel lead): CRM ->
+--     core banking account -> card master and UPI VPA registry, linked on the CIF.
+SELECT DISTINCT c.cif, c.segment, c.age_band, c.income_band, c.home_pincode,
+       a.account_id, a.product, cm.card_hash, cm.card_type, v.vpa
+FROM rsingh_spend_anl_bronze.crm_customer c
+JOIN rsingh_spend_anl_bronze.cbs_accounts a ON a.cif = c.cif
+LEFT JOIN rsingh_spend_anl_bronze.card_master cm ON cm.account_id = a.account_id
+LEFT JOIN rsingh_spend_anl_bronze.vpa_registry v ON v.account_id = a.account_id
+WHERE c.cif = 'C89870022';
+
+-- 22. Raw transactions in each source system, reached through that system's own key
+--     (card hash, VPA, CIF for net banking).
+SELECT 'card switch' AS source_system, COUNT(*) AS txns, ROUND(SUM(t.amount)) AS amount_inr
+FROM rsingh_spend_anl_bronze.card_txn t
+JOIN (SELECT DISTINCT card_hash, account_id FROM rsingh_spend_anl_bronze.card_master) cm ON cm.card_hash = t.card_hash
+JOIN (SELECT DISTINCT account_id, cif FROM rsingh_spend_anl_bronze.cbs_accounts) a ON a.account_id = cm.account_id
+WHERE a.cif = 'C89870022'
+UNION ALL
+SELECT 'UPI switch', COUNT(*), ROUND(SUM(t.amount))
+FROM rsingh_spend_anl_bronze.upi_txn t
+JOIN (SELECT DISTINCT vpa, account_id FROM rsingh_spend_anl_bronze.vpa_registry) v ON v.vpa = t.payer_vpa
+JOIN (SELECT DISTINCT account_id, cif FROM rsingh_spend_anl_bronze.cbs_accounts) a ON a.account_id = v.account_id
+WHERE a.cif = 'C89870022'
+UNION ALL
+SELECT 'net banking', COUNT(*), ROUND(SUM(amount))
+FROM rsingh_spend_anl_bronze.nb_txn WHERE cif = 'C89870022'
+UNION ALL
+SELECT 'ATM switch', COUNT(*), ROUND(SUM(t.amount))
+FROM rsingh_spend_anl_bronze.atm_txn t
+JOIN (SELECT DISTINCT card_hash, account_id FROM rsingh_spend_anl_bronze.card_master) cm ON cm.card_hash = t.card_hash
+JOIN (SELECT DISTINCT account_id, cif FROM rsingh_spend_anl_bronze.cbs_accounts) a ON a.account_id = cm.account_id
+WHERE a.cif = 'C89870022';
+
+-- 23. Silver: the same customer in one table, every channel, with the category (and how it
+--     was found: MCC, SEED, EMBEDDING) and the location (and where it came from).
+SELECT e.txn_ts, e.`source`, e.channel, e.merchant_text, m.category, m.`method` AS categorised_by,
+       ROUND(e.amount) AS amount_inr, e.event_city, e.location_source, e.is_home
+FROM rsingh_spend_anl_silver.spend_event e
+LEFT JOIN rsingh_spend_anl_ref.merchant_category_map m ON m.merchant_key = e.merchant_key
+WHERE e.cif = 'C89870022'
+ORDER BY e.txn_ts DESC
+LIMIT 20;
+
+-- 24. Spending pattern, last 13 weeks: category x channel x place.
+SELECT COALESCE(m.category, 'UNCATEGORISED') AS category, e.channel,
+       CASE WHEN e.is_home = 1 THEN 'home city' ELSE e.event_city END AS place,
+       COUNT(*) AS txns, ROUND(SUM(e.amount)) AS amount_inr
+FROM rsingh_spend_anl_silver.spend_event e
+LEFT JOIN rsingh_spend_anl_ref.merchant_category_map m ON m.merchant_key = e.merchant_key
+WHERE e.cif = 'C89870022'
+  AND e.week_end > DATE_SUB((SELECT MAX(week_end) FROM rsingh_spend_anl_silver.spend_event), 91)
+GROUP BY 1, 2, 3
+ORDER BY amount_inr DESC;
+
+-- 25. Spending pattern, last 13 weeks, one view at a time: share of spend by location,
+--     city tier, channel, category and bank product (account, credit or debit card).
+WITH ev AS (
+  SELECT e.event_id, e.channel, e.amount, e.account_id,
+         CASE WHEN e.is_home = 1 THEN CONCAT(e.event_city, ' (home)') ELSE e.event_city END AS city,
+         CONCAT('Tier ', CAST(e.event_city_tier AS STRING)) AS tier,
+         COALESCE(m.category, 'UNCATEGORISED') AS category
+  FROM rsingh_spend_anl_silver.spend_event e
+  LEFT JOIN rsingh_spend_anl_ref.merchant_category_map m ON m.merchant_key = e.merchant_key
+  WHERE e.cif = 'C89870022'
+    AND e.week_end > DATE_SUB((SELECT MAX(week_end) FROM rsingh_spend_anl_silver.spend_event), 91)
+),
+prod AS (
+  SELECT ev.*, CASE WHEN ev.account_id IS NULL THEN 'Net banking (customer level)'
+                    WHEN cm.card_type IS NOT NULL THEN CONCAT(a.product, ' account / ', cm.card_type, ' card')
+                    ELSE CONCAT(a.product, ' account (UPI / ATM)') END AS product
+  FROM ev
+  LEFT JOIN (SELECT DISTINCT account_id, product FROM rsingh_spend_anl_bronze.cbs_accounts) a
+         ON a.account_id = ev.account_id
+  LEFT JOIN (SELECT DISTINCT txn_id, card_hash FROM rsingh_spend_anl_bronze.card_txn) ct ON ct.txn_id = ev.event_id
+  LEFT JOIN (SELECT DISTINCT card_hash, card_type FROM rsingh_spend_anl_bronze.card_master) cm
+         ON cm.card_hash = ct.card_hash
+),
+dims AS (
+  SELECT '1 location' AS view_by, city AS value, amount FROM prod
+  UNION ALL SELECT '2 city tier', tier, amount FROM prod
+  UNION ALL SELECT '3 channel', channel, amount FROM prod
+  UNION ALL SELECT '4 category', category, amount FROM prod
+  UNION ALL SELECT '5 bank product', product, amount FROM prod
+)
+SELECT view_by, value, COUNT(*) AS txns, ROUND(SUM(amount)) AS amount_inr,
+       ROUND(100 * SUM(amount) / SUM(SUM(amount)) OVER (PARTITION BY view_by), 1) AS pct_of_spend
+FROM dims
+GROUP BY view_by, value
+ORDER BY view_by, amount_inr DESC;
+
+-- 26. Gold: the customer's weekly profile (what the models read): spend_13w equals the
+--     total of query 25.
+SELECT snapshot_date, segment, home_city, city_tier, ROUND(spend_13w) AS spend_13w, txn_13w,
+       ROUND(digital_share, 2) AS digital, ROUND(home_share, 2) AS at_home,
+       ROUND(away_share_4w, 2) AS away_4w, away_weeks_4w,
+       ROUND(cat_travel_share, 2) AS travel, ROUND(cat_dining_share, 2) AS dining,
+       ROUND(ch_upi_p2m_share, 2) AS upi_p2m, ROUND(ch_card_pos_share, 2) AS card_pos,
+       ROUND(ch_card_ecom_share, 2) AS card_ecom, ROUND(ch_atm_cash_share, 2) AS atm_cash
+FROM rsingh_spend_anl_gold.spend_features
+WHERE cif = 'C89870022'
+ORDER BY snapshot_date DESC
+LIMIT 4;
+
+-- 27. Gold: persona and next-best action from the latest published run.
+SELECT p.run_date, p.persona_name, p.top_category, p.top_channel, ROUND(p.spend_13w) AS spend_13w,
+       s.signal_id, s.action, s.detail
+FROM rsingh_spend_anl_gold.customer_persona p
+LEFT JOIN rsingh_spend_anl_gold.spend_signals s ON s.cif = p.cif AND s.run_date = p.run_date
+WHERE p.cif = 'C89870022'
+  AND p.run_date = (SELECT MAX(run_date) FROM rsingh_spend_anl_gold.spend_model_run WHERE outputs_published);
