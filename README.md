@@ -203,7 +203,8 @@ bronze` → `build_silver` → `dq_check --layer silver` → (CAI categorise) �
 `build_gold_features` → `dq_check --layer gold`. A critical expectation
 fails the stage (exit 1) and stops the pipeline before the next layer;
 warnings are recorded and the run continues. On the 20k book: 68 bronze, 23
-silver and 27 gold checks, 0 failed.
+silver and 27 gold checks, 0 failed. Nightly run of 2026-10-03: 76 bronze, 23
+silver and 28 gold (127), 0 failed.
 
 ```bash
 ./cde/scripts/deploy_jobs.sh      # CDE Repository rsingh-spend-anl-pipeline, python-env, four Spark jobs
@@ -305,7 +306,7 @@ says so. Ten tabs: Portfolio, Where, Channels, Personas, Customer 360
 (with the what-if), Forecast, Categoriser, Opportunities, Data quality,
 Lineage. The Docker image (`Dockerfile`) runs the same app without torch.
 
-Walkthrough: `docs/DEMO_RUNBOOK.md`. Design questions (master data, CI/CD, orchestration, gold to AI, feature engineering, training and evaluation, data model and semantic layer, SCD2 in Iceberg, model management): `docs/HOW_IT_WORKS.md`. Analytics queries for CDW Impala / Hue: `docs/cdw_queries.sql`. Cloudera Data Visualization dashboard (datasets and sheets): `docs/CDV_DASHBOARD.md`.
+Walkthrough: `docs/DEMO_RUNBOOK.md`. Design questions (master data, CI/CD, orchestration, gold to AI, feature engineering, training and evaluation, data model and semantic layer, SCD2 in Iceberg, model management): `docs/HOW_IT_WORKS.md`. Analytics queries for CDW Impala / Hue: `docs/cdw_queries.sql`. Cloudera Data Visualization dashboard "Spend Analytics - Insights" (shared workspace `rsingh-spend-anl`, built as code by `dataviz/build_dashboard.py`): `docs/CDV_DASHBOARD.md`.
 
 ## CDW
 

@@ -1,0 +1,1027 @@
+{
+ "segments": [],
+ "staticasset": [],
+ "dashboards": [
+  {
+   "model": "reports.report",
+   "pk": 8000,
+   "fields": {
+    "report_name": "Spend Analytics - Insights",
+    "report_description": "docs/CDV_DASHBOARD.md",
+    "dataset": 8100,
+    "workspace": 6,
+    "report_type": "dashboard",
+    "report_mode": null,
+    "dashboard_url_name": "",
+    "report_data": "{\"report_title\": \"Spend Analytics - Insights\", \"numColumns\": 64, \"report_subtitle\": \"Spend by category, channel and place; personas; next-best-action leads; forecast; model and data trust (synthetic data, federal CDW)\", \"dashboard_widgets\": [{\"col\": 1, \"row\": 1, \"size_x\": 21, \"size_y\": 10, \"id\": \"uri-1-widget-8201\"}, {\"col\": 22, \"row\": 1, \"size_x\": 21, \"size_y\": 10, \"id\": \"uri-2-widget-8202\"}, {\"col\": 43, \"row\": 1, \"size_x\": 22, \"size_y\": 10, \"id\": \"uri-3-widget-8203\"}, {\"col\": 1, \"row\": 11, \"size_x\": 32, \"size_y\": 22, \"id\": \"uri-4-widget-8204\"}, {\"col\": 33, \"row\": 11, \"size_x\": 32, \"size_y\": 22, \"id\": \"uri-5-widget-8205\"}, {\"col\": 1, \"row\": 33, \"size_x\": 32, \"size_y\": 22, \"id\": \"uri-6-widget-8206\"}, {\"col\": 33, \"row\": 33, \"size_x\": 32, \"size_y\": 22, \"id\": \"uri-7-widget-8207\"}], \"dashboard_sheets\": [{\"sheet_id\": 1, \"order\": 1, \"sheet_handle_title\": \"Portfolio\", \"behaviors\": {}, \"visual_widgets\": [{\"col\": 1, \"row\": 1, \"size_x\": 21, \"size_y\": 10, \"id\": \"uri-1-widget-8201\"}, {\"col\": 22, \"row\": 1, \"size_x\": 21, \"size_y\": 10, \"id\": \"uri-2-widget-8202\"}, {\"col\": 43, \"row\": 1, \"size_x\": 22, \"size_y\": 10, \"id\": \"uri-3-widget-8203\"}, {\"col\": 1, \"row\": 11, \"size_x\": 32, \"size_y\": 22, \"id\": \"uri-4-widget-8204\"}, {\"col\": 33, \"row\": 11, \"size_x\": 32, \"size_y\": 22, \"id\": \"uri-5-widget-8205\"}, {\"col\": 1, \"row\": 33, \"size_x\": 32, \"size_y\": 22, \"id\": \"uri-6-widget-8206\"}, {\"col\": 33, \"row\": 33, \"size_x\": 32, \"size_y\": 22, \"id\": \"uri-7-widget-8207\"}], \"control_widgets\": []}, {\"sheet_id\": 2, \"order\": 2, \"sheet_handle_title\": \"Where\", \"behaviors\": {}, \"visual_widgets\": [{\"col\": 1, \"row\": 1, \"size_x\": 32, \"size_y\": 24, \"id\": \"uri-1-widget-8208\"}, {\"col\": 33, \"row\": 1, \"size_x\": 32, \"size_y\": 24, \"id\": \"uri-2-widget-8209\"}, {\"col\": 1, \"row\": 25, \"size_x\": 32, \"size_y\": 22, \"id\": \"uri-3-widget-8210\"}, {\"col\": 33, \"row\": 25, \"size_x\": 32, \"size_y\": 22, \"id\": \"uri-4-widget-8211\"}], \"control_widgets\": []}, {\"sheet_id\": 3, \"order\": 3, \"sheet_handle_title\": \"Personas\", \"behaviors\": {}, \"visual_widgets\": [{\"col\": 1, \"row\": 1, \"size_x\": 21, \"size_y\": 10, \"id\": \"uri-1-widget-8212\"}, {\"col\": 22, \"row\": 1, \"size_x\": 21, \"size_y\": 10, \"id\": \"uri-2-widget-8213\"}, {\"col\": 43, \"row\": 1, \"size_x\": 22, \"size_y\": 10, \"id\": \"uri-3-widget-8214\"}, {\"col\": 1, \"row\": 11, \"size_x\": 32, \"size_y\": 24, \"id\": \"uri-4-widget-8215\"}, {\"col\": 33, \"row\": 11, \"size_x\": 32, \"size_y\": 24, \"id\": \"uri-5-widget-8216\"}, {\"col\": 1, \"row\": 35, \"size_x\": 32, \"size_y\": 22, \"id\": \"uri-6-widget-8217\"}, {\"col\": 33, \"row\": 35, \"size_x\": 32, \"size_y\": 22, \"id\": \"uri-7-widget-8218\"}, {\"col\": 1, \"row\": 57, \"size_x\": 64, \"size_y\": 24, \"id\": \"uri-8-widget-8219\"}], \"control_widgets\": []}, {\"sheet_id\": 4, \"order\": 4, \"sheet_handle_title\": \"Opportunities\", \"behaviors\": {}, \"visual_widgets\": [{\"col\": 1, \"row\": 1, \"size_x\": 21, \"size_y\": 10, \"id\": \"uri-1-widget-8220\"}, {\"col\": 22, \"row\": 1, \"size_x\": 21, \"size_y\": 10, \"id\": \"uri-2-widget-8221\"}, {\"col\": 43, \"row\": 1, \"size_x\": 22, \"size_y\": 10, \"id\": \"uri-3-widget-8222\"}, {\"col\": 1, \"row\": 11, \"size_x\": 32, \"size_y\": 22, \"id\": \"uri-4-widget-8223\"}, {\"col\": 33, \"row\": 11, \"size_x\": 32, \"size_y\": 22, \"id\": \"uri-5-widget-8224\"}, {\"col\": 1, \"row\": 33, \"size_x\": 32, \"size_y\": 22, \"id\": \"uri-6-widget-8225\"}, {\"col\": 33, \"row\": 33, \"size_x\": 32, \"size_y\": 22, \"id\": \"uri-7-widget-8226\"}, {\"col\": 1, \"row\": 55, \"size_x\": 64, \"size_y\": 26, \"id\": \"uri-8-widget-8227\"}], \"control_widgets\": []}, {\"sheet_id\": 5, \"order\": 5, \"sheet_handle_title\": \"Forecast\", \"behaviors\": {}, \"visual_widgets\": [{\"col\": 1, \"row\": 1, \"size_x\": 64, \"size_y\": 24, \"id\": \"uri-1-widget-8228\"}, {\"col\": 1, \"row\": 25, \"size_x\": 32, \"size_y\": 24, \"id\": \"uri-2-widget-8229\"}, {\"col\": 33, \"row\": 25, \"size_x\": 32, \"size_y\": 24, \"id\": \"uri-3-widget-8230\"}], \"control_widgets\": []}, {\"sheet_id\": 6, \"order\": 6, \"sheet_handle_title\": \"Trust\", \"behaviors\": {}, \"visual_widgets\": [{\"col\": 1, \"row\": 1, \"size_x\": 16, \"size_y\": 10, \"id\": \"uri-1-widget-8231\"}, {\"col\": 17, \"row\": 1, \"size_x\": 16, \"size_y\": 10, \"id\": \"uri-2-widget-8232\"}, {\"col\": 33, \"row\": 1, \"size_x\": 16, \"size_y\": 10, \"id\": \"uri-3-widget-8233\"}, {\"col\": 49, \"row\": 1, \"size_x\": 16, \"size_y\": 10, \"id\": \"uri-4-widget-8234\"}, {\"col\": 1, \"row\": 11, \"size_x\": 32, \"size_y\": 22, \"id\": \"uri-5-widget-8235\"}, {\"col\": 33, \"row\": 11, \"size_x\": 32, \"size_y\": 22, \"id\": \"uri-6-widget-8236\"}, {\"col\": 1, \"row\": 33, \"size_x\": 24, \"size_y\": 22, \"id\": \"uri-7-widget-8237\"}, {\"col\": 25, \"row\": 33, \"size_x\": 40, \"size_y\": 22, \"id\": \"uri-8-widget-8238\"}, {\"col\": 1, \"row\": 55, \"size_x\": 64, \"size_y\": 22, \"id\": \"uri-9-widget-8239\"}, {\"col\": 1, \"row\": 77, \"size_x\": 64, \"size_y\": 18, \"id\": \"uri-10-widget-8240\"}], \"control_widgets\": []}], \"user_settings\": {\"dashboard_width\": \"1280\", \"display_filters\": \"true\", \"permit_csv_download_dashboard\": \"true\"}, \"global_control_widgets\": [], \"control_widgets\": [], \"click_behavior\": {}}",
+    "shared_visual_dashboards": "[]",
+    "parent_report": null,
+    "uuid": "7d93c73a-95a0-5286-a233-3dd28df66752",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": null
+   }
+  }
+ ],
+ "appgroupmembership": [],
+ "reportannotation": [],
+ "events": [],
+ "customcss": [],
+ "reportimage": [],
+ "dateranges": [],
+ "visuals": [
+  {
+   "model": "reports.report",
+   "pk": 8201,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Portfolio",
+    "dataset": 8100,
+    "workspace": 6,
+    "report_type": "kpi",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Spend, last 13 weeks (INR crore)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"dimensions_shelf\": [], \"aggregates_shelf\": [{\"custom_expr\": \"round(sum([amount_crore]), 1)\", \"expression_for_trigger\": \"round(sum([amount_crore]), 1)\", \"expr_hasagg\": true, \"col_alias\": \"Spend (crore)\", \"dataset_colname\": \"Spend (crore)\", \"dataset_coltype\": \"DOUBLE\"}], \"compare_shelf\": [], \"label_shelf\": [], \"tooltip_shelf\": [], \"x_shelf\": [], \"y_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[dim] = 'category'\", \"expression_for_trigger\": \"[dim] = 'category'\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}, {\"custom_expr\": \"[is_last_13w] = 1\", \"expression_for_trigger\": \"[is_last_13w] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"kpi\", \"saved_shelf_sources\": {\"round(sum([amount_crore]), 1) as 'sub:Spend (crore)'\": \"aggregates_shelf\", \"[dim] = 'category'\": \"filters_shelf\", \"[is_last_13w] = 1\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"dimensions_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"aggregates_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"compare_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"kpi\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "cdca7199-ee69-58b7-a7c2-df4309ca3d89",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8202,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Portfolio",
+    "dataset": 8100,
+    "workspace": 6,
+    "report_type": "kpi",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Transactions, last 13 weeks (millions)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"dimensions_shelf\": [], \"aggregates_shelf\": [{\"custom_expr\": \"round(sum([n_txn]) / 1000000, 2)\", \"expression_for_trigger\": \"round(sum([n_txn]) / 1000000, 2)\", \"expr_hasagg\": true, \"col_alias\": \"Transactions (M)\", \"dataset_colname\": \"Transactions (M)\", \"dataset_coltype\": \"DOUBLE\"}], \"compare_shelf\": [], \"label_shelf\": [], \"tooltip_shelf\": [], \"x_shelf\": [], \"y_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[dim] = 'category'\", \"expression_for_trigger\": \"[dim] = 'category'\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}, {\"custom_expr\": \"[is_last_13w] = 1\", \"expression_for_trigger\": \"[is_last_13w] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"kpi\", \"saved_shelf_sources\": {\"round(sum([n_txn]) / 1000000, 2) as 'sub:Transactions (M)'\": \"aggregates_shelf\", \"[dim] = 'category'\": \"filters_shelf\", \"[is_last_13w] = 1\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"dimensions_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"aggregates_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"compare_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"kpi\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "d8fcfdaa-aa08-5526-b080-1ecbb2f55278",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8203,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Portfolio",
+    "dataset": 8100,
+    "workspace": 6,
+    "report_type": "kpi",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Digital share of spend (%)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"dimensions_shelf\": [], \"aggregates_shelf\": [{\"custom_expr\": \"round(100 * sum(case when [channel_group] = 'Digital' then [amount_inr] else 0 end) / sum([amount_inr]), 1)\", \"expression_for_trigger\": \"round(100 * sum(case when [channel_group] = 'Digital' then [amount_inr] else 0 end) / sum([amount_inr]), 1)\", \"expr_hasagg\": true, \"col_alias\": \"Digital %\", \"dataset_colname\": \"Digital %\", \"dataset_coltype\": \"DOUBLE\"}], \"compare_shelf\": [], \"label_shelf\": [], \"tooltip_shelf\": [], \"x_shelf\": [], \"y_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[dim] = 'category'\", \"expression_for_trigger\": \"[dim] = 'category'\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}, {\"custom_expr\": \"[is_last_13w] = 1\", \"expression_for_trigger\": \"[is_last_13w] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"kpi\", \"saved_shelf_sources\": {\"round(100 * sum(case when [channel_group] = 'Digital' then [amount_inr] else 0 end) / sum([amount_inr]), 1) as 'sub:Digital %'\": \"aggregates_shelf\", \"[dim] = 'category'\": \"filters_shelf\", \"[is_last_13w] = 1\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"dimensions_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"aggregates_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"compare_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"kpi\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "08f09076-89fd-5ba6-bbbf-1f6127f5b737",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8204,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Portfolio",
+    "dataset": 8100,
+    "workspace": 6,
+    "report_type": "trellis-bars",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Spend by category, last 13 weeks (INR crore)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"dim_value\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[dim_value]\", \"col_alias\": \"Category\"}], \"y_shelf\": [{\"custom_expr\": \"round(sum([amount_crore]), 1)\", \"expression_for_trigger\": \"round(sum([amount_crore]), 1)\", \"expr_hasagg\": true, \"col_alias\": \"Spend (crore)\", \"dataset_colname\": \"Spend (crore)\", \"dataset_coltype\": \"DOUBLE\", \"order\": {\"priority\": 1, \"ascending\": false}}], \"color_shelf\": [], \"tooltip_shelf\": [], \"drill_shelf\": [], \"label_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[dim] = 'category'\", \"expression_for_trigger\": \"[dim] = 'category'\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}, {\"custom_expr\": \"[is_last_13w] = 1\", \"expression_for_trigger\": \"[is_last_13w] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"trellis-bars\", \"saved_shelf_sources\": {\"[dim_value] as 'sub:Category'\": \"x_shelf\", \"round(sum([amount_crore]), 1) as 'sub:Spend (crore)'\": \"y_shelf\", \"[dim] = 'category'\": \"filters_shelf\", \"[is_last_13w] = 1\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"drill_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-bars\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "281ab343-f983-57cd-a396-fff88187994f",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8205,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Portfolio",
+    "dataset": 8100,
+    "workspace": 6,
+    "report_type": "trellis-lines",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Weekly spend by channel, 26 weeks (INR crore)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"week_end\", \"dataset_coltype\": \"DATE\", \"expression_for_trigger\": \"[week_end]\", \"col_alias\": \"Week ending\"}], \"y_shelf\": [{\"custom_expr\": \"round(sum([amount_crore]), 1)\", \"expression_for_trigger\": \"round(sum([amount_crore]), 1)\", \"expr_hasagg\": true, \"col_alias\": \"Spend (crore)\", \"dataset_colname\": \"Spend (crore)\", \"dataset_coltype\": \"DOUBLE\"}], \"color_shelf\": [{\"dataset_colname\": \"channel\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[channel]\", \"col_alias\": \"Channel\"}], \"tooltip_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[dim] = 'category'\", \"expression_for_trigger\": \"[dim] = 'category'\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"trellis-lines\", \"saved_shelf_sources\": {\"[week_end] as 'sub:Week ending'\": \"x_shelf\", \"round(sum([amount_crore]), 1) as 'sub:Spend (crore)'\": \"y_shelf\", \"[channel] as 'sub:Channel'\": \"color_shelf\", \"[dim] = 'category'\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-lines\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "fcb5e881-c580-5aed-b2bc-21a70406fdc9",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8206,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Portfolio",
+    "dataset": 8100,
+    "workspace": 6,
+    "report_type": "trellis-bars",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Digital and physical spend by city tier, last 13 weeks\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"dim_value\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[dim_value]\", \"col_alias\": \"City tier\"}], \"y_shelf\": [{\"custom_expr\": \"round(sum([amount_crore]), 1)\", \"expression_for_trigger\": \"round(sum([amount_crore]), 1)\", \"expr_hasagg\": true, \"col_alias\": \"Spend (crore)\", \"dataset_colname\": \"Spend (crore)\", \"dataset_coltype\": \"DOUBLE\"}], \"color_shelf\": [{\"dataset_colname\": \"channel_group\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[channel_group]\", \"col_alias\": \"Channel group\"}], \"tooltip_shelf\": [], \"drill_shelf\": [], \"label_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[dim] = 'city_tier'\", \"expression_for_trigger\": \"[dim] = 'city_tier'\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}, {\"custom_expr\": \"[is_last_13w] = 1\", \"expression_for_trigger\": \"[is_last_13w] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"trellis-bars\", \"saved_shelf_sources\": {\"[dim_value] as 'sub:City tier'\": \"x_shelf\", \"round(sum([amount_crore]), 1) as 'sub:Spend (crore)'\": \"y_shelf\", \"[channel_group] as 'sub:Channel group'\": \"color_shelf\", \"[dim] = 'city_tier'\": \"filters_shelf\", \"[is_last_13w] = 1\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"drill_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-bars\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "07c1fc56-bf63-521b-aa18-e5ff42d55efe",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8207,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Portfolio",
+    "dataset": 8100,
+    "workspace": 6,
+    "report_type": "trellis-bars",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Spend by segment and channel, last 13 weeks\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"dim_value\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[dim_value]\", \"col_alias\": \"Segment\"}], \"y_shelf\": [{\"custom_expr\": \"round(sum([amount_crore]), 1)\", \"expression_for_trigger\": \"round(sum([amount_crore]), 1)\", \"expr_hasagg\": true, \"col_alias\": \"Spend (crore)\", \"dataset_colname\": \"Spend (crore)\", \"dataset_coltype\": \"DOUBLE\"}], \"color_shelf\": [{\"dataset_colname\": \"channel\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[channel]\", \"col_alias\": \"Channel\"}], \"tooltip_shelf\": [], \"drill_shelf\": [], \"label_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[dim] = 'segment'\", \"expression_for_trigger\": \"[dim] = 'segment'\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}, {\"custom_expr\": \"[is_last_13w] = 1\", \"expression_for_trigger\": \"[is_last_13w] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"trellis-bars\", \"saved_shelf_sources\": {\"[dim_value] as 'sub:Segment'\": \"x_shelf\", \"round(sum([amount_crore]), 1) as 'sub:Spend (crore)'\": \"y_shelf\", \"[channel] as 'sub:Channel'\": \"color_shelf\", \"[dim] = 'segment'\": \"filters_shelf\", \"[is_last_13w] = 1\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"drill_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-bars\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "1d2825f5-2920-5713-af20-4ae83b43f5f3",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8208,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Where",
+    "dataset": 8100,
+    "workspace": 6,
+    "report_type": "trellis-bars",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Top 15 states by spend, last 13 weeks (INR crore)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 15, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"dim_value\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[dim_value]\", \"col_alias\": \"State\"}], \"y_shelf\": [{\"custom_expr\": \"round(sum([amount_crore]), 1)\", \"expression_for_trigger\": \"round(sum([amount_crore]), 1)\", \"expr_hasagg\": true, \"col_alias\": \"Spend (crore)\", \"dataset_colname\": \"Spend (crore)\", \"dataset_coltype\": \"DOUBLE\", \"order\": {\"priority\": 1, \"ascending\": false}}], \"color_shelf\": [], \"tooltip_shelf\": [], \"drill_shelf\": [], \"label_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[dim] = 'state'\", \"expression_for_trigger\": \"[dim] = 'state'\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}, {\"custom_expr\": \"[is_last_13w] = 1\", \"expression_for_trigger\": \"[is_last_13w] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"trellis-bars\", \"saved_shelf_sources\": {\"[dim_value] as 'sub:State'\": \"x_shelf\", \"round(sum([amount_crore]), 1) as 'sub:Spend (crore)'\": \"y_shelf\", \"[dim] = 'state'\": \"filters_shelf\", \"[is_last_13w] = 1\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"drill_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-bars\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "06ef12c1-3065-51f0-9263-958b1207ff50",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8209,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Where",
+    "dataset": 8100,
+    "workspace": 6,
+    "report_type": "trellis-bars",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Top 10 cities customers travel to (spend away from home)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 10, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"dim_value\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[dim_value]\", \"col_alias\": \"Away city\"}], \"y_shelf\": [{\"custom_expr\": \"round(sum([amount_crore]), 1)\", \"expression_for_trigger\": \"round(sum([amount_crore]), 1)\", \"expr_hasagg\": true, \"col_alias\": \"Spend (crore)\", \"dataset_colname\": \"Spend (crore)\", \"dataset_coltype\": \"DOUBLE\", \"order\": {\"priority\": 1, \"ascending\": false}}], \"color_shelf\": [], \"tooltip_shelf\": [], \"drill_shelf\": [], \"label_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[dim] = 'away_city'\", \"expression_for_trigger\": \"[dim] = 'away_city'\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}, {\"custom_expr\": \"[is_last_13w] = 1\", \"expression_for_trigger\": \"[is_last_13w] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"trellis-bars\", \"saved_shelf_sources\": {\"[dim_value] as 'sub:Away city'\": \"x_shelf\", \"round(sum([amount_crore]), 1) as 'sub:Spend (crore)'\": \"y_shelf\", \"[dim] = 'away_city'\": \"filters_shelf\", \"[is_last_13w] = 1\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"drill_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-bars\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "ca70177b-5990-5b2e-b97e-0a1aa347fb05",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8210,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Where",
+    "dataset": 8100,
+    "workspace": 6,
+    "report_type": "trellis-lines",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Weekly spend away from the home city (INR crore)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"week_end\", \"dataset_coltype\": \"DATE\", \"expression_for_trigger\": \"[week_end]\", \"col_alias\": \"Week ending\"}], \"y_shelf\": [{\"custom_expr\": \"round(sum([amount_crore]), 1)\", \"expression_for_trigger\": \"round(sum([amount_crore]), 1)\", \"expr_hasagg\": true, \"col_alias\": \"Spend (crore)\", \"dataset_colname\": \"Spend (crore)\", \"dataset_coltype\": \"DOUBLE\"}], \"color_shelf\": [], \"tooltip_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[dim] = 'away_city'\", \"expression_for_trigger\": \"[dim] = 'away_city'\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"trellis-lines\", \"saved_shelf_sources\": {\"[week_end] as 'sub:Week ending'\": \"x_shelf\", \"round(sum([amount_crore]), 1) as 'sub:Spend (crore)'\": \"y_shelf\", \"[dim] = 'away_city'\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-lines\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "5bfce3d8-e22a-52e5-8e08-8ab3cd26e624",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8211,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Where",
+    "dataset": 8100,
+    "workspace": 6,
+    "report_type": "trellis-bars",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"How the location of a transaction is known (millions)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"dim_value\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[dim_value]\", \"col_alias\": \"Location source\"}], \"y_shelf\": [{\"custom_expr\": \"round(sum([n_txn]) / 1000000, 2)\", \"expression_for_trigger\": \"round(sum([n_txn]) / 1000000, 2)\", \"expr_hasagg\": true, \"col_alias\": \"Transactions (M)\", \"dataset_colname\": \"Transactions (M)\", \"dataset_coltype\": \"DOUBLE\", \"order\": {\"priority\": 1, \"ascending\": false}}], \"color_shelf\": [], \"tooltip_shelf\": [], \"drill_shelf\": [], \"label_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[dim] = 'location_source'\", \"expression_for_trigger\": \"[dim] = 'location_source'\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}, {\"custom_expr\": \"[is_last_13w] = 1\", \"expression_for_trigger\": \"[is_last_13w] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"trellis-bars\", \"saved_shelf_sources\": {\"[dim_value] as 'sub:Location source'\": \"x_shelf\", \"round(sum([n_txn]) / 1000000, 2) as 'sub:Transactions (M)'\": \"y_shelf\", \"[dim] = 'location_source'\": \"filters_shelf\", \"[is_last_13w] = 1\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"drill_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-bars\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "8e170cd6-5e60-59ce-b50c-3b1b911601c1",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8212,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Personas",
+    "dataset": 8101,
+    "workspace": 6,
+    "report_type": "kpi",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Customers profiled (latest run)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"dimensions_shelf\": [], \"aggregates_shelf\": [{\"custom_expr\": \"sum(1)\", \"expression_for_trigger\": \"sum(1)\", \"expr_hasagg\": true, \"col_alias\": \"Customers\", \"dataset_colname\": \"Customers\", \"dataset_coltype\": \"DOUBLE\"}], \"compare_shelf\": [], \"label_shelf\": [], \"tooltip_shelf\": [], \"x_shelf\": [], \"y_shelf\": [], \"filters_shelf\": [], \"core\": {\"viz_type\": \"kpi\", \"saved_shelf_sources\": {\"sum(1) as 'sub:Customers'\": \"aggregates_shelf\"}, \"shelves\": [{\"name\": \"dimensions_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"aggregates_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"compare_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"kpi\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "1db54c91-1d2b-5d96-abb8-3f35fec2d238",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8213,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Personas",
+    "dataset": 8101,
+    "workspace": 6,
+    "report_type": "kpi",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Moved persona since the previous run\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"dimensions_shelf\": [], \"aggregates_shelf\": [{\"custom_expr\": \"sum(case when [persona_change] = 'Moved' then 1 else 0 end)\", \"expression_for_trigger\": \"sum(case when [persona_change] = 'Moved' then 1 else 0 end)\", \"expr_hasagg\": true, \"col_alias\": \"Moved\", \"dataset_colname\": \"Moved\", \"dataset_coltype\": \"DOUBLE\"}], \"compare_shelf\": [], \"label_shelf\": [], \"tooltip_shelf\": [], \"x_shelf\": [], \"y_shelf\": [], \"filters_shelf\": [], \"core\": {\"viz_type\": \"kpi\", \"saved_shelf_sources\": {\"sum(case when [persona_change] = 'Moved' then 1 else 0 end) as 'sub:Moved'\": \"aggregates_shelf\"}, \"shelves\": [{\"name\": \"dimensions_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"aggregates_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"compare_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"kpi\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "d60d75ac-fcc0-577d-8cc1-949b6ebc7a2f",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8214,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Personas",
+    "dataset": 8101,
+    "workspace": 6,
+    "report_type": "kpi",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Average 13-week spend per customer (INR)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"dimensions_shelf\": [], \"aggregates_shelf\": [{\"custom_expr\": \"round(avg([spend_13w]), 0)\", \"expression_for_trigger\": \"round(avg([spend_13w]), 0)\", \"expr_hasagg\": true, \"col_alias\": \"Avg 13-week spend\", \"dataset_colname\": \"Avg 13-week spend\", \"dataset_coltype\": \"DOUBLE\"}], \"compare_shelf\": [], \"label_shelf\": [], \"tooltip_shelf\": [], \"x_shelf\": [], \"y_shelf\": [], \"filters_shelf\": [], \"core\": {\"viz_type\": \"kpi\", \"saved_shelf_sources\": {\"round(avg([spend_13w]), 0) as 'sub:Avg 13-week spend'\": \"aggregates_shelf\"}, \"shelves\": [{\"name\": \"dimensions_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"aggregates_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"compare_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"kpi\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "8f46917b-cf29-59e6-b521-75ba062b9f01",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8215,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Personas",
+    "dataset": 8101,
+    "workspace": 6,
+    "report_type": "trellis-bars",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Persona size by segment\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"persona_name\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[persona_name]\", \"col_alias\": \"Persona\"}], \"y_shelf\": [{\"custom_expr\": \"sum(1)\", \"expression_for_trigger\": \"sum(1)\", \"expr_hasagg\": true, \"col_alias\": \"Customers\", \"dataset_colname\": \"Customers\", \"dataset_coltype\": \"DOUBLE\", \"order\": {\"priority\": 1, \"ascending\": false}}], \"color_shelf\": [{\"dataset_colname\": \"segment\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[segment]\", \"col_alias\": \"Segment\"}], \"tooltip_shelf\": [], \"drill_shelf\": [], \"label_shelf\": [], \"filters_shelf\": [], \"core\": {\"viz_type\": \"trellis-bars\", \"saved_shelf_sources\": {\"[persona_name] as 'sub:Persona'\": \"x_shelf\", \"sum(1) as 'sub:Customers'\": \"y_shelf\", \"[segment] as 'sub:Segment'\": \"color_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"drill_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-bars\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "b033ad06-9158-561e-b504-e36307eb546b",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8216,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Personas",
+    "dataset": 8101,
+    "workspace": 6,
+    "report_type": "trellis-bars",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Average 13-week spend by persona (INR)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"persona_name\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[persona_name]\", \"col_alias\": \"Persona\"}], \"y_shelf\": [{\"custom_expr\": \"round(avg([spend_13w]), 0)\", \"expression_for_trigger\": \"round(avg([spend_13w]), 0)\", \"expr_hasagg\": true, \"col_alias\": \"Avg spend\", \"dataset_colname\": \"Avg spend\", \"dataset_coltype\": \"DOUBLE\", \"order\": {\"priority\": 1, \"ascending\": false}}], \"color_shelf\": [], \"tooltip_shelf\": [], \"drill_shelf\": [], \"label_shelf\": [], \"filters_shelf\": [], \"core\": {\"viz_type\": \"trellis-bars\", \"saved_shelf_sources\": {\"[persona_name] as 'sub:Persona'\": \"x_shelf\", \"round(avg([spend_13w]), 0) as 'sub:Avg spend'\": \"y_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"drill_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-bars\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "8071fabf-85df-5ca9-ae9f-31e270dc9bbf",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8217,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Personas",
+    "dataset": 8101,
+    "workspace": 6,
+    "report_type": "trellis-bars",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Digital share of spend by persona (%)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"persona_name\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[persona_name]\", \"col_alias\": \"Persona\"}], \"y_shelf\": [{\"custom_expr\": \"round(100 * avg([digital_share]), 1)\", \"expression_for_trigger\": \"round(100 * avg([digital_share]), 1)\", \"expr_hasagg\": true, \"col_alias\": \"Digital %\", \"dataset_colname\": \"Digital %\", \"dataset_coltype\": \"DOUBLE\", \"order\": {\"priority\": 1, \"ascending\": false}}], \"color_shelf\": [], \"tooltip_shelf\": [], \"drill_shelf\": [], \"label_shelf\": [], \"filters_shelf\": [], \"core\": {\"viz_type\": \"trellis-bars\", \"saved_shelf_sources\": {\"[persona_name] as 'sub:Persona'\": \"x_shelf\", \"round(100 * avg([digital_share]), 1) as 'sub:Digital %'\": \"y_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"drill_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-bars\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "98ac1aea-e324-51e1-8389-850aae348830",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8218,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Personas",
+    "dataset": 8102,
+    "workspace": 6,
+    "report_type": "trellis-lines",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Persona size in every run\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"run_date\", \"dataset_coltype\": \"DATE\", \"expression_for_trigger\": \"[run_date]\", \"col_alias\": \"Run date\"}], \"y_shelf\": [{\"custom_expr\": \"sum([n_customers])\", \"expression_for_trigger\": \"sum([n_customers])\", \"expr_hasagg\": true, \"col_alias\": \"Customers\", \"dataset_colname\": \"Customers\", \"dataset_coltype\": \"DOUBLE\"}], \"color_shelf\": [{\"dataset_colname\": \"persona_name\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[persona_name]\", \"col_alias\": \"Persona\"}], \"tooltip_shelf\": [], \"filters_shelf\": [], \"core\": {\"viz_type\": \"trellis-lines\", \"saved_shelf_sources\": {\"[run_date] as 'sub:Run date'\": \"x_shelf\", \"sum([n_customers]) as 'sub:Customers'\": \"y_shelf\", \"[persona_name] as 'sub:Persona'\": \"color_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-lines\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "cc99d606-025b-581b-aa8a-68cbfa644ea8",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8219,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Personas",
+    "dataset": 8101,
+    "workspace": 6,
+    "report_type": "table",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Who moved: previous persona to today's\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"dimensions_shelf\": [{\"dataset_colname\": \"prev_persona_name\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[prev_persona_name]\", \"col_alias\": \"Previous persona\", \"order\": {\"priority\": 1, \"ascending\": true}}, {\"dataset_colname\": \"persona_name\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[persona_name]\", \"col_alias\": \"Persona today\"}], \"aggregates_shelf\": [{\"custom_expr\": \"sum(1)\", \"expression_for_trigger\": \"sum(1)\", \"expr_hasagg\": true, \"col_alias\": \"Customers\", \"dataset_colname\": \"Customers\", \"dataset_coltype\": \"DOUBLE\"}, {\"custom_expr\": \"round(avg([spend_13w]), 0)\", \"expression_for_trigger\": \"round(avg([spend_13w]), 0)\", \"expr_hasagg\": true, \"col_alias\": \"Avg 13-week spend\", \"dataset_colname\": \"Avg 13-week spend\", \"dataset_coltype\": \"DOUBLE\"}], \"filters_shelf\": [{\"custom_expr\": \"[persona_change] = 'Moved'\", \"expression_for_trigger\": \"[persona_change] = 'Moved'\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"table\", \"saved_shelf_sources\": {\"[prev_persona_name] as 'sub:Previous persona'\": \"dimensions_shelf\", \"[persona_name] as 'sub:Persona today'\": \"dimensions_shelf\", \"sum(1) as 'sub:Customers'\": \"aggregates_shelf\", \"round(avg([spend_13w]), 0) as 'sub:Avg 13-week spend'\": \"aggregates_shelf\", \"[persona_change] = 'Moved'\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"dimensions_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"aggregates_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"table\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "7ba53bd6-87f8-5a21-a414-4734c6b7b46f",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8220,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Opportunities",
+    "dataset": 8103,
+    "workspace": 6,
+    "report_type": "kpi",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Travel card / forex leads (TRAVEL_SURGE)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"dimensions_shelf\": [], \"aggregates_shelf\": [{\"custom_expr\": \"sum(1)\", \"expression_for_trigger\": \"sum(1)\", \"expr_hasagg\": true, \"col_alias\": \"Leads\", \"dataset_colname\": \"Leads\", \"dataset_coltype\": \"DOUBLE\"}], \"compare_shelf\": [], \"label_shelf\": [], \"tooltip_shelf\": [], \"x_shelf\": [], \"y_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[is_latest] = 1\", \"expression_for_trigger\": \"[is_latest] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}, {\"custom_expr\": \"[signal_id] = 'TRAVEL_SURGE'\", \"expression_for_trigger\": \"[signal_id] = 'TRAVEL_SURGE'\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"kpi\", \"saved_shelf_sources\": {\"sum(1) as 'sub:Leads'\": \"aggregates_shelf\", \"[is_latest] = 1\": \"filters_shelf\", \"[signal_id] = 'TRAVEL_SURGE'\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"dimensions_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"aggregates_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"compare_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"kpi\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "3b6a3adf-e617-5688-a0e1-c941f154901b",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8221,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Opportunities",
+    "dataset": 8103,
+    "workspace": 6,
+    "report_type": "kpi",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"EMI conversion leads (FESTIVE_ELECTRONICS)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"dimensions_shelf\": [], \"aggregates_shelf\": [{\"custom_expr\": \"sum(1)\", \"expression_for_trigger\": \"sum(1)\", \"expr_hasagg\": true, \"col_alias\": \"Leads\", \"dataset_colname\": \"Leads\", \"dataset_coltype\": \"DOUBLE\"}], \"compare_shelf\": [], \"label_shelf\": [], \"tooltip_shelf\": [], \"x_shelf\": [], \"y_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[is_latest] = 1\", \"expression_for_trigger\": \"[is_latest] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}, {\"custom_expr\": \"[signal_id] = 'FESTIVE_ELECTRONICS'\", \"expression_for_trigger\": \"[signal_id] = 'FESTIVE_ELECTRONICS'\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"kpi\", \"saved_shelf_sources\": {\"sum(1) as 'sub:Leads'\": \"aggregates_shelf\", \"[is_latest] = 1\": \"filters_shelf\", \"[signal_id] = 'FESTIVE_ELECTRONICS'\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"dimensions_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"aggregates_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"compare_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"kpi\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "fc014c25-335d-5fd0-bc1d-87011bcec989",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8222,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Opportunities",
+    "dataset": 8103,
+    "workspace": 6,
+    "report_type": "kpi",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Home-branch change leads (RELOCATION)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"dimensions_shelf\": [], \"aggregates_shelf\": [{\"custom_expr\": \"sum(1)\", \"expression_for_trigger\": \"sum(1)\", \"expr_hasagg\": true, \"col_alias\": \"Leads\", \"dataset_colname\": \"Leads\", \"dataset_coltype\": \"DOUBLE\"}], \"compare_shelf\": [], \"label_shelf\": [], \"tooltip_shelf\": [], \"x_shelf\": [], \"y_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[is_latest] = 1\", \"expression_for_trigger\": \"[is_latest] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}, {\"custom_expr\": \"[signal_id] = 'RELOCATION'\", \"expression_for_trigger\": \"[signal_id] = 'RELOCATION'\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"kpi\", \"saved_shelf_sources\": {\"sum(1) as 'sub:Leads'\": \"aggregates_shelf\", \"[is_latest] = 1\": \"filters_shelf\", \"[signal_id] = 'RELOCATION'\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"dimensions_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"aggregates_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"compare_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"kpi\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "94779242-51dc-5f1b-89a4-21c6fa46b1d9",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8223,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Opportunities",
+    "dataset": 8103,
+    "workspace": 6,
+    "report_type": "trellis-bars",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Leads by action and segment (latest run)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"action\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[action]\", \"col_alias\": \"Action\"}], \"y_shelf\": [{\"custom_expr\": \"sum(1)\", \"expression_for_trigger\": \"sum(1)\", \"expr_hasagg\": true, \"col_alias\": \"Leads\", \"dataset_colname\": \"Leads\", \"dataset_coltype\": \"DOUBLE\", \"order\": {\"priority\": 1, \"ascending\": false}}], \"color_shelf\": [{\"dataset_colname\": \"segment\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[segment]\", \"col_alias\": \"Segment\"}], \"tooltip_shelf\": [], \"drill_shelf\": [], \"label_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[is_latest] = 1\", \"expression_for_trigger\": \"[is_latest] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"trellis-bars\", \"saved_shelf_sources\": {\"[action] as 'sub:Action'\": \"x_shelf\", \"sum(1) as 'sub:Leads'\": \"y_shelf\", \"[segment] as 'sub:Segment'\": \"color_shelf\", \"[is_latest] = 1\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"drill_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-bars\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "d5f49d5d-0e42-5867-ba53-d09697a58bc8",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8224,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Opportunities",
+    "dataset": 8103,
+    "workspace": 6,
+    "report_type": "trellis-bars",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Top 15 home cities by leads (latest run)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 15, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"home_city\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[home_city]\", \"col_alias\": \"Home city\"}], \"y_shelf\": [{\"custom_expr\": \"sum(1)\", \"expression_for_trigger\": \"sum(1)\", \"expr_hasagg\": true, \"col_alias\": \"Leads\", \"dataset_colname\": \"Leads\", \"dataset_coltype\": \"DOUBLE\", \"order\": {\"priority\": 1, \"ascending\": false}}], \"color_shelf\": [{\"dataset_colname\": \"signal_id\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[signal_id]\", \"col_alias\": \"Signal\"}], \"tooltip_shelf\": [], \"drill_shelf\": [], \"label_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[is_latest] = 1\", \"expression_for_trigger\": \"[is_latest] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"trellis-bars\", \"saved_shelf_sources\": {\"[home_city] as 'sub:Home city'\": \"x_shelf\", \"sum(1) as 'sub:Leads'\": \"y_shelf\", \"[signal_id] as 'sub:Signal'\": \"color_shelf\", \"[is_latest] = 1\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"drill_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-bars\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "4c952358-6134-5541-91d3-fd2b8c164982",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8225,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Opportunities",
+    "dataset": 8103,
+    "workspace": 6,
+    "report_type": "trellis-lines",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Leads per run, by signal\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"run_date\", \"dataset_coltype\": \"DATE\", \"expression_for_trigger\": \"[run_date]\", \"col_alias\": \"Run date\"}], \"y_shelf\": [{\"custom_expr\": \"sum(1)\", \"expression_for_trigger\": \"sum(1)\", \"expr_hasagg\": true, \"col_alias\": \"Leads\", \"dataset_colname\": \"Leads\", \"dataset_coltype\": \"DOUBLE\"}], \"color_shelf\": [{\"dataset_colname\": \"signal_id\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[signal_id]\", \"col_alias\": \"Signal\"}], \"tooltip_shelf\": [], \"filters_shelf\": [], \"core\": {\"viz_type\": \"trellis-lines\", \"saved_shelf_sources\": {\"[run_date] as 'sub:Run date'\": \"x_shelf\", \"sum(1) as 'sub:Leads'\": \"y_shelf\", \"[signal_id] as 'sub:Signal'\": \"color_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-lines\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "03263f53-936e-5be4-a9b5-c12084d194e7",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8226,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Opportunities",
+    "dataset": 8103,
+    "workspace": 6,
+    "report_type": "trellis-bars",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Leads by persona (latest run)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"persona_name\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[persona_name]\", \"col_alias\": \"Persona\"}], \"y_shelf\": [{\"custom_expr\": \"sum(1)\", \"expression_for_trigger\": \"sum(1)\", \"expr_hasagg\": true, \"col_alias\": \"Leads\", \"dataset_colname\": \"Leads\", \"dataset_coltype\": \"DOUBLE\", \"order\": {\"priority\": 1, \"ascending\": false}}], \"color_shelf\": [{\"dataset_colname\": \"signal_id\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[signal_id]\", \"col_alias\": \"Signal\"}], \"tooltip_shelf\": [], \"drill_shelf\": [], \"label_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[is_latest] = 1\", \"expression_for_trigger\": \"[is_latest] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"trellis-bars\", \"saved_shelf_sources\": {\"[persona_name] as 'sub:Persona'\": \"x_shelf\", \"sum(1) as 'sub:Leads'\": \"y_shelf\", \"[signal_id] as 'sub:Signal'\": \"color_shelf\", \"[is_latest] = 1\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"drill_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-bars\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "63c3ea24-3ccd-5cc4-9aa4-fe98bfd4add6",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8227,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Opportunities",
+    "dataset": 8103,
+    "workspace": 6,
+    "report_type": "table",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Campaign list: EMI conversion targets (latest run)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 50, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"dimensions_shelf\": [{\"dataset_colname\": \"cif\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[cif]\", \"col_alias\": \"Customer\"}, {\"dataset_colname\": \"persona_name\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[persona_name]\", \"col_alias\": \"Persona\"}, {\"dataset_colname\": \"segment\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[segment]\", \"col_alias\": \"Segment\"}, {\"dataset_colname\": \"home_city\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[home_city]\", \"col_alias\": \"Home city\"}, {\"dataset_colname\": \"city_tier\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[city_tier]\", \"col_alias\": \"Tier\"}, {\"dataset_colname\": \"detail\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[detail]\", \"col_alias\": \"Why\"}], \"aggregates_shelf\": [{\"custom_expr\": \"round(max([metric_value]), 0)\", \"expression_for_trigger\": \"round(max([metric_value]), 0)\", \"expr_hasagg\": true, \"col_alias\": \"Festive electronics spend (INR)\", \"dataset_colname\": \"Festive electronics spend (INR)\", \"dataset_coltype\": \"DOUBLE\", \"order\": {\"priority\": 1, \"ascending\": false}}], \"filters_shelf\": [{\"custom_expr\": \"[is_latest] = 1\", \"expression_for_trigger\": \"[is_latest] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}, {\"custom_expr\": \"[signal_id] = 'FESTIVE_ELECTRONICS'\", \"expression_for_trigger\": \"[signal_id] = 'FESTIVE_ELECTRONICS'\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"table\", \"saved_shelf_sources\": {\"[cif] as 'sub:Customer'\": \"dimensions_shelf\", \"[persona_name] as 'sub:Persona'\": \"dimensions_shelf\", \"[segment] as 'sub:Segment'\": \"dimensions_shelf\", \"[home_city] as 'sub:Home city'\": \"dimensions_shelf\", \"[city_tier] as 'sub:Tier'\": \"dimensions_shelf\", \"[detail] as 'sub:Why'\": \"dimensions_shelf\", \"round(max([metric_value]), 0) as 'sub:Festive electronics spend (INR)'\": \"aggregates_shelf\", \"[is_latest] = 1\": \"filters_shelf\", \"[signal_id] = 'FESTIVE_ELECTRONICS'\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"dimensions_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"aggregates_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"table\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "cc990ef1-188e-5b49-8bd6-490da40766f4",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8228,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Forecast",
+    "dataset": 8104,
+    "workspace": 6,
+    "report_type": "trellis-lines",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Book-wide spend, next 12 weeks: Chronos-2 against seasonal naive (INR crore)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"week_end\", \"dataset_coltype\": \"DATE\", \"expression_for_trigger\": \"[week_end]\", \"col_alias\": \"Week ending\"}], \"y_shelf\": [{\"custom_expr\": \"round(sum([p10_crore]), 2)\", \"expression_for_trigger\": \"round(sum([p10_crore]), 2)\", \"expr_hasagg\": true, \"col_alias\": \"P10\", \"dataset_colname\": \"P10\", \"dataset_coltype\": \"DOUBLE\"}, {\"custom_expr\": \"round(sum([p50_crore]), 2)\", \"expression_for_trigger\": \"round(sum([p50_crore]), 2)\", \"expr_hasagg\": true, \"col_alias\": \"P50\", \"dataset_colname\": \"P50\", \"dataset_coltype\": \"DOUBLE\"}, {\"custom_expr\": \"round(sum([p90_crore]), 2)\", \"expression_for_trigger\": \"round(sum([p90_crore]), 2)\", \"expr_hasagg\": true, \"col_alias\": \"P90\", \"dataset_colname\": \"P90\", \"dataset_coltype\": \"DOUBLE\"}, {\"custom_expr\": \"round(sum([naive_crore]), 2)\", \"expression_for_trigger\": \"round(sum([naive_crore]), 2)\", \"expr_hasagg\": true, \"col_alias\": \"Seasonal naive\", \"dataset_colname\": \"Seasonal naive\", \"dataset_coltype\": \"DOUBLE\"}], \"color_shelf\": [], \"tooltip_shelf\": [], \"filters_shelf\": [], \"core\": {\"viz_type\": \"trellis-lines\", \"saved_shelf_sources\": {\"[week_end] as 'sub:Week ending'\": \"x_shelf\", \"round(sum([p10_crore]), 2) as 'sub:P10'\": \"y_shelf\", \"round(sum([p50_crore]), 2) as 'sub:P50'\": \"y_shelf\", \"round(sum([p90_crore]), 2) as 'sub:P90'\": \"y_shelf\", \"round(sum([naive_crore]), 2) as 'sub:Seasonal naive'\": \"y_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-lines\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "2a893dc7-643d-53e1-8d36-211a7d4b9646",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8229,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Forecast",
+    "dataset": 8104,
+    "workspace": 6,
+    "report_type": "trellis-bars",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Next 12 weeks by category: P50 against seasonal naive (INR crore)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"category\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[category]\", \"col_alias\": \"Category\"}], \"y_shelf\": [{\"custom_expr\": \"round(sum([p50_crore]), 2)\", \"expression_for_trigger\": \"round(sum([p50_crore]), 2)\", \"expr_hasagg\": true, \"col_alias\": \"P50\", \"dataset_colname\": \"P50\", \"dataset_coltype\": \"DOUBLE\", \"order\": {\"priority\": 1, \"ascending\": false}}, {\"custom_expr\": \"round(sum([naive_crore]), 2)\", \"expression_for_trigger\": \"round(sum([naive_crore]), 2)\", \"expr_hasagg\": true, \"col_alias\": \"Seasonal naive\", \"dataset_colname\": \"Seasonal naive\", \"dataset_coltype\": \"DOUBLE\"}], \"color_shelf\": [], \"tooltip_shelf\": [], \"drill_shelf\": [], \"label_shelf\": [], \"filters_shelf\": [], \"core\": {\"viz_type\": \"trellis-bars\", \"saved_shelf_sources\": {\"[category] as 'sub:Category'\": \"x_shelf\", \"round(sum([p50_crore]), 2) as 'sub:P50'\": \"y_shelf\", \"round(sum([naive_crore]), 2) as 'sub:Seasonal naive'\": \"y_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"drill_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-bars\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "6a09aa4e-e36c-512c-8101-40099618b2ff",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8230,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Forecast",
+    "dataset": 8104,
+    "workspace": 6,
+    "report_type": "trellis-lines",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Next 12 weeks by segment, P50 (INR crore)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"week_end\", \"dataset_coltype\": \"DATE\", \"expression_for_trigger\": \"[week_end]\", \"col_alias\": \"Week ending\"}], \"y_shelf\": [{\"custom_expr\": \"round(sum([p50_crore]), 2)\", \"expression_for_trigger\": \"round(sum([p50_crore]), 2)\", \"expr_hasagg\": true, \"col_alias\": \"P50\", \"dataset_colname\": \"P50\", \"dataset_coltype\": \"DOUBLE\"}], \"color_shelf\": [{\"dataset_colname\": \"segment\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[segment]\", \"col_alias\": \"Segment\"}], \"tooltip_shelf\": [], \"filters_shelf\": [], \"core\": {\"viz_type\": \"trellis-lines\", \"saved_shelf_sources\": {\"[week_end] as 'sub:Week ending'\": \"x_shelf\", \"round(sum([p50_crore]), 2) as 'sub:P50'\": \"y_shelf\", \"[segment] as 'sub:Segment'\": \"color_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-lines\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "089eb598-c144-5b4b-9af9-d9d1e6c87534",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8231,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Trust",
+    "dataset": 8105,
+    "workspace": 6,
+    "report_type": "kpi",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Categoriser accuracy, MCC hidden (gate >= 0.85)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"dimensions_shelf\": [], \"aggregates_shelf\": [{\"custom_expr\": \"round(max([accuracy_mcc]), 3)\", \"expression_for_trigger\": \"round(max([accuracy_mcc]), 3)\", \"expr_hasagg\": true, \"col_alias\": \"Accuracy\", \"dataset_colname\": \"Accuracy\", \"dataset_coltype\": \"DOUBLE\"}], \"compare_shelf\": [], \"label_shelf\": [], \"tooltip_shelf\": [], \"x_shelf\": [], \"y_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[is_latest] = 1\", \"expression_for_trigger\": \"[is_latest] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"kpi\", \"saved_shelf_sources\": {\"round(max([accuracy_mcc]), 3) as 'sub:Accuracy'\": \"aggregates_shelf\", \"[is_latest] = 1\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"dimensions_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"aggregates_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"compare_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"kpi\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "bcd20dd8-cb44-5bec-b3e4-44eea56a91ce",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8232,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Trust",
+    "dataset": 8105,
+    "workspace": 6,
+    "report_type": "kpi",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Persona silhouette (gate >= 0.15)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"dimensions_shelf\": [], \"aggregates_shelf\": [{\"custom_expr\": \"round(max([silhouette]), 3)\", \"expression_for_trigger\": \"round(max([silhouette]), 3)\", \"expr_hasagg\": true, \"col_alias\": \"Silhouette\", \"dataset_colname\": \"Silhouette\", \"dataset_coltype\": \"DOUBLE\"}], \"compare_shelf\": [], \"label_shelf\": [], \"tooltip_shelf\": [], \"x_shelf\": [], \"y_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[is_latest] = 1\", \"expression_for_trigger\": \"[is_latest] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"kpi\", \"saved_shelf_sources\": {\"round(max([silhouette]), 3) as 'sub:Silhouette'\": \"aggregates_shelf\", \"[is_latest] = 1\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"dimensions_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"aggregates_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"compare_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"kpi\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "17175766-2cd1-5233-ac35-ec0425af93b3",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8233,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Trust",
+    "dataset": 8105,
+    "workspace": 6,
+    "report_type": "kpi",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Forecast WAPE vs seasonal naive (gate <= 0.90)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"dimensions_shelf\": [], \"aggregates_shelf\": [{\"custom_expr\": \"round(max([wape_ratio]), 3)\", \"expression_for_trigger\": \"round(max([wape_ratio]), 3)\", \"expr_hasagg\": true, \"col_alias\": \"WAPE ratio\", \"dataset_colname\": \"WAPE ratio\", \"dataset_coltype\": \"DOUBLE\"}], \"compare_shelf\": [], \"label_shelf\": [], \"tooltip_shelf\": [], \"x_shelf\": [], \"y_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[is_latest] = 1\", \"expression_for_trigger\": \"[is_latest] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"kpi\", \"saved_shelf_sources\": {\"round(max([wape_ratio]), 3) as 'sub:WAPE ratio'\": \"aggregates_shelf\", \"[is_latest] = 1\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"dimensions_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"aggregates_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"compare_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"kpi\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "9883b542-6914-5e3d-b084-a3073ca4fb7b",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8234,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Trust",
+    "dataset": 8106,
+    "workspace": 6,
+    "report_type": "kpi",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Data-quality checks failed (latest gates)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"dimensions_shelf\": [], \"aggregates_shelf\": [{\"custom_expr\": \"sum([failed])\", \"expression_for_trigger\": \"sum([failed])\", \"expr_hasagg\": true, \"col_alias\": \"Failed checks\", \"dataset_colname\": \"Failed checks\", \"dataset_coltype\": \"DOUBLE\"}], \"compare_shelf\": [], \"label_shelf\": [], \"tooltip_shelf\": [], \"x_shelf\": [], \"y_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[is_latest] = 1\", \"expression_for_trigger\": \"[is_latest] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"kpi\", \"saved_shelf_sources\": {\"sum([failed]) as 'sub:Failed checks'\": \"aggregates_shelf\", \"[is_latest] = 1\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"dimensions_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"aggregates_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"compare_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"kpi\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "509a0117-ef20-5a50-b088-3dc74c2fb279",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8235,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Trust",
+    "dataset": 8105,
+    "workspace": 6,
+    "report_type": "trellis-lines",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Accuracy and persona stability per run, against the gate floor\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"run_date\", \"dataset_coltype\": \"DATE\", \"expression_for_trigger\": \"[run_date]\", \"col_alias\": \"Run date\"}], \"y_shelf\": [{\"custom_expr\": \"max([accuracy_mcc])\", \"expression_for_trigger\": \"max([accuracy_mcc])\", \"expr_hasagg\": true, \"col_alias\": \"Accuracy (MCC hidden)\", \"dataset_colname\": \"Accuracy (MCC hidden)\", \"dataset_coltype\": \"DOUBLE\"}, {\"custom_expr\": \"max([accuracy_seed])\", \"expression_for_trigger\": \"max([accuracy_seed])\", \"expr_hasagg\": true, \"col_alias\": \"Accuracy (seed)\", \"dataset_colname\": \"Accuracy (seed)\", \"dataset_coltype\": \"DOUBLE\"}, {\"custom_expr\": \"max([persona_stability])\", \"expression_for_trigger\": \"max([persona_stability])\", \"expr_hasagg\": true, \"col_alias\": \"Persona stability\", \"dataset_colname\": \"Persona stability\", \"dataset_coltype\": \"DOUBLE\"}, {\"custom_expr\": \"max([min_accuracy])\", \"expression_for_trigger\": \"max([min_accuracy])\", \"expr_hasagg\": true, \"col_alias\": \"Accuracy floor\", \"dataset_colname\": \"Accuracy floor\", \"dataset_coltype\": \"DOUBLE\"}], \"color_shelf\": [], \"tooltip_shelf\": [], \"filters_shelf\": [], \"core\": {\"viz_type\": \"trellis-lines\", \"saved_shelf_sources\": {\"[run_date] as 'sub:Run date'\": \"x_shelf\", \"max([accuracy_mcc]) as 'sub:Accuracy (MCC hidden)'\": \"y_shelf\", \"max([accuracy_seed]) as 'sub:Accuracy (seed)'\": \"y_shelf\", \"max([persona_stability]) as 'sub:Persona stability'\": \"y_shelf\", \"max([min_accuracy]) as 'sub:Accuracy floor'\": \"y_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-lines\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "a07c9faf-acca-505b-8546-bd7ec076ed63",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8236,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Trust",
+    "dataset": 8105,
+    "workspace": 6,
+    "report_type": "trellis-lines",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Forecast WAPE ratio and silhouette per run, against the gate\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"run_date\", \"dataset_coltype\": \"DATE\", \"expression_for_trigger\": \"[run_date]\", \"col_alias\": \"Run date\"}], \"y_shelf\": [{\"custom_expr\": \"max([wape_ratio])\", \"expression_for_trigger\": \"max([wape_ratio])\", \"expr_hasagg\": true, \"col_alias\": \"WAPE ratio\", \"dataset_colname\": \"WAPE ratio\", \"dataset_coltype\": \"DOUBLE\"}, {\"custom_expr\": \"max([max_wape_ratio])\", \"expression_for_trigger\": \"max([max_wape_ratio])\", \"expr_hasagg\": true, \"col_alias\": \"WAPE ceiling\", \"dataset_colname\": \"WAPE ceiling\", \"dataset_coltype\": \"DOUBLE\"}, {\"custom_expr\": \"max([silhouette])\", \"expression_for_trigger\": \"max([silhouette])\", \"expr_hasagg\": true, \"col_alias\": \"Silhouette\", \"dataset_colname\": \"Silhouette\", \"dataset_coltype\": \"DOUBLE\"}, {\"custom_expr\": \"max([min_silhouette])\", \"expression_for_trigger\": \"max([min_silhouette])\", \"expr_hasagg\": true, \"col_alias\": \"Silhouette floor\", \"dataset_colname\": \"Silhouette floor\", \"dataset_coltype\": \"DOUBLE\"}], \"color_shelf\": [], \"tooltip_shelf\": [], \"filters_shelf\": [], \"core\": {\"viz_type\": \"trellis-lines\", \"saved_shelf_sources\": {\"[run_date] as 'sub:Run date'\": \"x_shelf\", \"max([wape_ratio]) as 'sub:WAPE ratio'\": \"y_shelf\", \"max([max_wape_ratio]) as 'sub:WAPE ceiling'\": \"y_shelf\", \"max([silhouette]) as 'sub:Silhouette'\": \"y_shelf\", \"max([min_silhouette]) as 'sub:Silhouette floor'\": \"y_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-lines\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "db8bcdf0-0eb5-5f9d-aae4-5a82d431eab7",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8237,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Trust",
+    "dataset": 8106,
+    "workspace": 6,
+    "report_type": "trellis-bars",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Data-quality checks per layer, latest gates\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"layer\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[layer]\", \"col_alias\": \"Layer\"}], \"y_shelf\": [{\"custom_expr\": \"sum([passed])\", \"expression_for_trigger\": \"sum([passed])\", \"expr_hasagg\": true, \"col_alias\": \"Passed\", \"dataset_colname\": \"Passed\", \"dataset_coltype\": \"DOUBLE\"}, {\"custom_expr\": \"sum([failed])\", \"expression_for_trigger\": \"sum([failed])\", \"expr_hasagg\": true, \"col_alias\": \"Failed\", \"dataset_colname\": \"Failed\", \"dataset_coltype\": \"DOUBLE\"}], \"color_shelf\": [], \"tooltip_shelf\": [], \"drill_shelf\": [], \"label_shelf\": [], \"filters_shelf\": [{\"custom_expr\": \"[is_latest] = 1\", \"expression_for_trigger\": \"[is_latest] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"trellis-bars\", \"saved_shelf_sources\": {\"[layer] as 'sub:Layer'\": \"x_shelf\", \"sum([passed]) as 'sub:Passed'\": \"y_shelf\", \"sum([failed]) as 'sub:Failed'\": \"y_shelf\", \"[is_latest] = 1\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"drill_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-bars\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "71c2b254-257c-5d29-a5a9-c1ec950a050e",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8238,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Trust",
+    "dataset": 8106,
+    "workspace": 6,
+    "report_type": "trellis-bars",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Checks per night and layer, 30 days\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"x_shelf\": [{\"dataset_colname\": \"as_of\", \"dataset_coltype\": \"DATE\", \"expression_for_trigger\": \"[as_of]\", \"col_alias\": \"As of\"}], \"y_shelf\": [{\"custom_expr\": \"sum(1)\", \"expression_for_trigger\": \"sum(1)\", \"expr_hasagg\": true, \"col_alias\": \"Checks\", \"dataset_colname\": \"Checks\", \"dataset_coltype\": \"DOUBLE\"}], \"color_shelf\": [{\"dataset_colname\": \"layer\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[layer]\", \"col_alias\": \"Layer\"}], \"tooltip_shelf\": [], \"drill_shelf\": [], \"label_shelf\": [], \"filters_shelf\": [], \"core\": {\"viz_type\": \"trellis-bars\", \"saved_shelf_sources\": {\"[as_of] as 'sub:As of'\": \"x_shelf\", \"sum(1) as 'sub:Checks'\": \"y_shelf\", \"[layer] as 'sub:Layer'\": \"color_shelf\"}, \"shelves\": [{\"name\": \"x_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"y_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"color_shelf\", \"shelf_type\": 1, \"column_type\": 3}, {\"name\": \"tooltip_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"drill_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"label_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"trellis-bars\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "8af13e4a-8c67-52ab-b10c-35e97ad69ef4",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8239,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Trust",
+    "dataset": 8105,
+    "workspace": 6,
+    "report_type": "table",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Every published run: KPIs and the gate\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"dimensions_shelf\": [{\"dataset_colname\": \"run_date\", \"dataset_coltype\": \"DATE\", \"expression_for_trigger\": \"[run_date]\", \"col_alias\": \"Run date\", \"order\": {\"priority\": 1, \"ascending\": false}}, {\"dataset_colname\": \"run_id\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[run_id]\", \"col_alias\": \"Run\"}, {\"dataset_colname\": \"triggered_by\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[triggered_by]\", \"col_alias\": \"Triggered by\"}, {\"dataset_colname\": \"gate\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[gate]\", \"col_alias\": \"Gate\"}, {\"dataset_colname\": \"feature_hash\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[feature_hash]\", \"col_alias\": \"Feature hash\"}], \"aggregates_shelf\": [{\"custom_expr\": \"round(max([accuracy_mcc]), 3)\", \"expression_for_trigger\": \"round(max([accuracy_mcc]), 3)\", \"expr_hasagg\": true, \"col_alias\": \"Accuracy MCC\", \"dataset_colname\": \"Accuracy MCC\", \"dataset_coltype\": \"DOUBLE\"}, {\"custom_expr\": \"round(max([accuracy_seed]), 3)\", \"expression_for_trigger\": \"round(max([accuracy_seed]), 3)\", \"expr_hasagg\": true, \"col_alias\": \"Accuracy seed\", \"dataset_colname\": \"Accuracy seed\", \"dataset_coltype\": \"DOUBLE\"}, {\"custom_expr\": \"round(max([silhouette]), 3)\", \"expression_for_trigger\": \"round(max([silhouette]), 3)\", \"expr_hasagg\": true, \"col_alias\": \"Silhouette\", \"dataset_colname\": \"Silhouette\", \"dataset_coltype\": \"DOUBLE\"}, {\"custom_expr\": \"round(max([persona_stability]), 3)\", \"expression_for_trigger\": \"round(max([persona_stability]), 3)\", \"expr_hasagg\": true, \"col_alias\": \"Stability\", \"dataset_colname\": \"Stability\", \"dataset_coltype\": \"DOUBLE\"}, {\"custom_expr\": \"round(max([wape_ratio]), 3)\", \"expression_for_trigger\": \"round(max([wape_ratio]), 3)\", \"expr_hasagg\": true, \"col_alias\": \"WAPE ratio\", \"dataset_colname\": \"WAPE ratio\", \"dataset_coltype\": \"DOUBLE\"}, {\"custom_expr\": \"round(max([coverage]), 3)\", \"expression_for_trigger\": \"round(max([coverage]), 3)\", \"expr_hasagg\": true, \"col_alias\": \"Coverage\", \"dataset_colname\": \"Coverage\", \"dataset_coltype\": \"DOUBLE\"}, {\"custom_expr\": \"sum([n_customers_profiled])\", \"expression_for_trigger\": \"sum([n_customers_profiled])\", \"expr_hasagg\": true, \"col_alias\": \"Profiled\", \"dataset_colname\": \"Profiled\", \"dataset_coltype\": \"DOUBLE\"}, {\"custom_expr\": \"sum([n_signals])\", \"expression_for_trigger\": \"sum([n_signals])\", \"expr_hasagg\": true, \"col_alias\": \"Signals\", \"dataset_colname\": \"Signals\", \"dataset_coltype\": \"DOUBLE\"}], \"filters_shelf\": [], \"core\": {\"viz_type\": \"table\", \"saved_shelf_sources\": {\"[run_date] as 'sub:Run date'\": \"dimensions_shelf\", \"[run_id] as 'sub:Run'\": \"dimensions_shelf\", \"[triggered_by] as 'sub:Triggered by'\": \"dimensions_shelf\", \"[gate] as 'sub:Gate'\": \"dimensions_shelf\", \"[feature_hash] as 'sub:Feature hash'\": \"dimensions_shelf\", \"round(max([accuracy_mcc]), 3) as 'sub:Accuracy MCC'\": \"aggregates_shelf\", \"round(max([accuracy_seed]), 3) as 'sub:Accuracy seed'\": \"aggregates_shelf\", \"round(max([silhouette]), 3) as 'sub:Silhouette'\": \"aggregates_shelf\", \"round(max([persona_stability]), 3) as 'sub:Stability'\": \"aggregates_shelf\", \"round(max([wape_ratio]), 3) as 'sub:WAPE ratio'\": \"aggregates_shelf\", \"round(max([coverage]), 3) as 'sub:Coverage'\": \"aggregates_shelf\", \"sum([n_customers_profiled]) as 'sub:Profiled'\": \"aggregates_shelf\", \"sum([n_signals]) as 'sub:Signals'\": \"aggregates_shelf\"}, \"shelves\": [{\"name\": \"dimensions_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"aggregates_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"table\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "31f38897-7464-5418-b2bc-c7e929d51980",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  },
+  {
+   "model": "reports.report",
+   "pk": 8240,
+   "fields": {
+    "report_name": "",
+    "report_description": "Spend Analytics - Insights / Trust",
+    "dataset": 8106,
+    "workspace": 6,
+    "report_type": "table",
+    "report_mode": "",
+    "dashboard_url_name": "",
+    "report_data": "{\"report_data\": {\"report_title\": \"Failed data-quality checks, 30 days (empty on a healthy pipeline)\", \"report_subtitle\": \"\", \"dashboard_id\": 8000, \"limit\": 1000, \"sample_pct\": \"Off\", \"selected_segments\": [], \"report_derived_data\": [], \"click_behaviors\": {}, \"sort_orders_asc\": {}, \"user_settings\": {}, \"dimensions_shelf\": [{\"dataset_colname\": \"as_of\", \"dataset_coltype\": \"DATE\", \"expression_for_trigger\": \"[as_of]\", \"col_alias\": \"As of\", \"order\": {\"priority\": 1, \"ascending\": false}}, {\"dataset_colname\": \"layer\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[layer]\", \"col_alias\": \"Layer\"}, {\"dataset_colname\": \"table_name\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[table_name]\", \"col_alias\": \"Table\"}, {\"dataset_colname\": \"check_name\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[check_name]\", \"col_alias\": \"Check\"}, {\"dataset_colname\": \"severity\", \"dataset_coltype\": \"STRING\", \"expression_for_trigger\": \"[severity]\", \"col_alias\": \"Severity\"}], \"aggregates_shelf\": [{\"custom_expr\": \"max([unexpected_pct])\", \"expression_for_trigger\": \"max([unexpected_pct])\", \"expr_hasagg\": true, \"col_alias\": \"Unexpected %\", \"dataset_colname\": \"Unexpected %\", \"dataset_coltype\": \"DOUBLE\"}], \"filters_shelf\": [{\"custom_expr\": \"[failed] = 1\", \"expression_for_trigger\": \"[failed] = 1\", \"filter_input\": {}, \"filter_data\": [], \"dataset_colname\": \"\", \"dataset_coltype\": \"STRING\", \"filter_column\": \"\"}], \"core\": {\"viz_type\": \"table\", \"saved_shelf_sources\": {\"[as_of] as 'sub:As of'\": \"dimensions_shelf\", \"[layer] as 'sub:Layer'\": \"dimensions_shelf\", \"[table_name] as 'sub:Table'\": \"dimensions_shelf\", \"[check_name] as 'sub:Check'\": \"dimensions_shelf\", \"[severity] as 'sub:Severity'\": \"dimensions_shelf\", \"max([unexpected_pct]) as 'sub:Unexpected %'\": \"aggregates_shelf\", \"[failed] = 1\": \"filters_shelf\"}, \"shelves\": [{\"name\": \"dimensions_shelf\", \"shelf_type\": 1, \"column_type\": 1}, {\"name\": \"aggregates_shelf\", \"shelf_type\": 1, \"column_type\": 2}, {\"name\": \"filters_shelf\", \"shelf_type\": 2, \"column_type\": 3}]}}, \"report_type\": \"table\"}",
+    "shared_visual_dashboards": null,
+    "parent_report": null,
+    "uuid": "e9138cc5-5ab7-51f0-ac92-72764254ba8e",
+    "imported_uuid": null,
+    "has_css_styles": false,
+    "report_search_text": ""
+   }
+  }
+ ],
+ "colorpalette": [],
+ "appgroups": [],
+ "datasets": [
+  {
+   "model": "datasets.dataset",
+   "pk": 8100,
+   "fields": {
+    "dataconnection": 5,
+    "dataset_name": "Spend - Weekly mix",
+    "dataset_type": "singletable",
+    "dataset_detail": "rsingh_spend_anl_report.v_spend_mix",
+    "dataset_description": "rsingh_spend_anl_report.v_spend_mix (sql/dataviz_views.sql)",
+    "dataset_info": "[{\"tablename\": \"rsingh_spend_anl_report.v_spend_mix\", \"columns\": [{\"alias\": \"week_end\", \"type\": \"DATE\", \"name\": \"week_end\", \"isdim\": true}, {\"alias\": \"dim\", \"type\": \"STRING\", \"name\": \"dim\", \"isdim\": true}, {\"alias\": \"dim_value\", \"type\": \"STRING\", \"name\": \"dim_value\", \"isdim\": true}, {\"alias\": \"channel\", \"type\": \"STRING\", \"name\": \"channel\", \"isdim\": true}, {\"alias\": \"channel_group\", \"type\": \"STRING\", \"name\": \"channel_group\", \"isdim\": true}, {\"alias\": \"is_last_13w\", \"type\": \"TINYINT\", \"name\": \"is_last_13w\", \"isdim\": true}, {\"alias\": \"amount_inr\", \"type\": \"DOUBLE\", \"name\": \"amount_inr\", \"isdim\": false}, {\"alias\": \"amount_crore\", \"type\": \"DOUBLE\", \"name\": \"amount_crore\", \"isdim\": false}, {\"alias\": \"n_txn\", \"type\": \"BIGINT\", \"name\": \"n_txn\", \"isdim\": false}, {\"alias\": \"n_customers\", \"type\": \"BIGINT\", \"name\": \"n_customers\", \"isdim\": false}]}]",
+    "dataset_tablenames": "[\"rsingh_spend_anl_report.v_spend_mix\"]",
+    "uuid": "30ee597d-060a-5f9c-8e89-255557a7bce5",
+    "imported_uuid": null,
+    "cache_sequence": 0,
+    "dataset_settings": "{}",
+    "search_enabled": false,
+    "dashboards": [
+     8000
+    ],
+    "version_id": 8100,
+    "version_group_id": 8100,
+    "is_active_version": true,
+    "version_name": "spend-analytics",
+    "is_named_version": false
+   }
+  },
+  {
+   "model": "datasets.dataset",
+   "pk": 8101,
+   "fields": {
+    "dataconnection": 5,
+    "dataset_name": "Spend - Personas",
+    "dataset_type": "singletable",
+    "dataset_detail": "rsingh_spend_anl_report.v_personas",
+    "dataset_description": "rsingh_spend_anl_report.v_personas (sql/dataviz_views.sql)",
+    "dataset_info": "[{\"tablename\": \"rsingh_spend_anl_report.v_personas\", \"columns\": [{\"alias\": \"run_date\", \"type\": \"DATE\", \"name\": \"run_date\", \"isdim\": true}, {\"alias\": \"run_id\", \"type\": \"STRING\", \"name\": \"run_id\", \"isdim\": true}, {\"alias\": \"cif\", \"type\": \"STRING\", \"name\": \"cif\", \"isdim\": true}, {\"alias\": \"persona_id\", \"type\": \"INT\", \"name\": \"persona_id\", \"isdim\": true}, {\"alias\": \"persona_name\", \"type\": \"STRING\", \"name\": \"persona_name\", \"isdim\": true}, {\"alias\": \"segment\", \"type\": \"STRING\", \"name\": \"segment\", \"isdim\": true}, {\"alias\": \"city_tier\", \"type\": \"STRING\", \"name\": \"city_tier\", \"isdim\": true}, {\"alias\": \"home_city\", \"type\": \"STRING\", \"name\": \"home_city\", \"isdim\": true}, {\"alias\": \"age_band\", \"type\": \"STRING\", \"name\": \"age_band\", \"isdim\": true}, {\"alias\": \"top_category\", \"type\": \"STRING\", \"name\": \"top_category\", \"isdim\": true}, {\"alias\": \"top_channel\", \"type\": \"STRING\", \"name\": \"top_channel\", \"isdim\": true}, {\"alias\": \"spend_13w\", \"type\": \"DOUBLE\", \"name\": \"spend_13w\", \"isdim\": false}, {\"alias\": \"txn_13w\", \"type\": \"INT\", \"name\": \"txn_13w\", \"isdim\": false}, {\"alias\": \"digital_share\", \"type\": \"DOUBLE\", \"name\": \"digital_share\", \"isdim\": false}, {\"alias\": \"home_share\", \"type\": \"DOUBLE\", \"name\": \"home_share\", \"isdim\": false}, {\"alias\": \"prev_persona_name\", \"type\": \"STRING\", \"name\": \"prev_persona_name\", \"isdim\": true}, {\"alias\": \"persona_change\", \"type\": \"STRING\", \"name\": \"persona_change\", \"isdim\": true}]}]",
+    "dataset_tablenames": "[\"rsingh_spend_anl_report.v_personas\"]",
+    "uuid": "1f361219-414c-58be-ac4d-f53497b8493d",
+    "imported_uuid": null,
+    "cache_sequence": 0,
+    "dataset_settings": "{}",
+    "search_enabled": false,
+    "dashboards": [
+     8000
+    ],
+    "version_id": 8101,
+    "version_group_id": 8101,
+    "is_active_version": true,
+    "version_name": "spend-analytics",
+    "is_named_version": false
+   }
+  },
+  {
+   "model": "datasets.dataset",
+   "pk": 8102,
+   "fields": {
+    "dataconnection": 5,
+    "dataset_name": "Spend - Persona runs",
+    "dataset_type": "singletable",
+    "dataset_detail": "rsingh_spend_anl_report.v_persona_runs",
+    "dataset_description": "rsingh_spend_anl_report.v_persona_runs (sql/dataviz_views.sql)",
+    "dataset_info": "[{\"tablename\": \"rsingh_spend_anl_report.v_persona_runs\", \"columns\": [{\"alias\": \"run_date\", \"type\": \"DATE\", \"name\": \"run_date\", \"isdim\": true}, {\"alias\": \"is_latest\", \"type\": \"TINYINT\", \"name\": \"is_latest\", \"isdim\": true}, {\"alias\": \"run_id\", \"type\": \"STRING\", \"name\": \"run_id\", \"isdim\": true}, {\"alias\": \"persona_id\", \"type\": \"INT\", \"name\": \"persona_id\", \"isdim\": true}, {\"alias\": \"persona_name\", \"type\": \"STRING\", \"name\": \"persona_name\", \"isdim\": true}, {\"alias\": \"n_customers\", \"type\": \"INT\", \"name\": \"n_customers\", \"isdim\": false}, {\"alias\": \"customer_share\", \"type\": \"DOUBLE\", \"name\": \"customer_share\", \"isdim\": false}, {\"alias\": \"avg_spend_13w\", \"type\": \"DOUBLE\", \"name\": \"avg_spend_13w\", \"isdim\": false}, {\"alias\": \"avg_txn_13w\", \"type\": \"DOUBLE\", \"name\": \"avg_txn_13w\", \"isdim\": false}, {\"alias\": \"top_category\", \"type\": \"STRING\", \"name\": \"top_category\", \"isdim\": true}, {\"alias\": \"top_channel\", \"type\": \"STRING\", \"name\": \"top_channel\", \"isdim\": true}, {\"alias\": \"dominant_tier\", \"type\": \"STRING\", \"name\": \"dominant_tier\", \"isdim\": true}, {\"alias\": \"digital_share\", \"type\": \"DOUBLE\", \"name\": \"digital_share\", \"isdim\": false}, {\"alias\": \"home_share\", \"type\": \"DOUBLE\", \"name\": \"home_share\", \"isdim\": false}]}]",
+    "dataset_tablenames": "[\"rsingh_spend_anl_report.v_persona_runs\"]",
+    "uuid": "5aa8aad6-aedc-5e61-8e36-4a592eba3879",
+    "imported_uuid": null,
+    "cache_sequence": 0,
+    "dataset_settings": "{}",
+    "search_enabled": false,
+    "dashboards": [
+     8000
+    ],
+    "version_id": 8102,
+    "version_group_id": 8102,
+    "is_active_version": true,
+    "version_name": "spend-analytics",
+    "is_named_version": false
+   }
+  },
+  {
+   "model": "datasets.dataset",
+   "pk": 8103,
+   "fields": {
+    "dataconnection": 5,
+    "dataset_name": "Spend - Signals",
+    "dataset_type": "singletable",
+    "dataset_detail": "rsingh_spend_anl_report.v_signals",
+    "dataset_description": "rsingh_spend_anl_report.v_signals (sql/dataviz_views.sql)",
+    "dataset_info": "[{\"tablename\": \"rsingh_spend_anl_report.v_signals\", \"columns\": [{\"alias\": \"run_date\", \"type\": \"DATE\", \"name\": \"run_date\", \"isdim\": true}, {\"alias\": \"is_latest\", \"type\": \"TINYINT\", \"name\": \"is_latest\", \"isdim\": true}, {\"alias\": \"run_id\", \"type\": \"STRING\", \"name\": \"run_id\", \"isdim\": true}, {\"alias\": \"signal_id\", \"type\": \"STRING\", \"name\": \"signal_id\", \"isdim\": true}, {\"alias\": \"action\", \"type\": \"STRING\", \"name\": \"action\", \"isdim\": true}, {\"alias\": \"cif\", \"type\": \"STRING\", \"name\": \"cif\", \"isdim\": true}, {\"alias\": \"segment\", \"type\": \"STRING\", \"name\": \"segment\", \"isdim\": true}, {\"alias\": \"home_city\", \"type\": \"STRING\", \"name\": \"home_city\", \"isdim\": true}, {\"alias\": \"city_tier\", \"type\": \"STRING\", \"name\": \"city_tier\", \"isdim\": true}, {\"alias\": \"age_band\", \"type\": \"STRING\", \"name\": \"age_band\", \"isdim\": true}, {\"alias\": \"persona_name\", \"type\": \"STRING\", \"name\": \"persona_name\", \"isdim\": true}, {\"alias\": \"metric\", \"type\": \"STRING\", \"name\": \"metric\", \"isdim\": true}, {\"alias\": \"metric_value\", \"type\": \"DOUBLE\", \"name\": \"metric_value\", \"isdim\": false}, {\"alias\": \"threshold\", \"type\": \"DOUBLE\", \"name\": \"threshold\", \"isdim\": false}, {\"alias\": \"detail\", \"type\": \"STRING\", \"name\": \"detail\", \"isdim\": true}]}]",
+    "dataset_tablenames": "[\"rsingh_spend_anl_report.v_signals\"]",
+    "uuid": "f1ca6cb7-90f8-5d82-9df8-33b9ba88f80d",
+    "imported_uuid": null,
+    "cache_sequence": 0,
+    "dataset_settings": "{}",
+    "search_enabled": false,
+    "dashboards": [
+     8000
+    ],
+    "version_id": 8103,
+    "version_group_id": 8103,
+    "is_active_version": true,
+    "version_name": "spend-analytics",
+    "is_named_version": false
+   }
+  },
+  {
+   "model": "datasets.dataset",
+   "pk": 8104,
+   "fields": {
+    "dataconnection": 5,
+    "dataset_name": "Spend - Forecast",
+    "dataset_type": "singletable",
+    "dataset_detail": "rsingh_spend_anl_report.v_forecast",
+    "dataset_description": "rsingh_spend_anl_report.v_forecast (sql/dataviz_views.sql)",
+    "dataset_info": "[{\"tablename\": \"rsingh_spend_anl_report.v_forecast\", \"columns\": [{\"alias\": \"run_date\", \"type\": \"DATE\", \"name\": \"run_date\", \"isdim\": true}, {\"alias\": \"run_id\", \"type\": \"STRING\", \"name\": \"run_id\", \"isdim\": true}, {\"alias\": \"cohort\", \"type\": \"STRING\", \"name\": \"cohort\", \"isdim\": true}, {\"alias\": \"segment\", \"type\": \"STRING\", \"name\": \"segment\", \"isdim\": true}, {\"alias\": \"city_tier\", \"type\": \"STRING\", \"name\": \"city_tier\", \"isdim\": true}, {\"alias\": \"category\", \"type\": \"STRING\", \"name\": \"category\", \"isdim\": true}, {\"alias\": \"week_end\", \"type\": \"DATE\", \"name\": \"week_end\", \"isdim\": true}, {\"alias\": \"horizon_week\", \"type\": \"INT\", \"name\": \"horizon_week\", \"isdim\": true}, {\"alias\": \"p10_crore\", \"type\": \"DOUBLE\", \"name\": \"p10_crore\", \"isdim\": false}, {\"alias\": \"p50_crore\", \"type\": \"DOUBLE\", \"name\": \"p50_crore\", \"isdim\": false}, {\"alias\": \"p90_crore\", \"type\": \"DOUBLE\", \"name\": \"p90_crore\", \"isdim\": false}, {\"alias\": \"naive_crore\", \"type\": \"DOUBLE\", \"name\": \"naive_crore\", \"isdim\": false}]}]",
+    "dataset_tablenames": "[\"rsingh_spend_anl_report.v_forecast\"]",
+    "uuid": "92ffb5fd-863a-5e63-8e11-7e3716736421",
+    "imported_uuid": null,
+    "cache_sequence": 0,
+    "dataset_settings": "{}",
+    "search_enabled": false,
+    "dashboards": [
+     8000
+    ],
+    "version_id": 8104,
+    "version_group_id": 8104,
+    "is_active_version": true,
+    "version_name": "spend-analytics",
+    "is_named_version": false
+   }
+  },
+  {
+   "model": "datasets.dataset",
+   "pk": 8105,
+   "fields": {
+    "dataconnection": 5,
+    "dataset_name": "Spend - Model runs",
+    "dataset_type": "singletable",
+    "dataset_detail": "rsingh_spend_anl_report.v_model_run",
+    "dataset_description": "rsingh_spend_anl_report.v_model_run (sql/dataviz_views.sql)",
+    "dataset_info": "[{\"tablename\": \"rsingh_spend_anl_report.v_model_run\", \"columns\": [{\"alias\": \"run_date\", \"type\": \"DATE\", \"name\": \"run_date\", \"isdim\": true}, {\"alias\": \"is_latest\", \"type\": \"TINYINT\", \"name\": \"is_latest\", \"isdim\": true}, {\"alias\": \"run_id\", \"type\": \"STRING\", \"name\": \"run_id\", \"isdim\": true}, {\"alias\": \"triggered_by\", \"type\": \"STRING\", \"name\": \"triggered_by\", \"isdim\": true}, {\"alias\": \"gate\", \"type\": \"STRING\", \"name\": \"gate\", \"isdim\": true}, {\"alias\": \"accuracy_mcc\", \"type\": \"DOUBLE\", \"name\": \"accuracy_mcc\", \"isdim\": false}, {\"alias\": \"accuracy_seed\", \"type\": \"DOUBLE\", \"name\": \"accuracy_seed\", \"isdim\": false}, {\"alias\": \"silhouette\", \"type\": \"DOUBLE\", \"name\": \"silhouette\", \"isdim\": false}, {\"alias\": \"k\", \"type\": \"INT\", \"name\": \"k\", \"isdim\": true}, {\"alias\": \"persona_stability\", \"type\": \"DOUBLE\", \"name\": \"persona_stability\", \"isdim\": false}, {\"alias\": \"wape_model\", \"type\": \"DOUBLE\", \"name\": \"wape_model\", \"isdim\": false}, {\"alias\": \"wape_naive\", \"type\": \"DOUBLE\", \"name\": \"wape_naive\", \"isdim\": false}, {\"alias\": \"wape_ratio\", \"type\": \"DOUBLE\", \"name\": \"wape_ratio\", \"isdim\": false}, {\"alias\": \"coverage\", \"type\": \"DOUBLE\", \"name\": \"coverage\", \"isdim\": false}, {\"alias\": \"n_customers_profiled\", \"type\": \"INT\", \"name\": \"n_customers_profiled\", \"isdim\": false}, {\"alias\": \"n_signals\", \"type\": \"INT\", \"name\": \"n_signals\", \"isdim\": false}, {\"alias\": \"map_keys\", \"type\": \"INT\", \"name\": \"map_keys\", \"isdim\": false}, {\"alias\": \"uncategorised_share\", \"type\": \"DOUBLE\", \"name\": \"uncategorised_share\", \"isdim\": false}, {\"alias\": \"feature_hash\", \"type\": \"STRING\", \"name\": \"feature_hash\", \"isdim\": true}, {\"alias\": \"duration_s\", \"type\": \"DOUBLE\", \"name\": \"duration_s\", \"isdim\": false}, {\"alias\": \"min_accuracy\", \"type\": \"DOUBLE\", \"name\": \"min_accuracy\", \"isdim\": false}, {\"alias\": \"min_silhouette\", \"type\": \"DOUBLE\", \"name\": \"min_silhouette\", \"isdim\": false}, {\"alias\": \"min_stability\", \"type\": \"DOUBLE\", \"name\": \"min_stability\", \"isdim\": false}, {\"alias\": \"max_wape_ratio\", \"type\": \"DOUBLE\", \"name\": \"max_wape_ratio\", \"isdim\": false}]}]",
+    "dataset_tablenames": "[\"rsingh_spend_anl_report.v_model_run\"]",
+    "uuid": "0e4668c2-6244-5d1b-813a-626b698964da",
+    "imported_uuid": null,
+    "cache_sequence": 0,
+    "dataset_settings": "{}",
+    "search_enabled": false,
+    "dashboards": [
+     8000
+    ],
+    "version_id": 8105,
+    "version_group_id": 8105,
+    "is_active_version": true,
+    "version_name": "spend-analytics",
+    "is_named_version": false
+   }
+  },
+  {
+   "model": "datasets.dataset",
+   "pk": 8106,
+   "fields": {
+    "dataconnection": 5,
+    "dataset_name": "Spend - Data quality",
+    "dataset_type": "singletable",
+    "dataset_detail": "rsingh_spend_anl_report.v_dq",
+    "dataset_description": "rsingh_spend_anl_report.v_dq (sql/dataviz_views.sql)",
+    "dataset_info": "[{\"tablename\": \"rsingh_spend_anl_report.v_dq\", \"columns\": [{\"alias\": \"as_of\", \"type\": \"DATE\", \"name\": \"as_of\", \"isdim\": true}, {\"alias\": \"is_latest\", \"type\": \"TINYINT\", \"name\": \"is_latest\", \"isdim\": true}, {\"alias\": \"pipeline_run\", \"type\": \"STRING\", \"name\": \"pipeline_run\", \"isdim\": true}, {\"alias\": \"run_id\", \"type\": \"STRING\", \"name\": \"run_id\", \"isdim\": true}, {\"alias\": \"run_ts\", \"type\": \"TIMESTAMP\", \"name\": \"run_ts\", \"isdim\": true}, {\"alias\": \"layer\", \"type\": \"STRING\", \"name\": \"layer\", \"isdim\": true}, {\"alias\": \"layer_order\", \"type\": \"TINYINT\", \"name\": \"layer_order\", \"isdim\": true}, {\"alias\": \"table_name\", \"type\": \"STRING\", \"name\": \"table_name\", \"isdim\": true}, {\"alias\": \"check_name\", \"type\": \"STRING\", \"name\": \"check_name\", \"isdim\": true}, {\"alias\": \"expectation_type\", \"type\": \"STRING\", \"name\": \"expectation_type\", \"isdim\": true}, {\"alias\": \"column_name\", \"type\": \"STRING\", \"name\": \"column_name\", \"isdim\": true}, {\"alias\": \"severity\", \"type\": \"STRING\", \"name\": \"severity\", \"isdim\": true}, {\"alias\": \"passed\", \"type\": \"TINYINT\", \"name\": \"passed\", \"isdim\": false}, {\"alias\": \"failed\", \"type\": \"TINYINT\", \"name\": \"failed\", \"isdim\": false}, {\"alias\": \"element_count\", \"type\": \"BIGINT\", \"name\": \"element_count\", \"isdim\": false}, {\"alias\": \"unexpected_count\", \"type\": \"BIGINT\", \"name\": \"unexpected_count\", \"isdim\": false}, {\"alias\": \"unexpected_pct\", \"type\": \"DOUBLE\", \"name\": \"unexpected_pct\", \"isdim\": false}, {\"alias\": \"table_snapshot_id\", \"type\": \"BIGINT\", \"name\": \"table_snapshot_id\", \"isdim\": true}]}]",
+    "dataset_tablenames": "[\"rsingh_spend_anl_report.v_dq\"]",
+    "uuid": "aa20f7f5-a67e-5e6e-a486-267db96d3bfd",
+    "imported_uuid": null,
+    "cache_sequence": 0,
+    "dataset_settings": "{}",
+    "search_enabled": false,
+    "dashboards": [
+     8000
+    ],
+    "version_id": 8106,
+    "version_group_id": 8106,
+    "is_active_version": true,
+    "version_name": "spend-analytics",
+    "is_named_version": false
+   }
+  }
+ ],
+ "version": {
+  "Arcviz Version": "8.1.4.1000",
+  "Raw Timestamp of last commit": "1789380895",
+  "Timestamp of last commit": "Mon Sep 14 12:14:55 2026 +0200",
+  "SHA of last commit": "f57d558a7dcd7cda432e8fffd9d3c1fc60cdfad9",
+  "Description": "8.1.4.1000-4"
+ }
+}

@@ -407,13 +407,15 @@ definition:
   `SELECT ... FROM gold.spend_features FOR SYSTEM_VERSION AS OF <snapshot_id>`.
 
 **What is not there.**
-- No Impala views, no metrics layer (for example a dbt semantic model or a CDW
-  Data Visualization dataset), and no business glossary in a catalog. The
-  definitions are in code and docs, not in something an analyst can browse.
-- `docs/CDV_DASHBOARD.md` builds a Data Visualization dashboard on five SQL
-  datasets over gold (mix, personas, signals, model runs, DQ), each reading the
-  latest run. It is built in the CDV UI, not stored in this repo. CDW views
-  with business names would be the next step; nothing in the pipeline changes.
+- No metrics layer (for example a dbt semantic model) and no business glossary
+  in a catalog. The pipeline's definitions are in code and docs.
+- The reporting views in `rsingh_spend_anl_report` (`sql/dataviz_views.sql`)
+  give gold business columns (crore, Digital/Physical, Tier N, persona change,
+  gate PASS/FAIL, latest-run flags). They feed the Data Visualization dashboard
+  "Spend Analytics - Insights" (7 datasets, 40 visuals, 6 sheets), built as
+  code by `dataviz/build_dashboard.py` into the shared workspace
+  `rsingh-spend-anl` (`docs/CDV_DASHBOARD.md`). Nothing in the pipeline reads
+  the views.
 
 ## 8. SCD2 and history in Iceberg
 

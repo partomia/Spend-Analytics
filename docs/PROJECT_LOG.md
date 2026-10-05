@@ -724,3 +724,34 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
   - Persona change in the 2026-10-03 run: 181,868 stayed, 11,748 moved, 66 new.
   - CDV has no URL in the CDW API, and sign-in is browser SSO, so the
     dashboard is built in the UI from the guide.
+
+## 2026-10-05: CDV dashboard built as code
+
+- With the instance URL and an API key in `.env`, the dashboard is built by
+  `dataviz/build_dashboard.py`, the pattern used by the Collections project on
+  this instance. The UI guide is replaced.
+- `sql/dataviz_views.sql` (run with `scripts/run_impala_sql.py`) creates 7 views in
+  `rsingh_spend_anl_report`:
+  - `v_spend_mix`, 13,854 rows, 6,944 of them in the last 13 weeks;
+  - `v_personas`, 193,682; `v_persona_runs`; `v_signals`; `v_forecast`;
+  - `v_model_run`, 7 runs; `v_dq`, 30 days.
+- The build created connection `rsingh-spend-anl-impala` (id 5) and the
+  shared workspace `rsingh-spend-anl` (id 6: the workload user manages it,
+  Everyone views it).
+  - It imported 7 datasets, 40 visuals and 1 dashboard, "Spend Analytics - Insights",
+    with 6 sheets (Portfolio, Where, Personas, Opportunities, Forecast, Trust),
+    then moved the dashboard from the Private workspace into `rsingh-spend-anl`.
+  - Re-run: the dashboard is updated in place.
+- `--check` (directly on Impala, 69 s) and `--verify` (through the CDV Data API, 52 s):
+  all 40 visuals answered.
+  - Last 13 weeks: INR 1,609.4 crore, 4.84 M transactions, 68.4% digital.
+  - Personas: 193,682 profiled, 11,748 moved.
+  - Leads: TRAVEL_SURGE 7,373, FESTIVE_ELECTRONICS 3,845, RELOCATION 53.
+  - Run 2026-10-03: accuracy 0.934, silhouette 0.161, WAPE ratio 0.855.
+  - Latest DQ gates: 0 failed.
+- DQ checks in the 2026-10-03 nightly run: 76 bronze, 23 silver and 28 gold (127).
+  The 118 (68/23/27) quoted earlier is from the 20k book.
+- The admin API lists dashboards only; a dashboard's visuals move with it.
+- The connection caches results for 30 minutes, so a changed view (city tier
+  as "Tier N", the gate floors as DOUBLE) shows in CDV after the cache expires.
+- `tests/test_dataviz.py`: 8 offline tests. pytest: 210 passed.

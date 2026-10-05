@@ -329,6 +329,15 @@ Names:
       into it, beside `refresh_endpoint`.
     - The AI Registry has public internet access: from the private one, every
       call to a registry-deployed model timed out after 30 s.
+28. **The CDV dashboard is code, on reporting views, in its own shared workspace.**
+    - `sql/dataviz_views.sql` adds 7 views in `rsingh_spend_anl_report`.
+      Nothing is copied, and the pipeline doesn't read them.
+    - `dataviz/build_dashboard.py` imports "Spend Analytics - Insights"
+      (7 datasets, 40 visuals, 6 sheets) through the migration API into the
+      workspace `rsingh-spend-anl` (the workload user manages it, Everyone views it),
+      with fixed UUIDs, the same pattern as the Collections project on this instance.
+    - It is not built in the UI, so it can be re-created and reviewed.
+    - All 40 visual queries answered through CDV on 2026-10-05.
 ## Method (demo policy, see `config/policy.yaml`)
 
 - **Categorise**: MCC (card) -> SEED (exact normalised match) -> EMBEDDING (MiniLM +
