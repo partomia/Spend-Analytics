@@ -822,3 +822,20 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
   - Choices: make the repo public again; store a read-only GitHub token as a CDE credential and
     recreate the repository with it; or use a files resource built from `git archive`. Then
     re-run `deploy_dag.sh` before the next `platform.py start`.
+- 09:30 IST: the repo is public again (it goes private again this evening).
+  - gitleaks over all 38 commits found nothing, and no `.env` secret value appears anywhere in
+    the history.
+  - `deploy_dag.sh`: no run in flight, the repository synced, and the job was updated. Airflow
+    parsed it with no import errors:
+    - `is_paused` true, `max_active_runs` 1, `dag_run_timeout` 21,600 s;
+    - `execution_timeout` 5,400 s on the 7 Spark tasks, 6,000 s on the 4 CAI tasks, and
+      2,700 s on `refresh_endpoint` and `deploy_registry_model`.
+  - The Spark jobs and the DAG now run the synced `6c28c18` snapshot, which keeps working while
+    the repo is private. Only the next sync needs access.
+- Why the nightly runs failed from 5 Oct (Airflow task instances; the dates are interval starts):
+  - 2026-10-05 to 10-07: generate, dq and silver succeeded, then `cai_categorise` failed.
+    CAI's `spend-categorise` runs were ENGINE_FAILED exactly 60 min after submission on each of
+    5-8 Oct. API v2 has no run logs, so the cause has to be read in the CAI UI.
+  - 2026-10-08 to 10-10: `generate_spend_bronze` failed with duration 0, so it never ran; each
+    DAG run ended after about 1.5 h.
+  - 2026-10-11: `generate_spend_bronze` ran for 195,513 s (2.26 days) until it was killed.
