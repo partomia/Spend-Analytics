@@ -812,3 +812,13 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
   `deploy_registry_model`. `max_active_runs=1` was already set. `deploy_dag.sh` now refuses to
   redeploy while the DAG job has a run in "running" or "starting".
 - Tests: `tests/test_platform.py` (9) and a DAG bounds check. pytest: 220 passed.
+- DAG redeploy after the push of `24a1a1f`: the in-flight check found no run, but
+  `cde repository sync` failed with "authentication required: Repository not found".
+  - Cause: `partomia/Spend-Analytics` is now private on GitHub, and the CDE repository
+    `rsingh-spend-anl-pipeline` has no credential.
+  - The DAG job was not updated, so CDE still runs the version without timeouts; its schedule
+    stays paused. The Spark jobs keep the last synced copy.
+  - `spend-sync-code` on CAI pulls from the same GitHub repo and is likely affected too (not run).
+  - Choices: make the repo public again; store a read-only GitHub token as a CDE credential and
+    recreate the repository with it; or use a files resource built from `git archive`. Then
+    re-run `deploy_dag.sh` before the next `platform.py start`.
