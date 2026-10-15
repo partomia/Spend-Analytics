@@ -20,10 +20,10 @@ and is left running.
 Credentials are read from .env (SPEND_CAI_HOST, SPEND_CAI_API_KEY); the cde and cdp CLIs use their
 own profiles (~/.cde, ~/.cdp). Nothing here prints an environment value.
 
-  python scripts/platform.py status [--scope platform]
-  python scripts/platform.py stop  [--only cai,cde] [--dry-run]
-  python scripts/platform.py start [--dry-run]
-  python scripts/platform.py stop --scope platform --yes-shared
+  python scripts/platform_ctl.py status [--scope platform]
+  python scripts/platform_ctl.py stop  [--only cai,cde] [--dry-run]
+  python scripts/platform_ctl.py start [--dry-run]
+  python scripts/platform_ctl.py stop --scope platform --yes-shared
 """
 from __future__ import annotations
 
@@ -37,11 +37,9 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-# This file is named like the stdlib module: run as a script, its folder must not shadow `platform`.
-sys.path[:] = [p for p in sys.path if Path(p or ".").resolve() != ROOT / "scripts"]
+import requests
 
-import requests  # noqa: E402
+ROOT = Path(__file__).resolve().parents[1]
 
 CFG = json.loads((ROOT / "config" / "platform.json").read_text())
 PRJ, PLT = CFG["project"], CFG["platform"]

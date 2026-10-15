@@ -324,15 +324,15 @@ names against the table definitions.
 
 ## Stopping and starting
 
-`scripts/platform.py` (what it touches is in `config/platform.json`) lets an idle
+`scripts/platform_ctl.py` (what it touches is in `config/platform.json`) lets an idle
 demo give back its share of the cluster. Credentials come from `.env`; the `cde`
 and `cdp` CLIs use their own profiles.
 
 ```bash
-python scripts/platform.py status [--scope platform]
-python scripts/platform.py stop  [--only cde,cai] [--dry-run]
-python scripts/platform.py start [--dry-run]
-python scripts/platform.py stop --scope platform --yes-shared
+python scripts/platform_ctl.py status [--scope platform]
+python scripts/platform_ctl.py stop  [--only cde,cai] [--dry-run]
+python scripts/platform_ctl.py start [--dry-run]
+python scripts/platform_ctl.py stop --scope platform --yes-shared
 ```
 
 | Command | Effect |
@@ -361,9 +361,9 @@ cai/jobs/            sync_code, categorise, feature_engineering, train_models, e
 cai/model/           predict.py (endpoint), test_endpoint.py
 app/                 Streamlit Spend Insights Console + CAI launcher
 config/              spend.yaml (names, storage, models), policy.yaml (categorise, personas, forecast, gate, signals),
-                      platform.json (what scripts/platform.py stops and starts)
+                      platform.json (what scripts/platform_ctl.py stops and starts)
 ci/                  cai_jobs.py (CAI job names), trigger_cai_pipeline.py (GitHub -> CAI API v2)
-scripts/             run_cde_local.py (CDE jobs on a laptop), spike_models.py, platform.py (status / stop / start)
+scripts/             run_cde_local.py (CDE jobs on a laptop), spike_models.py, platform_ctl.py (status / stop / start)
 sql/                 reports.sql (Hue)
 docs/                DEMO_RUNBOOK.md, PROJECT_LOG.md
 .github/workflows/   ci.yml (test, train-validate with the KPI gate, cai-pipeline)

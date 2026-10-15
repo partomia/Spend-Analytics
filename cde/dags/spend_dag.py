@@ -119,7 +119,7 @@ def trigger_cai_job(as_of: str, job_var: str, **_):
             # CAI fails a run that cannot be placed after 60 min, with no log
             raise AirflowException(
                 f"CAI job run {run_id} never left scheduling and ended {status}: no room for its vCPU / memory, "
-                "usually the per-user quota taken by running applications and models (scripts/platform.py stop)")
+                "usually the per-user quota taken by running applications and models (scripts/platform_ctl.py stop)")
         if status in TERMINAL_BAD:
             raise AirflowException(f"CAI job run {run_id} ended with status {status}")
     raise AirflowException(f"CAI job run {run_id} did not finish within {CAI_DEADLINE_MIN} minutes")

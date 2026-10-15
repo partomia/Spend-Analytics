@@ -1,5 +1,5 @@
 {
-  "_comment": "scripts/platform.py: what 'stop' and 'start' touch. project = this project's workloads only; platform = the shared CDP services of the environment as well (also used by sibling projects). No NiFi, Kafka, Flink or streaming here. spend-persona is the retired workbench model linked to the deleted private registry: stopped, never restarted.",
+  "_comment": "scripts/platform_ctl.py: what 'stop' and 'start' touch. project = this project's workloads only; platform = the shared CDP services of the environment as well (also used by sibling projects). No NiFi, Kafka, Flink or streaming here. spend-persona is the retired workbench model linked to the deleted private registry: stopped, never restarted.",
   "environment": "federal-cdp-env",
   "project": {
     "cai_project": "rsingh-spend-analytics",

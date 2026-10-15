@@ -1,4 +1,4 @@
-"""scripts/platform.py against fake cde/cdp CLIs and a fake CAI API: what stop and start touch,
+"""scripts/platform_ctl.py against fake cde/cdp CLIs and a fake CAI API: what stop and start touch,
 in which order, and that nothing outside this project's prefixes is ever acted on."""
 
 import importlib.util
@@ -10,7 +10,7 @@ from spend.config import ROOT
 
 
 def _load():
-    spec = importlib.util.spec_from_file_location("spend_platform", ROOT / "scripts" / "platform.py")
+    spec = importlib.util.spec_from_file_location("spend_platform", ROOT / "scripts" / "platform_ctl.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -21,6 +21,13 @@ def plat(monkeypatch):
     p = _load()
     monkeypatch.setattr(p, "DRY", False)
     return p
+
+
+def test_no_script_shadows_a_stdlib_module():
+    # scripts/ is first on sys.path for every script run from it (CI broke on scripts/platform.py)
+    import sys
+
+    assert not {p.stem for p in (ROOT / "scripts").glob("*.py")} & sys.stdlib_module_names
 
 
 def test_config_names_match_the_deploy_scripts():

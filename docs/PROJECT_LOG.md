@@ -869,3 +869,16 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
 - Before unpausing the DAG: keep this user's CAI apps and models few (spend-scorer at 4 / 16
   plus training at 4 / 16 is already 8 vCPU). The CDE vcluster is still shared: 8-10 Oct
   `generate_spend_bronze` never got an Airflow worker slot (queued timeout).
+
+## 2026-10-15: scripts/platform.py renamed scripts/platform_ctl.py (CI fix)
+
+- CI failed on every push from `24a1a1f` to `a161dad`, in "CDE jobs to silver":
+  `module 'platform' has no attribute 'system'`.
+  - Cause: `scripts/` is first on `sys.path` for every script run from it, so
+    `scripts/run_cde_local.py` imported `scripts/platform.py` as the stdlib `platform`.
+  - macOS loads `platform` at start-up, which is why the laptop never showed it. The skill
+    already records this (from CXR) and names the script `platform_ctl.py`.
+- Renamed to `scripts/platform_ctl.py` and dropped the `sys.path` workaround. New test: no file
+  in `scripts/` may be named after a stdlib module. pytest: 221 passed.
+- The skill's pending edits from other projects (the rename to `platform_ctl.py` and a merged
+  duplicate bullet) were reviewed and look correct; they were left for those projects to commit.

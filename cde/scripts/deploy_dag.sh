@@ -15,7 +15,7 @@ DAG_JOB_NAME="${DAG_JOB_NAME:-rsingh-spend-anl-orchestration}"
 DAG_PATH="cde/dags/spend_dag.py"
 
 # An in-flight run keeps the old DAG and can fail against the new code: wait for it, or stop it
-# (python scripts/platform.py stop --only cde).
+# (python scripts/platform_ctl.py stop --only cde).
 in_flight="$(cde run list --filter "job[eq]${DAG_JOB_NAME}" --filter 'status[in]running,starting' \
   | python3 -c "import json,sys; print(' '.join(str(r['id']) for r in json.load(sys.stdin) or []))")"
 if [[ -n "${in_flight}" ]]; then
