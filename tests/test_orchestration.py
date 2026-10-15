@@ -99,6 +99,17 @@ def test_schedule_and_dag_registration():
     assert _const(DEPLOY, "PYTHON_ENV") == "rsingh-spend-anl-python-env"
 
 
+def test_dag_bounds_every_run_and_task():
+    # runs stuck "running" for days hold the shared vcluster quota
+    assert "max_active_runs=1," in DAG and "dagrun_timeout=DAGRUN_TIMEOUT," in DAG
+    assert '"execution_timeout": SPARK_TIMEOUT,' in DAG.split("default_args = {")[1].split("}")[0]
+    for task in ("trigger_cai_job", "refresh_endpoint", "deploy_registry_model"):
+        call = re.search(rf"PythonOperator\([^)]*python_callable={task}.*?\)\n", DAG, re.S).group(0)
+        assert "execution_timeout=" in call, task
+    assert re.search(r"^DAGRUN_TIMEOUT = timedelta\(hours=(\d+)\)", DAG, re.M).group(1) in {str(h) for h in range(1, 24)}
+    assert "status[in]running,starting" in DEPLOY_DAG.split("\ncde repository sync")[0]
+
+
 def test_ci_runs_the_kpi_gate_after_the_tests():
     assert "train-validate:" in CI and "needs: test" in CI
     train = CI.split("train-validate:")[1]

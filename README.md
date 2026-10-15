@@ -322,6 +322,31 @@ signals, the categoriser's methods and newest keys, the DQ summary per layer
 and Iceberg time travel. `tests/test_reports_sql.py` checks every column it
 names against the table definitions.
 
+## Stopping and starting
+
+`scripts/platform.py` (what it touches is in `config/platform.json`) lets an idle
+demo give back its share of the cluster. Credentials come from `.env`; the `cde`
+and `cdp` CLIs use their own profiles.
+
+```bash
+python scripts/platform.py status [--scope platform]
+python scripts/platform.py stop  [--only cde,cai] [--dry-run]
+python scripts/platform.py start [--dry-run]
+python scripts/platform.py stop --scope platform --yes-shared
+```
+
+| Command | Effect |
+|---|---|
+| `status` | the `rsingh-spend-anl-orchestration` schedule, active `rsingh-spend-anl-*` CDE runs and the DAG's last run; the CAI app, `spend-scorer` and `spend-persona-registry` deployments, and active `spend-*` job runs. With `--scope platform`, the Impala VW `federal-impala-1`, the Data Visualization instance, the CDE VC and the CAI workspace as well |
+| `stop` | pauses the DAG schedule and kills this project's running or starting CDE runs (Spark children before the orchestration run), then stops the app, every model deployment (including the retired `spend-persona`) and active job runs |
+| `start` | restarts the newest deployment of both models and the app, then unpauses the DAG. With `catchup=False`, Airflow runs the latest closed interval as soon as the DAG is unpaused |
+| `--scope platform --yes-shared` | adds the shared services: the CDE VC, the CAI workspace and the Impala VW. Sibling projects use them too |
+
+Tables, jobs, Airflow Variables and the dashboard stay in place. Data
+Visualization has no suspend command in the CDP CLI. The DAG bounds every run
+(`max_active_runs=1`, a 6 h `dagrun_timeout`, an `execution_timeout` per
+task), and `deploy_dag.sh` refuses to redeploy while a run is in flight.
+
 ## Layout
 
 ```
@@ -335,9 +360,10 @@ cai/jobs/            sync_code, categorise, feature_engineering, train_models, e
                       backfill_history
 cai/model/           predict.py (endpoint), test_endpoint.py
 app/                 Streamlit Spend Insights Console + CAI launcher
-config/              spend.yaml (names, storage, models), policy.yaml (categorise, personas, forecast, gate, signals)
+config/              spend.yaml (names, storage, models), policy.yaml (categorise, personas, forecast, gate, signals),
+                      platform.json (what scripts/platform.py stops and starts)
 ci/                  cai_jobs.py (CAI job names), trigger_cai_pipeline.py (GitHub -> CAI API v2)
-scripts/             run_cde_local.py (CDE jobs on a laptop), spike_models.py
+scripts/             run_cde_local.py (CDE jobs on a laptop), spike_models.py, platform.py (status / stop / start)
 sql/                 reports.sql (Hue)
 docs/                DEMO_RUNBOOK.md, PROJECT_LOG.md
 .github/workflows/   ci.yml (test, train-validate with the KPI gate, cai-pipeline)

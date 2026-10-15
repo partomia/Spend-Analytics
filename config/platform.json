@@ -1,0 +1,23 @@
+{
+  "_comment": "scripts/platform.py: what 'stop' and 'start' touch. project = this project's workloads only; platform = the shared CDP services of the environment as well (also used by sibling projects). No NiFi, Kafka, Flink or streaming here. spend-persona is the retired workbench model linked to the deleted private registry: stopped, never restarted.",
+  "environment": "federal-cdp-env",
+  "project": {
+    "cai_project": "rsingh-spend-analytics",
+    "cai_job_prefix": "spend-",
+    "cai_apps": ["Spend Analytics Application - Live"],
+    "cai_models": ["spend-scorer", "spend-persona-registry"],
+    "cai_retired_models": ["spend-persona"],
+    "cai_scheduled_jobs": [],
+    "cde_job_prefix": "rsingh-spend-anl-",
+    "cde_dag_jobs": ["rsingh-spend-anl-orchestration"]
+  },
+  "platform": {
+    "cai_workspace": "federal-cml-ws",
+    "cde_service": "federal-cde",
+    "cde_vc": "federal-cde-vc",
+    "cdw_vws": ["federal-impala-1"],
+    "cdw_data_visualizations": ["IndianBank-Spend-analytics"]
+  },
+  "stop_order": ["cde", "cai", "cdw"],
+  "start_order": ["cdw", "cai", "cde"]
+}

@@ -14,6 +14,15 @@ REPO_NAME="${REPO_NAME:-rsingh-spend-anl-pipeline}"
 DAG_JOB_NAME="${DAG_JOB_NAME:-rsingh-spend-anl-orchestration}"
 DAG_PATH="cde/dags/spend_dag.py"
 
+# An in-flight run keeps the old DAG and can fail against the new code: wait for it, or stop it
+# (python scripts/platform.py stop --only cde).
+in_flight="$(cde run list --filter "job[eq]${DAG_JOB_NAME}" --filter 'status[in]running,starting' \
+  | python3 -c "import json,sys; print(' '.join(str(r['id']) for r in json.load(sys.stdin) or []))")"
+if [[ -n "${in_flight}" ]]; then
+  echo "${DAG_JOB_NAME} has a run in flight (${in_flight}): not redeploying"
+  exit 1
+fi
+
 cde repository sync --name "${REPO_NAME}"
 
 if cde job describe --name "${DAG_JOB_NAME}" &>/dev/null; then

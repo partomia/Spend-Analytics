@@ -79,6 +79,12 @@ REGISTRY_ENDPOINT = "spend-persona-registry"
 PERSONA_FEATURE_COUNT = 27
 ENDPOINT_DEADLINE_MIN = 30
 REGISTRY_WAIT_MIN = 5
+# A run stuck "running" holds the shared vcluster quota and blocks every project's stages
+# (runs 617/618 sat for 2.3 days): each task and the whole run have a hard limit.
+SPARK_TIMEOUT = timedelta(minutes=90)          # bronze took 11-21 min, plus up to ~25 min queueing
+CAI_TIMEOUT = timedelta(minutes=CAI_DEADLINE_MIN + 10)
+ENDPOINT_TIMEOUT = timedelta(minutes=REGISTRY_WAIT_MIN + ENDPOINT_DEADLINE_MIN + 10)
+DAGRUN_TIMEOUT = timedelta(hours=6)            # a full run takes about 50 min; well inside the daily interval
 
 
 def trigger_cai_job(as_of: str, job_var: str, **_):
@@ -274,6 +280,7 @@ default_args = {
     "depends_on_past": False,
     "retries": 1,
     "retry_delay": timedelta(minutes=5),
+    "execution_timeout": SPARK_TIMEOUT,
 }
 
 with DAG(
@@ -290,6 +297,7 @@ with DAG(
     is_paused_upon_creation=True,
     # Each run regenerates bronze and replaces its run date's outputs: two at once would collide.
     max_active_runs=1,
+    dagrun_timeout=DAGRUN_TIMEOUT,
     params={"as_of": ""},
     tags=["spend", "iceberg", "great-expectations", "minilm", "chronos-2", "kmeans"],
 ) as dag:
@@ -308,7 +316,8 @@ with DAG(
     def cai_task(task_id: str, job_var: str) -> PythonOperator:
         # retries=0: the CAI jobs are not idempotent mid-run and a gate failure is not transient
         return PythonOperator(task_id=task_id, python_callable=trigger_cai_job,
-                              op_kwargs={"as_of": AS_OF, "job_var": job_var}, retries=0)
+                              op_kwargs={"as_of": AS_OF, "job_var": job_var}, retries=0,
+                              execution_timeout=CAI_TIMEOUT)
 
     generate = CDEJobRunOperator(
         task_id="generate_spend_bronze",
@@ -333,10 +342,10 @@ with DAG(
     evaluate = cai_task("cai_model_evaluation", "SPEND_CAI_EVALUATE_JOB_ID")
     # retries=0: a restart that never serves the new run needs a look, not a second restart
     refresh = PythonOperator(task_id="refresh_endpoint", python_callable=refresh_endpoint,
-                             op_kwargs={"as_of": AS_OF}, retries=0)
+                             op_kwargs={"as_of": AS_OF}, retries=0, execution_timeout=ENDPOINT_TIMEOUT)
     # beside refresh_endpoint, so a slow registry build never delays spend-scorer
     registry_deploy = PythonOperator(task_id="deploy_registry_model", python_callable=deploy_registry_model,
-                                     op_kwargs={"as_of": AS_OF}, retries=0)
+                                     op_kwargs={"as_of": AS_OF}, retries=0, execution_timeout=ENDPOINT_TIMEOUT)
 
     (generate >> dq_bronze >> silver >> dq_silver >> categorise >> gold >> dq_gold >> features >> train >> evaluate
      >> refresh)

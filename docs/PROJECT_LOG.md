@@ -768,3 +768,47 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
     `spend-scorer` served it after 60 s.
   - `deploy_registry_model`: new build of version 7 into `spend-persona-registry`,
     deployed after 181 s; a row of 0.5s scored persona 5 at 184 s.
+
+## 2026-10-15: scripts/platform.py (stop / start / status), DAG timeouts
+
+- Live inventory (read-only), 08:30-09:00 IST:
+  - CAI project `rsingh-spend-analytics` (`gq4g-0gpd-etm4-0j7n`) on `federal-cml-ws`.
+    - The app is now named "Spend Analytics Application - Live" (subdomain `spend-analytics`,
+      4 vCPU / 8 GB), not "Spend Insights Console" as `ci/setup_cai.py` would create it. It is
+      APPLICATION_STOPPED.
+    - Models `spend-scorer` (3 deployments) and `spend-persona-registry` (4), all stopped. The
+      retired `spend-persona` (linked to the deleted private registry) has 2, also stopped.
+    - Five `spend-*` jobs, all manual schedule (Airflow starts them), no active runs.
+  - CDE `federal-cde` / `federal-cde-vc`: four Spark jobs and the Airflow job
+    `rsingh-spend-anl-orchestration` (`0 21 * * *`), whose schedule was already paused. No
+    `rsingh-spend-anl-*` run was running or starting, and nothing was running on the vcluster.
+  - DAG runs 594, 599 and 604 (9-11 Oct) each failed after about 1.5 h without starting a Spark
+    child run. Run 617 (12 Oct) and its `generate-bronze` child 618 sat "running" for 2.3 days
+    until they were killed at 03:24 UTC today, which is the stuck-run case the new timeouts stop.
+    The cause of the 9-11 Oct failures is not looked at yet.
+  - CDW `federal-impala-1` (Running) is the warehouse in `config/spend.yaml`; the Data
+    Visualization instance is `IndianBank-Spend-analytics` (Running, shared with Collections).
+  - No NiFi, Kafka, Flink or streaming jobs: those layers are left out.
+- `config/platform.json` and `scripts/platform.py`, ported from O-G-Asset-Integrity-Lakehouse
+  (not modified):
+  - Layers cdw, cde and cai. Stop order cde, cai, cdw: the DAG is paused before CAI stops, so
+    it cannot start a CAI job in between. Start order is the reverse, so the DAG is unpaused last.
+  - Differences from the source:
+    - The CDE start uses `cde job schedule unpause`, because this CLI has no `schedule resume`.
+    - Runs and jobs are also filtered client-side with `startswith("rsingh-spend-anl-")`.
+    - CAI credentials are read from `.env` itself, not from the shell.
+    - The retired `spend-persona` is stopped but never restarted.
+- Live checks:
+  - `status` and `status --scope platform` read everything above. The CDE VC was AppInstalled,
+    the CAI workspace modify:finished and the Impala VW Running.
+  - `stop --dry-run`: nothing to stop in either layer.
+  - `start --dry-run` would restart `spend-scorer` deployment `13c717b4` and
+    `spend-persona-registry` deployment `cc95b200`, start the app and unpause the DAG.
+  - `stop --scope platform --dry-run` would suspend the CDE VC, the CAI workspace and the Impala
+    VW. Without `--yes-shared` and without `--dry-run`, platform scope refuses.
+  - No real stop or start was run.
+- DAG: `dagrun_timeout` 6 h, `execution_timeout` 90 min for the Spark tasks (default_args),
+  CAI_DEADLINE_MIN + 10 min for the CAI tasks, and 45 min for `refresh_endpoint` and
+  `deploy_registry_model`. `max_active_runs=1` was already set. `deploy_dag.sh` now refuses to
+  redeploy while the DAG job has a run in "running" or "starting".
+- Tests: `tests/test_platform.py` (9) and a DAG bounds check. pytest: 220 passed.
