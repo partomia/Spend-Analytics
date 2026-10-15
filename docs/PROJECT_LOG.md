@@ -839,3 +839,33 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
   - 2026-10-08 to 10-10: `generate_spend_bronze` failed with duration 0, so it never ran; each
     DAG run ended after about 1.5 h.
   - 2026-10-11: `generate_spend_bronze` ran for 195,513 s (2.26 days) until it was killed.
+
+## 2026-10-15: spend-categorise failures (5-8 Oct) fixed
+
+- Symptom: every nightly `spend-categorise` run on 5-8 Oct was ENGINE_FAILED exactly 60 min
+  after submission.
+  - `starting_at` and `running_at` equal `scheduling_at`, and all 120 of the DAG task's polls
+    read "scheduling" (Airflow task log), so the engine never started and CAI kept no log.
+- Cause: the per-user CAI quota. Every sibling project runs as `rsingh`.
+  - The 06:10 UTC run on 5 Oct succeeded. At 12:04 UTC this project's app
+    (4 vCPU / 8 GB) started on top of spend-scorer (4 / 16), spend-persona-registry (1 / 2) and
+    the Collections, Mule, Churn and CASA apps and models.
+  - From that night on, a 4 vCPU / 16 GB job could not be placed. The workbench nodes had room
+    (4 x m5.8xlarge, plus a group that scales to 10 x m5.2xlarge).
+  - Most of those workloads were stopped on 9 Oct and on 15 Oct; 7 vCPU / 18 GB runs under
+    the user now.
+- Fix:
+  - `spend-categorise` goes from 4 vCPU / 16 GB to 2 / 8 (`ci/cai_jobs.py`, runbook, README).
+    The live job was patched through API v2. A night finds 0 new keys (the merchant universe is
+    fixed; the whole map, 21,551 keys, is from 2026-09-28), so the run takes seconds.
+  - The DAG's CAI trigger now says when a run never left scheduling and points at the quota.
+    Before, it only said "ended with status failed".
+- Live check: run `qlt55pmrhwl2hher` (SPEND_RUN_DATE 2026-10-07, triggered_by manual) at 2 / 8
+  was running within 15 s and succeeded at 30 s. Impala: 0 silver keys unmapped, and the map is
+  unchanged.
+- `scripts/platform.py` lists CAI job runs newest first (`sort=-created_at`): the API returns
+  the oldest first, so a job with more than 20 runs would hide an active one (lesson from
+  Collections).
+- Before unpausing the DAG: keep this user's CAI apps and models few (spend-scorer at 4 / 16
+  plus training at 4 / 16 is already 8 vCPU). The CDE vcluster is still shared: 8-10 Oct
+  `generate_spend_bronze` never got an Airflow worker slot (queued timeout).

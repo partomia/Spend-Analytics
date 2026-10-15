@@ -143,7 +143,9 @@ class Cai:
                 if j["name"].startswith(PRJ["cai_job_prefix"])]
 
     def active_runs(self, job: dict) -> list[dict]:
-        runs = self("GET", self.p(f"/jobs/{job['id']}/runs"), params={"page_size": 20}).get("job_runs", [])
+        # the API lists the oldest runs first unless sorted
+        runs = self("GET", self.p(f"/jobs/{job['id']}/runs"),
+                    params={"page_size": 20, "sort": "-created_at"}).get("job_runs", [])
         return [r for r in runs if r["status"] in CAI_ACTIVE]
 
     def deployments(self) -> list[tuple[dict, dict, dict]]:

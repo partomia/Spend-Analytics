@@ -27,7 +27,8 @@ MODEL_CODE = ("spend/", "cai/model/", "config/", "requirements.txt", "cdsw-build
 JOBS = [
     # name, script, vCPU, memory GB (the runbook's job table)
     {"name": "spend-sync-code", "script": "cai/jobs/sync_code.py", "cpu": 2, "memory": 8},
-    {"name": "spend-categorise", "script": "cai/jobs/categorise.py", "cpu": 4, "memory": 16},
+    # 4 / 16 never left scheduling on 5-8 Oct while the per-user quota was full; a night's keys take seconds
+    {"name": "spend-categorise", "script": "cai/jobs/categorise.py", "cpu": 2, "memory": 8},
     {"name": "spend-feature-engineering", "script": "cai/jobs/feature_engineering.py", "cpu": 2, "memory": 8},
     {"name": "spend-model-training", "script": "cai/jobs/train_models.py", "cpu": 4, "memory": 16},
     {"name": "spend-model-evaluation", "script": "cai/jobs/evaluate_models.py", "cpu": 2, "memory": 8},

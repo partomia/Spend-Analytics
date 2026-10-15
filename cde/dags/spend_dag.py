@@ -105,14 +105,21 @@ def trigger_cai_job(as_of: str, job_var: str, **_):
     print(f"Started CAI job run {run_id} ({job_var}) with environment: {env}")
 
     deadline = time.time() + CAI_DEADLINE_MIN * 60
+    started = False
     while time.time() < deadline:
         time.sleep(30)
         r = requests.get(f"{url}/{run_id}", headers=headers, timeout=60)
         r.raise_for_status()
         status = str(r.json().get("status", "")).lower().replace("engine_", "")
         print(f"CAI run {run_id}: {status}")
+        started = started or status != "scheduling"
         if status in TERMINAL_OK:
             return run_id
+        if status in TERMINAL_BAD and not started:
+            # CAI fails a run that cannot be placed after 60 min, with no log
+            raise AirflowException(
+                f"CAI job run {run_id} never left scheduling and ended {status}: no room for its vCPU / memory, "
+                "usually the per-user quota taken by running applications and models (scripts/platform.py stop)")
         if status in TERMINAL_BAD:
             raise AirflowException(f"CAI job run {run_id} ended with status {status}")
     raise AirflowException(f"CAI job run {run_id} did not finish within {CAI_DEADLINE_MIN} minutes")

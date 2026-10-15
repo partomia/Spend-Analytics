@@ -137,7 +137,7 @@ names must match `ci/cai_jobs.py`:
 | Job | Script | Resources |
 |---|---|---|
 | `spend-sync-code` | `cai/jobs/sync_code.py` | 2 vCPU / 8 GB |
-| `spend-categorise` | `cai/jobs/categorise.py` | 4 vCPU / 16 GB |
+| `spend-categorise` | `cai/jobs/categorise.py` | 2 vCPU / 8 GB |
 | `spend-feature-engineering` | `cai/jobs/feature_engineering.py` | 2 vCPU / 8 GB |
 | `spend-model-training` | `cai/jobs/train_models.py` | 4 vCPU / 16 GB |
 | `spend-model-evaluation` | `cai/jobs/evaluate_models.py` | 2 vCPU / 8 GB |
