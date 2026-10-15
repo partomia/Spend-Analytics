@@ -298,7 +298,8 @@ the DAG's `refresh_endpoint` task restarts it after each published run and
 checks it serves that run. A published run's persona model is also registered
 in the Cloudera AI Registry as `spend-persona` (PLAN decision 27).
 
-**Application** `Spend Insights Console`: script `app/run.py`, 2 vCPU / 4 GB,
+**Application** `Spend Insights Console` (live as `Spend Analytics Application - Live`,
+subdomain `spend-analytics`, 4 vCPU / 8 GB; `ci/setup_cai.py` creates it at 2 vCPU / 4 GB): script `app/run.py`,
 with `SPEND_ENDPOINT_URL`, `SPEND_ENDPOINT_ACCESS_KEY` and
 `SPEND_ENDPOINT_API_KEY` (a Model API key) so Customer 360 and the
 Categoriser call the endpoint; without them the app answers in-process and
@@ -306,7 +307,7 @@ says so. Ten tabs: Portfolio, Where, Channels, Personas, Customer 360
 (with the what-if), Forecast, Categoriser, Opportunities, Data quality,
 Lineage. The Docker image (`Dockerfile`) runs the same app without torch.
 
-Walkthrough: `docs/DEMO_RUNBOOK.md`. Design questions (master data, CI/CD, orchestration, gold to AI, feature engineering, training and evaluation, data model and semantic layer, SCD2 in Iceberg, model management): `docs/HOW_IT_WORKS.md`. Analytics queries for CDW Impala / Hue: `docs/cdw_queries.sql`. Cloudera Data Visualization dashboard "Spend Analytics - Insights" (shared workspace `rsingh-spend-anl`, built as code by `dataviz/build_dashboard.py`): `docs/CDV_DASHBOARD.md`.
+Walkthrough: `docs/DEMO_RUNBOOK.md`. Design questions (master data, CI/CD, orchestration, gold to AI, feature engineering and what else Cloudera AI could add to it, training and evaluation, data model and semantic layer, SCD2 in Iceberg, model management): `docs/HOW_IT_WORKS.md`. Analytics queries for CDW Impala / Hue: `docs/cdw_queries.sql`. Cloudera Data Visualization dashboard "Spend Analytics - Insights" (shared workspace `rsingh-spend-anl`, built as code by `dataviz/build_dashboard.py`): `docs/CDV_DASHBOARD.md`.
 
 ## CDW
 

@@ -186,6 +186,13 @@ generate_spend_bronze -> dq_bronze -> build_silver -> dq_silver -> cai_categoris
     `catchup=False`, unpausing starts the latest closed interval at once.
   - A scheduled run's as_of is the day before its interval ends. A manual
     trigger takes `{"as_of": "YYYY-MM-DD"}`.
+  - Every run and task is bounded: `dagrun_timeout` 6 h, `execution_timeout`
+    90 min per Spark task, 100 min per CAI task, 45 min for the two endpoint
+    tasks. A run stuck "running" would otherwise hold the shared vcluster quota
+    (one sat for 2.3 days in October). `deploy_dag.sh` refuses to redeploy over a
+    run in flight.
+  - `scripts/platform_ctl.py stop` pauses the schedule and kills this project's
+    runs; `start` unpauses it last.
 - **Failure behaviour:** a critical data-quality failure or a KPI gate failure
   stops the DAG (red), and yesterday's personas, forecast and signals stay
   live.
@@ -193,6 +200,10 @@ generate_spend_bronze -> dq_bronze -> build_silver -> dq_silver -> cai_categoris
   - Spark executors are 4 cores / 8 GB, 1 minimum / 2 initial / 16 maximum.
     The larger go01 sizing was rejected by the vcluster's queue.
   - CAI training runs at 4 vCPU / 16 GB (8 / 32 waited 20 min for a node).
+  - Categorise runs at 2 vCPU / 8 GB. At 4 / 16 it never left scheduling on
+    5-8 Oct: every sibling project runs as the same user, and their apps and
+    models filled the per-user CAI quota. CAI fails such a run after 60 min with
+    no log, and the DAG task now says "never left scheduling".
   - Chain times for 2026-09-28:
 
     | Step | Time |
@@ -285,6 +296,100 @@ the CAI job `spend-feature-engineering` (`cai/jobs/feature_engineering.py`,
 - The scaler is fitted at training time. It is stored with the centroids in
   `persona_profile` and re-applied by the endpoint. The feature hash makes sure
   both sides use the same definition.
+
+**Why shares, not amounts.** Most features are ratios of 13-week spend. Two
+customers with the same mix but different wallets look alike, so KMeans
+clusters on behaviour; size enters once, as `log1p(spend_13w)`, so a few large
+spenders don't dominate the distance. A customer with nothing to divide by gets
+0 shares, and values are rounded so a rebuild of the same inputs matches
+exactly.
+
+**What each model does on top of gold** (in `spend-model-training`):
+
+| Model | Input | Preparation |
+|---|---|---|
+| Personas (`spend/personas.py`) | the 27 `PERSONA_FEATURES` of D's snapshot | `persona_matrix()` drops customers under `min_txn_13w` and adds `log_spend_13w`; `Scaler` standardises and clips at +-`PERSONA_CLIP` (3) sd, so one huge ticket can't pull a cluster of its own; a constant column gets scale 1 |
+| Forecast (`spend/forecast.py`) | the 224 cohort x category series up to D | `series_frame()` builds `series_id = segment\|T<tier>\|category`; `future_covariates()` joins the next 12 calendar weeks (festival, salary, month-end, holiday count, school fee) as known future inputs for Chronos-2 |
+| Signals (`spend/signals.py`) | D's snapshot and the one 4 weeks earlier | `TRAVEL_SURGE` derives a norm from the 9 weeks before the last 4 (`cat_<c>_share` x categorised spend - `cat_<c>_4w`), since a 13-week norm contains the surge; `RELOCATION` compares `away_share_4w` with the prior snapshot |
+| Categoriser (`spend/categorise.py`) | merchant names | `normalise()` gives the `merchant_key`; MiniLM embeddings (384-dim) blended with a character 2-4-gram TF-IDF, which carries the spelling in mangled UPI payee names; a 5-NN vote plus a prior from the category descriptions |
+
+**Guardrails.**
+- **One definition.** `spend/features.py` names every column; the Spark gold
+  job keeps a copy, and `tests/test_cde_jobs.py` checks they agree.
+- **Fingerprint.** `feature_hash()` covers the column lists, the persona inputs,
+  the clip, the covariates and `FEATURE_LOGIC_VERSION`. Training, the gate and
+  the endpoint refuse a mismatch. A change of logic that leaves the lists alone
+  must bump `FEATURE_LOGIC_VERSION`.
+- **Point in time.** Pinned snapshot IDs and the "no look-ahead" rule
+  (section 4) mean a run, a backfill and the endpoint all see what was known on D.
+- **Training and serving match.** The endpoint rebuilds the persona row from
+  `gold.spend_features` with the same columns (`spend.scoring.persona_row`) and
+  the stored scaler, so it assigns what the daily job assigned.
+
+### What else Cloudera AI could do for feature engineering (not built)
+
+Today the CAI side reads gold through Impala into pandas and prepares
+features in plain Python. These are the platform capabilities that would extend
+that, roughly in order of value for this project:
+
+1. **Prototype features in a Spark session, promote them to CDE.**
+   - CAI sessions and jobs can run Spark 3 on Kubernetes (Runtime Add-on), and
+     the project's Spark Data Lake data connection reads the same Iceberg gold
+     tables.
+   - A data scientist can try a new feature on the full history in a
+     session, without a CDE change. Once it earns its place, it moves into
+     `build_gold_features.py` and `spend/features.py` and
+     `FEATURE_LOGIC_VERSION` is bumped.
+   - The same Spark option lets `persona_matrix()` and the signals run in
+     Spark if the profiled book outgrows one 16 GB pod.
+2. **Feature selection as experiments.**
+   - Log each candidate feature set as its own MLflow run in CAI Experiments,
+     with the silhouette, persona stability and ARI against
+     `archetype_truth`, so a new feature is accepted on the same KPIs as the
+     gate.
+   - `cml.workers_v1.launch_workers` can fan out the grid of k x feature
+     set (today `choose_k` fits k = 5..9 one after another).
+3. **Feature drift monitoring.**
+   - Compare each feature's distribution in D's snapshot with the champion's
+     training snapshot (PSI or a KS test per `PERSONA_FEATURES` column). Log
+     the result to MLflow and add it to the KPI gate as a warning, so a
+     changing book is visible before silhouette or stability fall.
+   - On the endpoint, `@cml.models_v1.cml_model(metrics=True)` with
+     `cml.metrics_v1.track_metric` records the features each request was
+     scored on, which shows serving-time drift too.
+4. **A feature store.**
+   - Cloudera AI has no managed feature store, but Feast runs on it (a
+     documented integration): Spark / Iceberg as the offline store, an online
+     store for low-latency reads, and the Feast UI as a CAI Application.
+   - `gold.spend_features` keyed by `cif` + `snapshot_date` maps directly to a
+     feature view. Point-in-time joins would replace the hand-written
+     no-look-ahead rule, and the endpoint could read a customer's row from
+     the online store instead of an Impala query per request
+     (`spend.scoring._features`).
+   - Worth it only once a second model or team reuses these features.
+5. **Shared embeddings from the AI Inference Service.**
+   - Host the embedder once, as an embedding model on Cloudera AI Inference
+     Service (KServe with NVIDIA NIM / Triton, OpenAI-compatible API, GPU if
+     needed), instead of loading MiniLM in each job and endpoint replica. A
+     larger embedder then needs no change to the jobs.
+   - The same vectors can become customer features: a spend-weighted average
+     of the merchant embeddings a customer pays, which describes taste
+     beyond the 14 categories (for example, which kind of travel or dining).
+6. **Better training data for the categoriser.** Synthetic Data Studio can
+   generate realistic noisy variants of `ref.merchant_seed` names (truncated,
+   vowel-dropped, UPI-handle forms). That widens the seed index and makes the
+   seed holdout harder and more honest. FALLBACK keys could be sent to an LLM
+   for a suggested category and reviewed before they enter the map.
+
+**Candidate features to try with the above.** They all come from silver
+`spend_event`, which already has the columns needed:
+- Spend volatility: the coefficient of variation of weekly spend over 13 weeks.
+- Merchant diversity: the number of distinct `merchant_key`s, and the entropy of
+  the category mix.
+- Recurring payments: the same merchant and a similar amount on a monthly
+  rhythm (EMI, subscriptions, school fees).
+- Recency: weeks since the last transaction in each category.
+- Weekend share, and cash withdrawal right after salary week.
 
 ## 6. Model training and evaluation
 
