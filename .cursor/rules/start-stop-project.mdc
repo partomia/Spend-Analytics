@@ -1,0 +1,42 @@
+---
+description: How to start, stop or check the Spend Analytics project (Cloudera workloads + local app)
+alwaysApply: true
+---
+
+# Starting / stopping the project
+
+"The project" means the **Cloudera workloads** AND the **local app**. Always handle both.
+
+## Cloudera (CAI application, spend-scorer model, CDE schedule/runs)
+
+Use `scripts/platform_ctl.py` (what it touches: `config/platform.json`). Credentials come from `.env`.
+
+```bash
+.venv/bin/python scripts/platform_ctl.py status            # always check first and after
+.venv/bin/python scripts/platform_ctl.py stop  --dry-run   # then without --dry-run
+.venv/bin/python scripts/platform_ctl.py start --dry-run   # then without --dry-run
+```
+
+- Default `--scope project` only touches this project's workloads: the CAI app
+  "Spend Analytics Application - Live", the `spend-scorer` / `spend-persona-registry`
+  deployments, active `spend-*` job runs and the `rsingh-spend-anl-*` CDE schedule/runs.
+- `--only cai` / `--only cde` limits the layers.
+- NEVER use `--scope platform --yes-shared` (CDW Impala, CDE virtual cluster, CAI workspace)
+  unless the user explicitly asks: sibling projects share those services.
+- Starting CDE unpauses the Airflow schedule, which runs the latest interval immediately.
+- After stop/start, re-run `status` and report the final state of the app and model.
+
+## Local (laptop)
+
+Start the ML pipeline on the existing parquet book (~65 s, real MiniLM + Chronos-2, KPI gate enforced), then the app:
+
+```bash
+export HF_HOME=$PWD/.hf_cache
+.venv/bin/python cai/jobs/daily_run.py --backend parquet
+SPEND_STORAGE_BACKEND=parquet .venv/bin/streamlit run app/streamlit_app.py --server.headless true   # background
+```
+
+- App is at http://localhost:8501; check with `curl -s -o /dev/null -w "%{http_code}" http://localhost:8501`.
+- Do not regenerate the CDE data (`scripts/run_cde_local.py generate ...`) unless asked: slow and overwrites `data/`.
+- Stop: kill the streamlit process (`lsof -i :8501` to find the PID; the shell PID is not the server),
+  then confirm the port is free.

@@ -6,7 +6,8 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
-.cursor/
+.cursor/*
+!.cursor/rules/
 
 # Python
 .venv/
