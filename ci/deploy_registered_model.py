@@ -40,7 +40,15 @@ def champion(wb: Workbench) -> tuple[dict, dict]:
                 if m.get("name") == REGISTERED), None)
     if reg is None:
         raise SystemExit(f"{REGISTERED} is not in the registry yet: a published daily run registers it")
-    versions = wb("GET", f"/registry/models/{reg['model_id']}").get("model_versions", [])
+    # 10 versions per page by default, unordered: page through all of them
+    versions, token = [], ""
+    while True:
+        page = wb("GET", f"/registry/models/{reg['model_id']}",
+                  params={"page_size": 100, **({"page_token": token} if token else {})})
+        versions += page.get("model_versions") or []
+        token = page.get("next_page_token") or ""
+        if not token:
+            break
     return reg, max(versions, key=lambda v: v.get("number") or 0)
 
 

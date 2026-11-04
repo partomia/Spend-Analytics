@@ -79,12 +79,24 @@ def find_model(client, name: str):
     return next((m for m in models if _get(m, "name") == name), None)
 
 
+def all_versions(client, model_id: str) -> list:
+    """Every version of a model. get_registered_model returns 10 versions unless paged, in no
+    particular order: with 18 versions the highest listed was 13."""
+    out, token = [], ""
+    while True:
+        page = client.get_registered_model(model_id, page_size=100, **({"page_token": token} if token else {}))
+        out += _get(page, "model_versions") or []
+        token = _get(page, "next_page_token") or ""
+        if not token:
+            return out
+
+
 def champion_version(client, name: str):
     """The highest registered version, or None."""
     model = find_model(client, name)
     if model is None:
         return None
-    versions = _get(client.get_registered_model(_get(model, "model_id")), "model_versions") or []
+    versions = all_versions(client, _get(model, "model_id"))
     return max(versions, key=lambda v: _get(v, "number") or 0) if versions else None
 
 
@@ -106,7 +118,7 @@ def register_champion(client, model_run: dict, names: dict[int, str], experiment
         "description": "Spend personas: standardise, clip, nearest centroid (published daily runs only)",
         "notes": f"run {model_run['run_id']} ({model_run['run_date']}), gate passed", "visibility": "PRIVATE"})
     model_id = _get(created, "model_id")
-    versions = _get(client.get_registered_model(model_id), "model_versions") or []
+    versions = all_versions(client, model_id)
     new = max(versions, key=lambda v: _get(v, "number") or 0)
     out = {"model_id": model_id, "version": _get(new, "model_version_id"), "number": _get(new, "number"),
            "previous": _get(previous, "number") if previous is not None else None}

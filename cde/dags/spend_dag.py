@@ -146,6 +146,19 @@ def _param(version: dict, key: str) -> str | None:
     return next((p["value"] for p in params if p.get("key") == key), None)
 
 
+def _versions(api, model_id: str) -> list[dict]:
+    """Every version of a registry model. The model GET returns 10 versions unless paged, in no
+    particular order (sort is ignored): with 18 versions the highest listed was 13."""
+    out, token = [], ""
+    while True:
+        page = api("GET", f"/registry/models/{model_id}",
+                   params={"page_size": 100, **({"page_token": token} if token else {})})
+        out += page.get("model_versions") or []
+        token = page.get("next_page_token") or ""
+        if not token:
+            return out
+
+
 def _champion(api, as_of: str) -> dict | None:
     """The highest spend-persona version, once one for as_of (or later) is listed, else None.
     Only a passed, latest-dated run is registered (spend/registry.py), so that is the run to serve.
@@ -155,7 +168,7 @@ def _champion(api, as_of: str) -> dict | None:
         try:
             models = api("GET", "/registry/models", params={"page_size": 100}).get("models", [])
             model = next((m for m in models if m.get("name") == REGISTRY_MODEL), None)
-            versions = api("GET", f"/registry/models/{model['model_id']}").get("model_versions", []) if model else []
+            versions = _versions(api, model["model_id"]) if model else []
         except requests.RequestException as e:
             print(f"registry not reachable ({e})")
             return None
@@ -175,7 +188,8 @@ def _champion(api, as_of: str) -> dict | None:
 
 
 def refresh_endpoint(as_of: str, **_):
-    """Restart the spend-scorer deployment so it loads the run just published, then check that it serves it."""
+    """Restart the spend-scorer deployment so it loads the run just published, then check that it serves it.
+    Skipped when spend-scorer is stopped (scripts/platform_ctl.py stop): it loads the latest run when started."""
     api, host, pid, headers = _cai_api("the endpoint refresh")
     model = next((m for m in api("GET", f"{pid}/models", params={"page_size": 100}).get("models", [])
                   if m["name"] == ENDPOINT_MODEL), None)
@@ -188,7 +202,8 @@ def refresh_endpoint(as_of: str, **_):
             if str(d.get("status", "")).lower() == "deployed":
                 deployed.append((b["id"], d["id"]))
     if not deployed:
-        raise AirflowException(f"{ENDPOINT_MODEL} has no running deployment to restart")
+        raise AirflowSkipException(f"{ENDPOINT_MODEL} is stopped: nothing to refresh (it loads the latest "
+                                   "published run when started)")
     build, dep = deployed[0]
     champion = _champion(api, as_of)
     expected = _param(champion, "run_id") if champion else None

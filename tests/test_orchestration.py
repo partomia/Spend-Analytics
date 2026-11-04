@@ -154,3 +154,15 @@ def test_registry_deploy_matches_the_script_and_the_features():
     task = DAG.split("def deploy_registry_model")[1]
     assert f'"cpu": {WORKBENCH_MODEL["cpu"]}, "memory": {WORKBENCH_MODEL["memory"]}, "replicas": 1' in task
     assert '"kernel": "python3"' in task
+
+
+def test_registry_versions_are_paged_and_a_stopped_scorer_is_skipped():
+    # the model GET returns 10 versions per page, unordered: every version lookup must page
+    for name, text in (("DAG", DAG), ("deploy_registered_model.py",
+                                       (ROOT / "ci" / "deploy_registered_model.py").read_text())):
+        for call in re.findall(r'\(\s*"GET", f"/registry/models/\{[^}]+\}"[^)]*\)', text):
+            assert "page_size" in call or "params=" in call, f"{name}: unpaged {call}"
+        assert "next_page_token" in text, name
+    assert "versions = _versions(api, model[\"model_id\"])" in DAG
+    refresh = DAG.split("def refresh_endpoint")[1].split("\ndef ")[0]
+    assert "raise AirflowSkipException(f\"{ENDPOINT_MODEL} is stopped" in refresh

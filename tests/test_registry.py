@@ -37,8 +37,13 @@ class FakeRegistry:
     def list_registered_models(self, page_size=100):
         return {"models": [{"model_id": mid, "name": m["name"]} for mid, m in self.models.items()]}
 
-    def get_registered_model(self, model_id):
-        return {"model_id": model_id, "model_versions": self.models[model_id]["versions"]}
+    def get_registered_model(self, model_id, page_size=10, page_token=""):
+        # as the federal registry does: 10 per page by default, not in version order
+        versions = sorted(self.models[model_id]["versions"], key=lambda v: str(v["number"]))
+        start = int(page_token or 0)
+        rest = start + page_size < len(versions)
+        return {"model_id": model_id, "model_versions": versions[start:start + page_size],
+                "next_page_token": str(start + page_size) if rest else ""}
 
     def create_registered_model(self, body):
         mid = next((i for i, m in self.models.items() if m["name"] == body["model_name"]), None)
@@ -69,6 +74,17 @@ def test_the_highest_version_is_the_champion_with_its_run():
     assert champ["number"] == 2 and registry.run_id_of(champ) == "r2"
     tags = {t["key"]: t["value"] for t in registry.version_tags(_model_run("r2", D2), names)}
     assert tags["wape_ratio"] == "0.8700" and "coverage" not in tags and tags["run_id"] == "r2"
+
+
+def test_the_champion_is_found_past_the_first_page():
+    # 2026-11: with 18 versions the unpaged GET listed 1-9 and 13, so 14-18 looked missing
+    fake, names = FakeRegistry(), {0: "Tier-1 traveller"}
+    for i in range(1, 106):
+        out = registry.register_champion(fake, _model_run(f"r{i}", D1), names, "exp", project_id="p",
+                                         name="spend-persona")
+    assert out["number"] == 105 and out["previous"] == 104
+    champ = registry.champion_version(fake, "spend-persona")
+    assert champ["number"] == 105 and registry.run_id_of(champ) == "r105"
 
 
 def test_only_a_passed_latest_run_is_registered(store, monkeypatch):  # noqa: F811
