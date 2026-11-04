@@ -254,23 +254,77 @@ def test_dq_constants_match_features(dq_job, silver_job):
     assert dq_job.CAT_SHARES + dq_job.CH_SHARES + dq_job.TIER_SHARES == features.SHARE_COLUMNS
 
 
-def test_export_tables_and_paths(export_job):
-    assert export_job.parse_tables(" silver.spend_event, gold.spend_features ") == [
-        ("silver", "spend_event"), ("gold", "spend_features")]
-    for bad in ("spend_event", "landing.x", "silver.", ""):
-        with pytest.raises(ValueError):
-            export_job.parse_tables(bad)
-    assert export_job.table_path("s3a://b/x/", "silver", "spend_event") == "s3a://b/x/silver/spend_event"
-    assert export_job.partition_column("silver", "spend_event") == "txn_date_month"
-    assert export_job.partition_column("silver", "customer") is None
-    sql = export_job.databricks_sql("silver", "spend_event", "s3a://b/x/silver/spend_event", "txn_date_month")
-    assert "parquet.`s3://b/x/silver/spend_event/`" in sql and "EXCEPT (txn_date_month)" in sql
-    assert "CLUSTER BY (txn_date)" in sql
-    assert "EXCEPT" not in export_job.databricks_sql("silver", "customer", "s3a://b/c", None)
+@pytest.fixture(scope="module")
+def export_cfg(export_job):
+    from spend.config import ROOT
+    return export_job.load_config(ROOT / "config" / "export.yaml")
 
 
-def test_export_partition_is_the_month(spark, export_job):
-    df = spark.createDataFrame([(date(2026, 9, 30),), (date(2026, 10, 1),)], "txn_date date")
-    out, part = export_job.with_partition(df, "silver", "spend_event")
-    assert part == "txn_date_month"
-    assert [r[part] for r in out.orderBy("txn_date").collect()] == ["2026-09", "2026-10"]
+@pytest.fixture(scope="module")
+def export_keys():
+    import os
+    return {"version": "test", "enc": os.urandom(32), "iv": os.urandom(32)}
+
+
+def test_export_config_covers_silver_exactly(export_cfg, silver_job):
+    assert export_cfg["tables"]["silver.spend_event"]["columns"].keys() == set(silver_job.EVENT_COLUMNS)
+    for name, t in export_cfg["tables"].items():
+        for col in ("cif", "account_id", "event_id"):
+            assert t["columns"].get(col, "encrypt") == "encrypt", f"{name}.{col} must be encrypted"
+    assert export_cfg["tables"]["silver.customer"]["columns"]["home_pincode"] == "prefix3"
+
+
+def test_export_tokens_are_deterministic_and_spark_decrypts_them(spark, export_job, export_keys):
+    pytest.importorskip("cryptography")
+    from pyspark.sql import functions as F
+    k = export_keys
+    tok = export_job.tokenize_value("C00016807", k["enc"], k["iv"])
+    assert tok == export_job.tokenize_value("C00016807", k["enc"], k["iv"]) != "C00016807"
+    assert tok != export_job.tokenize_value("C00016808", k["enc"], k["iv"])
+    assert export_job.detokenize_value(tok, k["enc"]) == "C00016807"
+    df = spark.createDataFrame([("C00016807",), (None,)], "cif string")
+    out = df.select(export_job.encrypt_udf(k)(F.col("cif")).alias("t")).collect()
+    assert out[0]["t"] == tok and out[1]["t"] is None
+    dec = spark.createDataFrame([(tok,)], "t string").select(
+        F.expr(f"CAST(aes_decrypt(unbase64(t), unhex('{k['enc'].hex()}'), 'GCM') AS STRING)").alias("v")).first()
+    assert dec["v"] == "C00016807"
+
+
+def test_export_change_set_inserts_updates_deletes(spark, export_job):
+    prev = spark.createDataFrame([("a", 1, "x"), ("b", 2, None), ("c", 3, "z"), ("d", None, "w")],
+                                 "k string, n int, s string")
+    cur = spark.createDataFrame([("a", 1, "x"), ("b", None, "2"), ("c", 30, "z"), ("e", 5, "v"), ("d", None, "w")],
+                                "k string, n int, s string")
+    got = {r["k"]: (r["_op"], r["n"]) for r in export_job.change_set(cur, prev, ["k"]).collect()}
+    assert got == {"b": ("U", None), "c": ("U", 30), "e": ("I", 5)}
+    gone = spark.createDataFrame([("a", 1, "x")], "k string, n int, s string")
+    d = {r["k"]: (r["_op"], r["n"]) for r in export_job.change_set(gone, prev, ["k"]).collect()}
+    assert d == {"b": ("D", None), "c": ("D", None), "d": ("D", None)}
+    assert {r["_op"] for r in export_job.change_set(cur, None, ["k"]).collect()} == {"I"}
+
+
+def test_export_rules_and_deny_by_default(spark, export_job, export_keys):
+    pytest.importorskip("cryptography")
+    cfg = {"primary_key": "cif", "columns": {"cif": "encrypt", "home_pincode": "prefix3", "onboarded_on": "month",
+                                             "segment": "keep", "note": "drop"}}
+    df = spark.createDataFrame([("C1", "560034", date(2018, 6, 17), "MASS", "x")],
+                               "cif string, home_pincode string, onboarded_on date, segment string, note string")
+    r = export_job.apply_rules(df, cfg, export_job.encrypt_udf(export_keys)).first().asDict()
+    assert set(r) == {"cif", "home_pincode3", "onboarded_on", "segment"}
+    assert r["home_pincode3"] == "560" and r["onboarded_on"] == date(2018, 6, 1) and r["cif"] != "C1"
+    with pytest.raises(ValueError, match="deny by default"):
+        export_job.check_columns(["cif", "pan_number"], {"columns": {"cif": "encrypt"}}, "t")
+    with pytest.raises(ValueError, match="no longer has"):
+        export_job.check_columns(["cif"], {"columns": {"cif": "encrypt", "gone": "keep"}}, "t")
+
+
+def test_export_plan_batch(export_job):
+    keys, last = {"version": "v1"}, {"batch": 4, "key_version": "v1", "rules_hash": "h", "to_snapshot_id": 7}
+    ok, gone = (lambda s: True), (lambda s: False)
+    assert export_job.plan_batch(None, keys, "h", False, ok)[0] == "full"
+    assert export_job.plan_batch(last, keys, "h", False, ok)[0] == "incremental"
+    assert export_job.plan_batch(last, keys, "h", True, ok)[0] == "resync"
+    assert export_job.plan_batch(last, {"version": "v2"}, "h", False, ok)[0] == "resync"
+    assert export_job.plan_batch(last, keys, "other", False, ok)[0] == "resync"
+    assert export_job.plan_batch(last, keys, "h", False, gone)[0] == "resync"
+    assert export_job.batch_name(12) == "000012"

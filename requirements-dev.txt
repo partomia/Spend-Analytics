@@ -3,3 +3,4 @@
 pyspark==4.0.1
 great_expectations==1.23.2
 pytest
+cryptography  # cde/jobs/export_parquet.py tokens (already in the CDE python-env)

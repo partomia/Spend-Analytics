@@ -275,9 +275,9 @@ first push with the secrets set** (it is the first CAI trigger from GitHub).
 
 ## Before the demo (30 minutes ahead)
 
-- CDE Airflow grid: last night's run green, all twelve tasks, including the
-  three `dq_*` gates, the four `cai_*` jobs, `refresh_endpoint` and
-  `deploy_registry_model`.
+- CDE Airflow grid: last night's run green, all thirteen tasks, including the
+  three `dq_*` gates, the four `cai_*` jobs, `refresh_endpoint`,
+  `deploy_registry_model` and `export_databricks`.
 - App Lineage tab: today's run with `triggered_by = airflow`, gate PASS, and
   the backfilled run dates.
 - `spend-scorer` serves today's run (its Test tab shows the run id), and

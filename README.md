@@ -218,7 +218,7 @@ rsingh-spend-anl-pipeline`. Run-time `--arg` values replace the job's own,
 so always repeat `--db-prefix`.
 
 Orchestrated by `cde/dags/spend_dag.py`, DAG `spend_analytics_pipeline`,
-**12 tasks**, daily at 21:00 UTC (02:30 IST), between Mule (20:30) and
+**13 tasks**, daily at 21:00 UTC (02:30 IST), between Mule (20:30) and
 Churn (22:00):
 
 ```
@@ -226,7 +226,14 @@ generate_spend_bronze >> dq_bronze >> build_silver >> dq_silver >> cai_categoris
   >> build_gold_features >> dq_gold >> cai_feature_engineering >> cai_model_training >> cai_model_evaluation
   >> refresh_endpoint
 cai_model_evaluation >> deploy_registry_model
+dq_gold >> export_databricks
 ```
+
+`export_databricks` (`cde/jobs/export_parquet.py`) writes the night's changes
+to the silver tables as tokenized Parquet batches for Databricks, beside the
+ML jobs so a failed export never holds back the models. The flow from Iceberg
+to Unity Catalog SCD type 2 tables, the token scheme and the Databricks SQL
+are in [`databricks/README.md`](databricks/README.md).
 
 The four `cai_*` tasks start a CAI job run over the API v2 with
 `SPEND_RUN_DATE` / `SPEND_TRIGGERED_BY=airflow` in its environment and poll
@@ -353,8 +360,10 @@ task), and `deploy_dag.sh` refuses to redeploy while a run is in flight.
 ```
 spend/               shared logic: config, features, categorise, personas, forecast, signals,
                       gate, pipeline (three stages), storage, schema, scoring, client, tracking
-cde/jobs/            generate_spend_bronze, dq_check (GX), build_silver, build_gold_features
-cde/dags/            spend_dag.py (daily Airflow DAG, 12 tasks)
+cde/jobs/            generate_spend_bronze, dq_check (GX), build_silver, build_gold_features,
+                      export_parquet (tokenized change batches for Databricks, config/export.yaml)
+cde/dags/            spend_dag.py (daily Airflow DAG, 13 tasks)
+databricks/          README (Iceberg -> tokenized Parquet -> Unity Catalog SCD2), setup / ingest / detok SQL
 cde/scripts/         deploy_jobs.sh, deploy_dag.sh, backfill_drill.sh
 cde/resources/       requirements.txt for the CDE python-env (great_expectations==1.23.2)
 cai/jobs/            sync_code, categorise, feature_engineering, train_models, evaluate_models, daily_run,

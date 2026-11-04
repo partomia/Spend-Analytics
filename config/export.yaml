@@ -1,0 +1,63 @@
+# Databricks export (cde/jobs/export_parquet.py): what leaves Cloudera, and in what form.
+# Deny by default: a source column that is not listed here fails the export, so a column
+# added to silver later cannot reach S3 before someone decides how to treat it.
+#
+# Rules:
+#   encrypt  deterministic AES-256-GCM token (base64 of iv || ciphertext || tag); Databricks
+#            decrypts with aes_decrypt(unbase64(tok), key, 'GCM') and the shared key
+#   prefix3  first 3 characters only; the column is renamed <name>3
+#   month    a date truncated to the first day of its month
+#   keep     unchanged
+#   drop     not exported
+
+target: s3a://federal-buk-574bcea0/data/rsingh_spend_anl/databricks_export
+key_credential: rsingh-spend-anl-token-key      # CDE workload credential, mounted at /etc/dex/secrets/<name>/
+
+tables:
+  silver.customer:
+    primary_key: cif
+    columns:
+      cif: encrypt
+      home_pincode: prefix3
+      home_city_code: keep
+      home_city: keep
+      home_state: keep
+      city_tier: keep
+      age_band: keep
+      income_band: keep
+      segment: keep
+      onboarded_on: month
+      cohort: keep
+
+  silver.account:
+    primary_key: account_id
+    columns:
+      account_id: encrypt
+      cif: encrypt
+      product: keep
+      branch_code: keep
+      opened_on: month
+      status: keep
+
+  silver.spend_event:
+    primary_key: event_id
+    columns:
+      event_id: encrypt
+      source: keep
+      cif: encrypt
+      account_id: encrypt
+      txn_ts: keep
+      txn_date: keep
+      week_end: keep
+      amount: keep
+      channel: keep
+      merchant_text: keep
+      merchant_key: keep
+      mcc: keep
+      event_city_code: keep
+      event_city: keep
+      event_state: keep
+      event_city_tier: keep
+      location_source: keep
+      home_city_code: keep
+      is_home: keep

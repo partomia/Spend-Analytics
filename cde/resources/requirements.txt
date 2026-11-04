@@ -6,3 +6,5 @@ great_expectations==1.23.2
 # The generator's mapInArrow checks for pyarrow on the driver; without it the job
 # dies right after the ref tables (the traceback is lost from `cde run logs`).
 pyarrow==25.0.1
+# export_parquet.py: AES-GCM tokens (already in the env as a dependency; pinned to the version it resolved)
+cryptography==50.0.1

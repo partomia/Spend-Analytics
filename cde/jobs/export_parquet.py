@@ -1,43 +1,62 @@
 """
-Export - Iceberg tables to plain Parquet on S3, a landing zone for Databricks
+Export - Iceberg tables to a tokenized, incremental Parquet change feed for Databricks
 
-Reads one pinned Iceberg snapshot per table and writes it as plain Parquet
-(snappy, Hive-style partition folders, TIMESTAMP_MICROS) under the project's
-export folder, with an _export_manifest.json next to the data. Databricks reads
-the folder as a silver layer and builds its Unity Catalog Delta tables from it.
+For each table in config/export.yaml, compares the current Iceberg snapshot with
+the one exported last (time travel on the primary key plus a hash of the other
+columns) and writes only what changed, as one batch:
 
-Why through Spark and not a copy of the table's data files: gold's MERGE loads
-leave Iceberg v2 position-delete files behind (gold.spend_features has one per
-data file), and a plain Parquet reader ignores them, so the raw files would
-count every reloaded row twice. Reading the snapshot applies the deletes.
+  _op = I   a new key (every row of the first, full, batch)
+  _op = U   a changed row (the full new row)
+  _op = D   a key that disappeared (key columns only, the rest NULL)
 
-Layout (one folder per table, replaced on every run):
-  <target>/<layer>/<table>/<col>_month=YYYY-MM/part-*.snappy.parquet   partitioned tables
-  <target>/<layer>/<table>/part-*.snappy.parquet                        small tables
-  <target>/<layer>/<table>/_SUCCESS
-  <target>/<layer>/<table>/_export_manifest.json   snapshot id, row count, schema, Databricks SQL
+Databricks applies the batches in order (_batch) to Unity Catalog Delta tables
+with SCD type 2 history (databricks/README.md).
 
-Readers skip files whose names start with "_". The folder is replaced in place,
-so a consumer should wait for an _export_manifest.json with a newer exported_at
-(written last, after the row-count check) rather than poll the data files.
+Columns follow config/export.yaml, deny by default: a source column not listed
+there fails the export. Identifiers are encrypted with deterministic AES-256-GCM:
+the IV is HMAC-SHA256(iv_key, value)[:12] and the token is base64(iv ||
+ciphertext || tag), the layout Spark's and Databricks' aes_decrypt(..., 'GCM')
+read. The same value always gives the same token, so tokens join and merge;
+decrypting needs enc_key only. The keys come from the CDE workload credential
+named in the config (files enc_key_b64, iv_key_b64, key_version under
+/etc/dex/secrets/<name>/), or a JSON file in SPEND_EXPORT_KEY_FILE; encryption
+runs in a pandas UDF so the key never appears in a Spark plan or the UI.
 
-Reads:  <prefix>_<layer>.<table> for each --tables entry (default: the three silver tables)
-Writes: <target>/<layer>/<table>/ (default target: the project folder on the environment bucket)
+Layout per table:
+  <target>/<layer>/<table>/data/<batch:06d>/part-*.snappy.parquet
+  <target>/<layer>/<table>/_manifests/<batch:06d>.json    written last: the commit marker
+
+The latest manifest's to_snapshot_id is the next run's starting point; the tag
+databricks_export on the source table keeps that snapshot from expiring. A
+resync batch (the whole table as I rows) replaces the diff when there is no
+readable previous snapshot, the key version or the column rules changed, or
+--resync is given. A batch without a manifest (a failed run) is ignored by
+readers, and the next run takes a new batch number.
+
+Reading through Spark, not copying the table's files, also applies Iceberg v2
+position deletes: on gold.spend_features the data files hold 16.6M records of
+which 3.3M are deleted.
 
 Usage:
-  spark-submit export_parquet.py [--db-prefix P] [--tables silver.spend_event,gold.spend_features]
-                                 [--target s3a://bucket/path] [--snapshot-id ID] [--dry-run]
+  spark-submit export_parquet.py [--db-prefix P] [--tables silver.customer,...] [--target s3a://...]
+                                 [--config config/export.yaml] [--resync] [--dry-run]
 
-Exit: an error (unknown table, row-count mismatch) fails the job.
+Exit: an error (unlisted column, duplicate key, row-count mismatch) fails the job.
 """
 
 from __future__ import annotations
 
 import argparse
+import base64
+import hashlib
+import hmac
 import json
 import logging
 import math
+import os
+import re
 from datetime import datetime, timezone
+from pathlib import Path
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
@@ -46,85 +65,212 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 DEFAULT_DB_PREFIX = "rsingh_spend_anl"
-DEFAULT_TARGET = "s3a://federal-buk-574bcea0/data/rsingh_spend_anl/databricks_export"
-DEFAULT_TABLES = "silver.spend_event,silver.customer,silver.account"
-LAYERS = ("bronze", "silver", "gold", "ref")
-# table -> date column whose month names the partition folder; other tables are written unpartitioned
-PARTITION_BY = {"silver.spend_event": "txn_date", "gold.spend_features": "snapshot_date",
-                "gold.spend_cohort_weekly": "week_end", "gold.spend_mix_weekly": "week_end"}
+KEY_DIR = Path("/etc/dex/secrets")
+RULES = ("encrypt", "prefix3", "month", "keep", "drop")
+META = [("_op", "string"), ("_batch", "bigint"), ("_source_snapshot_id", "bigint"), ("_exported_at", "timestamp")]
+TAG = "databricks_export"
+TAG_RETAIN_DAYS = 30
 ROWS_PER_FILE = 2_000_000
-MANIFEST = "_export_manifest.json"
+
+
+def _config_path() -> Path:
+    try:
+        return Path(__file__).resolve().parents[2] / "config" / "export.yaml"
+    except NameError:
+        return Path.cwd() / "config" / "export.yaml"
 
 
 def parse_args(argv=None) -> argparse.Namespace:
     p = argparse.ArgumentParser()
     p.add_argument("--db-prefix", default=DEFAULT_DB_PREFIX)
-    p.add_argument("--tables", default=DEFAULT_TABLES, help="comma-separated layer.table")
-    p.add_argument("--target", default=DEFAULT_TARGET)
-    p.add_argument("--snapshot-id", type=int, default=None, help="pin one snapshot (single table only)")
-    p.add_argument("--dry-run", action="store_true", help="resolve snapshots and count rows; write nothing")
+    p.add_argument("--config", default=str(_config_path()))
+    p.add_argument("--tables", default=None, help="comma-separated layer.table (default: every table in the config)")
+    p.add_argument("--target", default=None, help="override the config's target root")
+    p.add_argument("--resync", action="store_true", help="write the whole table as a resync batch")
+    p.add_argument("--dry-run", action="store_true", help="compute the batch and its counts; write nothing")
     args, _ = p.parse_known_args(argv)
     return args
 
 
-def parse_tables(spec: str) -> list[tuple[str, str]]:
+# ---------------------------------------------------------------- config and keys
+
+def load_config(path: str | Path) -> dict:
+    text = Path(path).read_text()
+    try:
+        import yaml
+        cfg = yaml.safe_load(text)
+    except ImportError:  # the CDE env ships ruamel.yaml (Great Expectations), not always PyYAML
+        from ruamel.yaml import YAML
+        cfg = YAML(typ="safe").load(text)
+    for name, t in cfg["tables"].items():
+        layer, _, table = name.partition(".")
+        if not table:
+            raise ValueError(f"{name}: expected <layer>.<table>")
+        bad = {c: r for c, r in t["columns"].items() if r not in RULES}
+        if bad:
+            raise ValueError(f"{name}: unknown rules {bad} (allowed: {RULES})")
+        keys = primary_key(t)
+        if any(t["columns"].get(k) in (None, "drop") for k in keys):
+            raise ValueError(f"{name}: primary key {keys} must be exported")
+    return cfg
+
+
+def primary_key(table_cfg: dict) -> list[str]:
+    pk = table_cfg["primary_key"]
+    return [pk] if isinstance(pk, str) else list(pk)
+
+
+def rules_hash(table_cfg: dict) -> str:
+    return hashlib.sha256(json.dumps(table_cfg, sort_keys=True).encode()).hexdigest()[:16]
+
+
+def load_keys(credential: str, key_dir: Path = KEY_DIR) -> dict:
+    """{'version', 'enc', 'iv'}: from SPEND_EXPORT_KEY_FILE (JSON) or the mounted workload credential."""
+    src = os.environ.get("SPEND_EXPORT_KEY_FILE")
+    if src:
+        raw = json.loads(Path(src).read_text())
+    else:
+        d = key_dir / credential
+        if not d.is_dir():
+            raise FileNotFoundError(f"{d} not mounted: create the job with --workload-credential {credential}")
+        raw = {f: (d / f).read_text().strip() for f in ("key_version", "enc_key_b64", "iv_key_b64")}
+    keys = {"version": raw["key_version"], "enc": base64.b64decode(raw["enc_key_b64"]),
+            "iv": base64.b64decode(raw["iv_key_b64"])}
+    if len(keys["enc"]) != 32 or len(keys["iv"]) != 32:
+        raise ValueError("enc_key and iv_key must be 32 bytes each (AES-256)")
+    return keys
+
+
+# ---------------------------------------------------------------- tokens
+
+def tokenize_value(value: str | None, enc: bytes, iv_key: bytes) -> str | None:
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+    if value is None:
+        return None
+    data = value.encode("utf-8")
+    iv = hmac.new(iv_key, data, hashlib.sha256).digest()[:12]
+    return base64.b64encode(iv + AESGCM(enc).encrypt(iv, data, None)).decode("ascii")
+
+
+def detokenize_value(token: str | None, enc: bytes) -> str | None:
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+    if token is None:
+        return None
+    raw = base64.b64decode(token)
+    return AESGCM(enc).decrypt(raw[:12], raw[12:], None).decode("utf-8")
+
+
+def encrypt_udf(keys: dict):
+    enc, iv_key = keys["enc"], keys["iv"]
+
+    @F.pandas_udf("string")
+    def encrypt(s):
+        import pandas as pd
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+        aes = AESGCM(enc)
+
+        def one(v):
+            if v is None or (isinstance(v, float) and math.isnan(v)) or v is pd.NA:
+                return None
+            data = str(v).encode("utf-8")
+            iv = hmac.new(iv_key, data, hashlib.sha256).digest()[:12]
+            return base64.b64encode(iv + aes.encrypt(iv, data, None)).decode("ascii")
+
+        return pd.Series([one(v) for v in s], index=s.index, dtype="object")
+
+    return encrypt
+
+
+# ---------------------------------------------------------------- columns
+
+def check_columns(source_cols: list[str], table_cfg: dict, fq: str) -> None:
+    rules = table_cfg["columns"]
+    unlisted = [c for c in source_cols if c not in rules]
+    missing = [c for c in rules if c not in source_cols]
+    if unlisted:
+        raise ValueError(f"{fq}: columns not in config/export.yaml (deny by default): {unlisted}")
+    if missing:
+        raise ValueError(f"{fq}: config/export.yaml lists columns the table no longer has: {missing}")
+
+
+def output_name(col: str, rule: str) -> str:
+    return f"{col}3" if rule == "prefix3" else col
+
+
+def apply_rules(df: DataFrame, table_cfg: dict, encrypt) -> DataFrame:
     out = []
-    for item in (s.strip() for s in spec.split(",") if s.strip()):
-        layer, _, table = item.partition(".")
-        if layer not in LAYERS or not table:
-            raise ValueError(f"{item!r}: expected <layer>.<table> with layer in {LAYERS}")
-        out.append((layer, table))
-    if not out:
-        raise ValueError("no tables to export")
-    return out
+    for c in df.columns:
+        rule = table_cfg["columns"].get(c, "keep")     # metadata columns pass through
+        if rule == "drop":
+            continue
+        col = F.col(c)
+        if rule == "encrypt":
+            col = encrypt(col.cast("string"))
+        elif rule == "prefix3":
+            col = F.substring(col.cast("string"), 1, 3)
+        elif rule == "month":
+            col = F.trunc(col, "MM")
+        out.append(col.alias(output_name(c, rule)))
+    return df.select(*out)
 
 
-def table_path(target: str, layer: str, table: str) -> str:
-    return f"{target.rstrip('/')}/{layer}/{table}"
+def tokenized_columns(table_cfg: dict) -> list[str]:
+    return [c for c, r in table_cfg["columns"].items() if r == "encrypt"]
 
 
-def partition_column(layer: str, table: str) -> str | None:
-    col = PARTITION_BY.get(f"{layer}.{table}")
-    return f"{col}_month" if col else None
+# ---------------------------------------------------------------- Iceberg and the change set
 
-
-def current_snapshot(spark: SparkSession, fq: str) -> tuple[int, str]:
-    row = spark.sql(f"SELECT snapshot_id, made_current_at FROM {fq}.history WHERE is_current_ancestor "
+def current_snapshot(spark: SparkSession, fq: str) -> int:
+    row = spark.sql(f"SELECT snapshot_id FROM {fq}.history WHERE is_current_ancestor "
                     "ORDER BY made_current_at DESC LIMIT 1").first()
     if row is None:
         raise ValueError(f"{fq} has no snapshot (empty table?)")
-    return int(row["snapshot_id"]), str(row["made_current_at"])
+    return int(row["snapshot_id"])
 
 
-def delete_files(spark: SparkSession, fq: str, snapshot_id: int) -> int:
-    """Position / equality delete files in the snapshot: what a raw-file copy would get wrong."""
+def at_snapshot(spark: SparkSession, fq: str, sid: int) -> DataFrame:
+    return spark.sql(f"SELECT * FROM {fq} VERSION AS OF {sid}")
+
+
+def readable(spark: SparkSession, fq: str, sid: int) -> bool:
     try:
-        rows = spark.sql(f"SELECT content, COUNT(*) AS n FROM {fq}.files VERSION AS OF {snapshot_id} "
-                         "GROUP BY content").collect()
-    except Exception:  # noqa: BLE001 - informational only
-        return -1
-    return int(sum(r["n"] for r in rows if r["content"] != 0))
+        at_snapshot(spark, fq, sid).schema
+        return True
+    except Exception as e:  # noqa: BLE001 - expired or unknown snapshot
+        logger.warning("%s: snapshot %s not readable (%s)", fq, sid, str(e).splitlines()[0][:200])
+        return False
 
 
-def with_partition(df: DataFrame, layer: str, table: str) -> tuple[DataFrame, str | None]:
-    part = partition_column(layer, table)
-    if part is None:
-        return df, None
-    return df.withColumn(part, F.date_format(F.col(PARTITION_BY[f"{layer}.{table}"]), "yyyy-MM")), part
+def row_hash(df: DataFrame, keys: list[str]) -> F.Column:
+    # to_json drops NULL fields, so (a=NULL, b=1) and (a=1, b=NULL) hash differently
+    return F.xxhash64(F.to_json(F.struct(*[F.col(c) for c in df.columns if c not in keys])))
 
 
-def databricks_sql(layer: str, table: str, path: str, part: str | None) -> str:
-    """Unity Catalog statement that turns the export into a managed Delta table (refresh = rerun)."""
-    s3 = path.replace("s3a://", "s3://", 1)
-    cluster = f"\nCLUSTER BY ({PARTITION_BY[f'{layer}.{table}']})" if part else ""
-    drop = f" EXCEPT ({part})" if part else ""
-    return (f"CREATE OR REPLACE TABLE <catalog>.spend_{layer}.{table}{cluster}\n"
-            f"AS SELECT *{drop} FROM parquet.`{s3}/`;")
+def change_set(cur: DataFrame, prev: DataFrame | None, keys: list[str]) -> DataFrame:
+    """Raw source columns + _op: every row as I without a previous snapshot, else I / U / D."""
+    if prev is None:
+        return cur.withColumn("_op", F.lit("I"))
+    others = [c for c in cur.columns if c not in keys]
+    cur_h = cur.withColumn("_h", row_hash(cur, keys))
+    prev_h = prev.select(*keys, row_hash(prev, keys).alias("_ph"))
+    iu = (cur_h.join(prev_h, keys, "left")
+          .where(F.col("_ph").isNull() | (F.col("_ph") != F.col("_h")))
+          .withColumn("_op", F.when(F.col("_ph").isNull(), "I").otherwise("U"))
+          .select(*cur.columns, "_op"))
+    types = dict(cur.dtypes)
+    d = (prev.select(*keys).join(cur.select(*keys), keys, "left_anti")
+         .select(*keys, *[F.lit(None).cast(types[c]).alias(c) for c in others], F.lit("D").alias("_op"))
+         .select(*cur.columns, "_op"))
+    return iu.unionByName(d)
 
+
+# ---------------------------------------------------------------- S3 state
 
 def _fs(spark: SparkSession, path: str):
-    jvm = spark._jvm
-    p = jvm.org.apache.hadoop.fs.Path(path)
+    p = spark._jvm.org.apache.hadoop.fs.Path(path)
     return p, p.getFileSystem(spark._jsc.hadoopConfiguration())
 
 
@@ -137,60 +283,152 @@ def write_text(spark: SparkSession, path: str, text: str) -> None:
         out.close()
 
 
+def read_text(spark: SparkSession, path: str) -> str:
+    p, fs = _fs(spark, path)
+    stream = fs.open(p)
+    try:
+        reader = spark._jvm.java.io.BufferedReader(spark._jvm.java.io.InputStreamReader(stream, "UTF-8"))
+        lines = []
+        while (line := reader.readLine()) is not None:
+            lines.append(line)
+        return "\n".join(lines)
+    finally:
+        stream.close()
+
+
+def list_names(spark: SparkSession, path: str) -> list[str]:
+    p, fs = _fs(spark, path)
+    if not fs.exists(p):
+        return []
+    return [str(s.getPath().getName()) for s in fs.listStatus(p)]
+
+
 def folder_bytes(spark: SparkSession, path: str) -> int:
     p, fs = _fs(spark, path)
     return int(fs.getContentSummary(p).getLength())
 
 
-def export_table(spark: SparkSession, db_prefix: str, layer: str, table: str, target: str = DEFAULT_TARGET,
-                 snapshot_id: int | None = None, dry_run: bool = False) -> dict:
-    fq = f"{db_prefix}_{layer}.{table}"
-    sid, committed = (snapshot_id, None) if snapshot_id else current_snapshot(spark, fq)
-    path = table_path(target, layer, table)
-    src = spark.sql(f"SELECT * FROM {fq} VERSION AS OF {sid}")
-    n = src.count()
-    deletes = delete_files(spark, fq, sid)
-    df, part = with_partition(src, layer, table)
-    logger.info("%s @ snapshot %s: %d rows, %s delete files -> %s (partition %s)",
-                fq, sid, n, deletes, path, part or "none")
-    manifest = {
-        "source_table": fq, "layer": layer, "table": table, "iceberg_snapshot_id": sid,
-        "snapshot_committed_at": committed, "row_count": n, "source_delete_files": deletes,
-        "target_path": path, "format": "parquet", "compression": "snappy", "timestamp_type": "TIMESTAMP_MICROS (UTC)",
-        "partition_column": part, "partition_source": PARTITION_BY.get(f"{layer}.{table}"),
-        "columns": [{"name": f.name, "type": f.dataType.simpleString(), "nullable": f.nullable}
-                    for f in df.schema.fields],
-        "databricks_sql": databricks_sql(layer, table, path, part), "spark_version": spark.version,
-    }
-    if dry_run:
-        logger.info("dry run: %s not written", path)
-        return {**manifest, "dry_run": True}
+def table_path(target: str, layer: str, table: str) -> str:
+    return f"{target.rstrip('/')}/{layer}/{table}"
 
-    spark.conf.set("spark.sql.parquet.outputTimestampType", "TIMESTAMP_MICROS")
-    w = (df.repartition(part) if part else df.repartition(max(1, math.ceil(n / ROWS_PER_FILE))))
-    w = w.write.mode("overwrite").option("compression", "snappy").option("maxRecordsPerFile", ROWS_PER_FILE)
-    (w.partitionBy(part) if part else w).parquet(path)
 
-    back = spark.read.parquet(path)
-    written = back.count()
-    if written != n:
-        raise RuntimeError(f"{path}: wrote {written} rows, snapshot {sid} of {fq} has {n}")
-    files, size = len(back.inputFiles()), folder_bytes(spark, path)
-    manifest.update(files=files, bytes=size,
-                    exported_at=datetime.now(timezone.utc).isoformat(timespec="seconds"))
-    write_text(spark, f"{path}/{MANIFEST}", json.dumps(manifest, indent=2))
-    logger.info("%s: %d rows in %d files, %.1f MB, row count verified", path, n, files, size / 1e6)
+def batch_name(batch: int) -> str:
+    return f"{batch:06d}"
+
+
+def latest_manifest(spark: SparkSession, tpath: str) -> dict | None:
+    names = sorted(n for n in list_names(spark, f"{tpath}/_manifests") if re.fullmatch(r"\d{6}\.json", n))
+    return json.loads(read_text(spark, f"{tpath}/_manifests/{names[-1]}")) if names else None
+
+
+def next_batch(spark: SparkSession, tpath: str) -> int:
+    used = [int(n[:6]) for n in list_names(spark, f"{tpath}/_manifests") if re.fullmatch(r"\d{6}\.json", n)]
+    used += [int(n) for n in list_names(spark, f"{tpath}/data") if re.fullmatch(r"\d{6}", n)]
+    return max(used, default=0) + 1
+
+
+def plan_batch(last: dict | None, keys: dict, rhash: str, force_resync: bool, prev_readable) -> tuple[str, str]:
+    """(batch_type, reason). prev_readable is called only when an incremental batch is possible."""
+    if last is None:
+        return "full", "first export"
+    if force_resync:
+        return "resync", "--resync"
+    if last.get("key_version") != keys["version"]:
+        return "resync", f"key version {last.get('key_version')} -> {keys['version']}"
+    if last.get("rules_hash") != rhash:
+        return "resync", "column rules changed"
+    if not prev_readable(int(last["to_snapshot_id"])):
+        return "resync", f"previous snapshot {last['to_snapshot_id']} not readable"
+    return "incremental", f"diff against snapshot {last['to_snapshot_id']}"
+
+
+# ---------------------------------------------------------------- one table
+
+def export_table(spark: SparkSession, db_prefix: str, name: str, table_cfg: dict, target: str, keys: dict,
+                 resync: bool = False, dry_run: bool = False, tag: str | None = TAG) -> dict:
+    """tag=None leaves the source table's tags alone (a scratch export must not move the feed's tag)."""
+    layer, _, table = name.partition(".")
+    fq, tpath, pk = f"{db_prefix}_{layer}.{table}", table_path(target, layer, table), primary_key(table_cfg)
+    sid = current_snapshot(spark, fq)
+    cur = at_snapshot(spark, fq, sid)
+    check_columns(cur.columns, table_cfg, fq)
+    rhash = rules_hash(table_cfg)
+    last = latest_manifest(spark, tpath)
+    btype, reason = plan_batch(last, keys, rhash, resync, lambda s: readable(spark, fq, s))
+    from_sid = int(last["to_snapshot_id"]) if btype == "incremental" else None
+    if btype == "incremental" and from_sid == sid:
+        logger.info("%s: snapshot %s already exported in batch %s; nothing to do", fq, sid, last["batch"])
+        return {"source_table": fq, "batch": None, "batch_type": "none", "to_snapshot_id": sid}
+
+    n_source = cur.count()
+    n_keys = cur.select(*pk).distinct().count()
+    if n_keys != n_source:
+        raise ValueError(f"{fq} @ {sid}: {n_source - n_keys} duplicate {pk} values; the diff needs a unique key")
+
+    batch = next_batch(spark, tpath)
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    changes = change_set(cur, at_snapshot(spark, fq, from_sid) if from_sid else None, pk)
+    out = apply_rules(changes, table_cfg, encrypt_udf(keys)).select(
+        "*", F.lit(batch).cast("bigint").alias("_batch"), F.lit(sid).cast("bigint").alias("_source_snapshot_id"),
+        F.lit(now.replace(tzinfo=None)).cast("timestamp").alias("_exported_at"))
+    out = out.select(*[c for c in out.columns if c != "_op"], "_op").persist()
+    try:
+        counts = {r["_op"]: int(r["count"]) for r in out.groupBy("_op").count().collect()}
+        counts = {op: counts.get(op, 0) for op in ("I", "U", "D")}
+        total = sum(counts.values())
+        out_keys = [output_name(k, table_cfg["columns"][k]) for k in pk]
+        if out.select(*out_keys).distinct().count() != total:
+            raise RuntimeError(f"{fq}: batch {batch} has a repeated key after tokenizing (token collision?)")
+        manifest = {
+            "batch": batch, "batch_type": btype, "reason": reason, "source_table": fq, "layer": layer, "table": table,
+            "primary_key": out_keys, "from_snapshot_id": from_sid, "to_snapshot_id": sid,
+            "source_row_count": n_source, "counts": counts, "key_version": keys["version"], "rules_hash": rhash,
+            "tokenized_columns": tokenized_columns(table_cfg), "token_format": "base64(iv12 || AES-256-GCM ciphertext || tag16)",
+            "columns": [{"name": f.name, "type": f.dataType.simpleString(), "nullable": f.nullable}
+                        for f in out.schema.fields],
+            "data_path": f"{tpath}/data/{batch_name(batch)}", "previous_batch": last and last["batch"],
+            "exported_at": now.isoformat(),
+        }
+        logger.info("%s @ %s: batch %s %s (%s): I %d, U %d, D %d of %d source rows", fq, sid, batch, btype, reason,
+                    counts["I"], counts["U"], counts["D"], n_source)
+        if dry_run:
+            return {**manifest, "dry_run": True}
+
+        spark.conf.set("spark.sql.parquet.outputTimestampType", "TIMESTAMP_MICROS")
+        (out.repartition(max(1, math.ceil(total / ROWS_PER_FILE)))
+         .write.mode("errorifexists").option("compression", "snappy").option("maxRecordsPerFile", ROWS_PER_FILE)
+         .parquet(manifest["data_path"]))
+    finally:
+        out.unpersist()
+
+    back = spark.read.parquet(manifest["data_path"])
+    if back.count() != total:
+        raise RuntimeError(f"{manifest['data_path']}: read back {back.count()} rows, wrote {total}")
+    manifest.update(files=len(back.inputFiles()), bytes=folder_bytes(spark, manifest["data_path"]))
+    write_text(spark, f"{tpath}/_manifests/{batch_name(batch)}.json", json.dumps(manifest, indent=2))
+    try:
+        if tag:
+            spark.sql(f"ALTER TABLE {fq} CREATE OR REPLACE TAG {tag} AS OF VERSION {sid} RETAIN {TAG_RETAIN_DAYS} DAYS")
+    except Exception as e:  # noqa: BLE001 - the manifest is the source of truth; the tag only guards expiry
+        logger.warning("%s: could not tag snapshot %s (%s)", fq, sid, str(e).splitlines()[0][:200])
+    logger.info("%s: committed batch %s, %d rows in %d files, %.1f MB", tpath, batch, total, manifest["files"],
+                manifest["bytes"] / 1e6)
     return manifest
 
 
-def run(spark: SparkSession, db_prefix: str, tables: list[tuple[str, str]], target: str,
-        snapshot_id: int | None = None, dry_run: bool = False) -> list[dict]:
-    if snapshot_id and len(tables) > 1:
-        raise ValueError("--snapshot-id pins one table's snapshot: pass a single --tables entry")
-    out = [export_table(spark, db_prefix, layer, table, target, snapshot_id, dry_run) for layer, table in tables]
+def run(spark: SparkSession, db_prefix: str, cfg: dict, tables: list[str] | None = None, target: str | None = None,
+        keys: dict | None = None, resync: bool = False, dry_run: bool = False) -> list[dict]:
+    keys = keys or load_keys(cfg["key_credential"])
+    names = tables or list(cfg["tables"])
+    unknown = [n for n in names if n not in cfg["tables"]]
+    if unknown:
+        raise ValueError(f"not in config/export.yaml: {unknown}")
+    out = [export_table(spark, db_prefix, n, cfg["tables"][n], target or cfg["target"], keys, resync, dry_run)
+           for n in names]
     for m in out:
-        logger.info("%s %s @ %s: %d rows -> %s", "would export" if dry_run else "exported", m["source_table"],
-                    m["iceberg_snapshot_id"], m["row_count"], m["target_path"])
+        if m.get("batch"):
+            logger.info("%s %s batch %s (%s): %s", "would write" if dry_run else "exported", m["source_table"],
+                        m["batch"], m["batch_type"], m["counts"])
     return out
 
 
@@ -199,7 +437,9 @@ def main(argv=None, spark: SparkSession | None = None) -> None:
     own = spark is None
     spark = spark or SparkSession.builder.appName("spend-export-parquet").getOrCreate()
     try:
-        run(spark, args.db_prefix, parse_tables(args.tables), args.target, args.snapshot_id, args.dry_run)
+        tables = [t.strip() for t in args.tables.split(",") if t.strip()] if args.tables else None
+        run(spark, args.db_prefix, load_config(args.config), tables, args.target, resync=args.resync,
+            dry_run=args.dry_run)
     finally:
         if own:
             spark.stop()

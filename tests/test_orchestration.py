@@ -42,12 +42,22 @@ def test_deployed_jobs_point_at_existing_files():
 
 def test_dag_and_drill_only_run_deployed_jobs():
     pipeline = {"generate-bronze", "dq-check", "build-silver", "build-gold-features"}
-    assert _deployed_suffixes() == pipeline | {"export-parquet"}     # the export runs on demand, not in the DAG
-    assert set(re.findall(r'job_name=f"\{JOB_PREFIX\}-([\w-]+)"', DAG)) == pipeline
+    assert _deployed_suffixes() == pipeline | {"export-parquet"}
+    assert set(re.findall(r'job_name=f"\{JOB_PREFIX\}-([\w-]+)"', DAG)) == pipeline | {"export-parquet"}
+    # a backfill must not export: each batch is a diff against the last exported snapshot
     assert set(re.findall(r'"\$\{JOB_PREFIX\}-([\w-]+)"', DRILL)) == pipeline
 
 
-def test_dag_has_twelve_tasks_in_pipeline_order():
+def test_export_job_mounts_the_token_key():
+    import yaml
+    cred = yaml.safe_load((ROOT / "config" / "export.yaml").read_text())["key_credential"]
+    line = next(l for l in DEPLOY.splitlines() if "-export-parquet" in l and l.startswith("create_job"))
+    assert line.endswith('--workload-credential "${TOKEN_CREDENTIAL}"')
+    assert _const(DEPLOY, "TOKEN_CREDENTIAL") == cred
+    assert re.search(r"^\s+dq_gold >> export$", DAG, re.M)
+
+
+def test_dag_has_thirteen_tasks_in_pipeline_order():
     chain = re.search(r"^\s+\((generate >> [^)]+)\)", DAG, re.M | re.S).group(1)
     assert [t.strip() for t in chain.split(">>")] == [
         "generate", "dq_bronze", "silver", "dq_silver", "categorise", "gold", "dq_gold",
@@ -63,7 +73,7 @@ def test_dag_has_twelve_tasks_in_pipeline_order():
     task_ids = re.findall(r'task_id="(\w+)"', DAG) + [t for t, _ in re.findall(r'_task\("(\w+)", "(\w+)"\)', DAG)]
     assert 'task_id="deploy_registry_model", python_callable=deploy_registry_model' in DAG
     assert re.search(r"^\s+evaluate >> registry_deploy$", DAG, re.M)
-    assert len(set(task_ids)) == 12
+    assert len(set(task_ids)) == 13
 
 
 def test_every_overridden_run_repeats_the_db_prefix():
