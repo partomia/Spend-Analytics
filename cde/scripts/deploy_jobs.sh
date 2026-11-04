@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Create/sync the CDE Repository for this GitHub repo and (re)create the four
-# Spark jobs, each reading its application file straight from the repo. The
+# pipeline Spark jobs plus the on-demand Parquet export for Databricks
+# (cde/jobs/export_parquet.py), each reading its application file straight from the repo. The
 # dq-check job is shared by the three data-quality DAG tasks; --layer is set per
 # task at run time (cde/dags/spend_dag.py), so its --layer arg here is only a
 # default for an ad hoc `cde job run`. Run-time args replace job args, so the
@@ -86,6 +87,8 @@ create_job "${JOB_PREFIX}-generate-bronze"      "cde/jobs/generate_spend_bronze.
 create_job "${JOB_PREFIX}-dq-check"             "cde/jobs/dq_check.py" --arg=--layer --arg=bronze
 create_job "${JOB_PREFIX}-build-silver"         "cde/jobs/build_silver.py"
 create_job "${JOB_PREFIX}-build-gold-features"  "cde/jobs/build_gold_features.py"
+# not in the DAG: the Databricks landing zone, run on demand (--tables / --target per run)
+create_job "${JOB_PREFIX}-export-parquet"       "cde/jobs/export_parquet.py"
 
 echo ""
 echo "Jobs deployed from ${REPO_NAME}. Run the chain for one as-of date:"

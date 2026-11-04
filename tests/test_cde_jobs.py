@@ -252,3 +252,25 @@ def test_dq_constants_match_features(dq_job, silver_job):
     assert dq_job.CHANNELS == features.CHANNELS
     assert dq_job.MERCHANT_CHANNELS == features.MERCHANT_CHANNELS
     assert dq_job.CAT_SHARES + dq_job.CH_SHARES + dq_job.TIER_SHARES == features.SHARE_COLUMNS
+
+
+def test_export_tables_and_paths(export_job):
+    assert export_job.parse_tables(" silver.spend_event, gold.spend_features ") == [
+        ("silver", "spend_event"), ("gold", "spend_features")]
+    for bad in ("spend_event", "landing.x", "silver.", ""):
+        with pytest.raises(ValueError):
+            export_job.parse_tables(bad)
+    assert export_job.table_path("s3a://b/x/", "silver", "spend_event") == "s3a://b/x/silver/spend_event"
+    assert export_job.partition_column("silver", "spend_event") == "txn_date_month"
+    assert export_job.partition_column("silver", "customer") is None
+    sql = export_job.databricks_sql("silver", "spend_event", "s3a://b/x/silver/spend_event", "txn_date_month")
+    assert "parquet.`s3://b/x/silver/spend_event/`" in sql and "EXCEPT (txn_date_month)" in sql
+    assert "CLUSTER BY (txn_date)" in sql
+    assert "EXCEPT" not in export_job.databricks_sql("silver", "customer", "s3a://b/c", None)
+
+
+def test_export_partition_is_the_month(spark, export_job):
+    df = spark.createDataFrame([(date(2026, 9, 30),), (date(2026, 10, 1),)], "txn_date date")
+    out, part = export_job.with_partition(df, "silver", "spend_event")
+    assert part == "txn_date_month"
+    assert [r[part] for r in out.orderBy("txn_date").collect()] == ["2026-09", "2026-10"]

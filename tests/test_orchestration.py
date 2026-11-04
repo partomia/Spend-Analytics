@@ -35,16 +35,16 @@ def test_prefixes_agree():
 
 def test_deployed_jobs_point_at_existing_files():
     files = re.findall(r'^create_job "\$\{JOB_PREFIX\}-[\w-]+"\s+"([\w/.]+)"', DEPLOY, re.M)
-    assert len(files) == 4
+    assert len(files) == 5
     for f in files:
         assert (ROOT / f).is_file(), f
 
 
 def test_dag_and_drill_only_run_deployed_jobs():
-    deployed = _deployed_suffixes()
-    assert deployed == {"generate-bronze", "dq-check", "build-silver", "build-gold-features"}
-    assert set(re.findall(r'job_name=f"\{JOB_PREFIX\}-([\w-]+)"', DAG)) == deployed
-    assert set(re.findall(r'"\$\{JOB_PREFIX\}-([\w-]+)"', DRILL)) == deployed
+    pipeline = {"generate-bronze", "dq-check", "build-silver", "build-gold-features"}
+    assert _deployed_suffixes() == pipeline | {"export-parquet"}     # the export runs on demand, not in the DAG
+    assert set(re.findall(r'job_name=f"\{JOB_PREFIX\}-([\w-]+)"', DAG)) == pipeline
+    assert set(re.findall(r'"\$\{JOB_PREFIX\}-([\w-]+)"', DRILL)) == pipeline
 
 
 def test_dag_has_twelve_tasks_in_pipeline_order():

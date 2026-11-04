@@ -38,6 +38,12 @@ def gold_job():
 
 
 @pytest.fixture(scope="session")
+def export_job():
+    pytest.importorskip("pyspark")
+    return _load(ROOT / "cde" / "jobs" / "export_parquet.py")
+
+
+@pytest.fixture(scope="session")
 def dq_job():
     pytest.importorskip("pyspark")
     pytest.importorskip("great_expectations")
