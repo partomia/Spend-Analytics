@@ -233,7 +233,9 @@ dq_gold >> export_databricks
 to the silver tables as tokenized Parquet batches for Databricks, beside the
 ML jobs so a failed export never holds back the models. The flow from Iceberg
 to Unity Catalog SCD type 2 tables, the token scheme and the Databricks SQL
-are in [`databricks/README.md`](databricks/README.md).
+are in [`databricks/README.md`](databricks/README.md); the design, the options
+weighed and the validation, as a reusable blueprint, in
+[`docs/DATABRICKS_EXPORT_BLUEPRINT.md`](docs/DATABRICKS_EXPORT_BLUEPRINT.md).
 
 The four `cai_*` tasks start a CAI job run over the API v2 with
 `SPEND_RUN_DATE` / `SPEND_TRIGGERED_BY=airflow` in its environment and poll
@@ -375,7 +377,7 @@ config/              spend.yaml (names, storage, models), policy.yaml (categoris
 ci/                  cai_jobs.py (CAI job names), trigger_cai_pipeline.py (GitHub -> CAI API v2)
 scripts/             run_cde_local.py (CDE jobs on a laptop), spike_models.py, platform_ctl.py (status / stop / start)
 sql/                 reports.sql (Hue)
-docs/                DEMO_RUNBOOK.md, PROJECT_LOG.md
+docs/                DEMO_RUNBOOK.md, PROJECT_LOG.md, DATABRICKS_EXPORT_BLUEPRINT.md
 .github/workflows/   ci.yml (test, train-validate with the KPI gate, cai-pipeline)
 tests/               pytest: generator, CDE jobs, categorise, models, pipeline, scoring, CAI jobs,
                       CAI runtime contract, GitHub -> CAI trigger, orchestration, report SQL,

@@ -6,6 +6,10 @@ S3 bucket. Databricks applies the batches in order to Unity Catalog Delta tables
 with **SCD type 2** history, and only members of one account group can turn the
 tokens back into real identifiers.
 
+This is the operator's guide. The reasoning behind it (research, options weighed,
+validation) and how to apply the pattern to other tables are in
+[`docs/DATABRICKS_EXPORT_BLUEPRINT.md`](../docs/DATABRICKS_EXPORT_BLUEPRINT.md).
+
 ```
 Cloudera (CDE, nightly DAG)                                   S3                                   Databricks
 ───────────────────────────                                   ──                                   ──────────
