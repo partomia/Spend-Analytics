@@ -160,6 +160,11 @@ handles a resync batch by closing keys that are missing from the resync. With
 the pipeline, you instead set `spend.start_batch` to the resync batch and run a
 full refresh.
 
+**Tested without Databricks.** `ingest_manifest_driven.py` also runs on CDE with
+open-source Delta Lake and path-based tables (`cde/scripts/deploy_delta_sim.sh`), followed
+by `cde/jobs/delta_sim_check.py`, which compares the Delta tables with the manifests and
+the Iceberg source. Results: `docs/DATABRICKS_EXPORT_BLUEPRINT.md`, section 5.4.
+
 **SCD2 columns.** `SEQUENCE BY _batch`. Each key appears at most once per batch,
 so the order is total. `__START_AT` and `__END_AT` are batch numbers. Join to
 the manifests (`exported_at`) if you need wall-clock time. `D` rows close the

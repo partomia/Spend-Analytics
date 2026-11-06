@@ -277,12 +277,37 @@ The SCD2 table came out exactly as expected:
 - the uncommitted folder was ignored;
 - a second run changed nothing.
 
+End to end, Iceberg to Delta, on a copy of the real customer table:
+- a row-level `DELETE` and `UPDATE` (merge-on-read, so position-delete files) gave an
+  incremental batch `{"I":0,"U":1,"D":2}`;
+- a rebuild (`createOrReplace`) that dropped one customer, re-inserted a deleted one and added
+  a new one gave `{"I":2,"U":0,"D":1}`; a further export with no change wrote no batch.
+
+In Delta, every one of those customers opened and closed a version at the right batch, the
+19,415 open rows equal the source, every token decrypts, and a rerun of the ingest changed
+nothing. Each batch is applied as one MERGE, so a failure cannot leave a batch half applied.
+
 ### 5.4 On the cluster
 
 | Run | What | Result |
 |---|---|---|
 | 1054 (2026-11-04, by hand) | Batch 1, `full` | customer 195,463, account 230,461, spend_event 30,152,902 rows (16 files, 5.5 GB); counts equal the source; tags set; about 8 min |
 | 1062 (2026-11-05, DAG task) | Batch 2, `incremental` | customer +40, account +45, spend_event +104,308 (I only, no U or D); batch 1 plus batch 2 equals each source exactly; about 3 min |
+
+**Databricks side simulated on CDE.** Without a Databricks workspace, the ingest ran on CDE
+with open-source Delta Lake 3.3.2 (the line for Spark 3.5), as two on-demand jobs outside
+the DAG (`cde/scripts/deploy_delta_sim.sh`). Delta takes over `spark_catalog`, so Iceberg is
+read through a second catalog, `ice` (type hive). The Delta tables are path-based, under
+`databricks_sim/`, and never registered in the shared metastore.
+
+| Run | What | Result |
+|---|---|---|
+| 1086 (2026-11-06) | `ingest_manifest_driven.py`, batches 1-3 | all three tables applied; about 6 min |
+| 1087 | `cde/jobs/delta_sim_check.py` | pass: per batch, versions opened and closed equal the manifest counts; open rows equal the source (195,541 / 230,548 / 30,361,417); one open version per key; every token decrypts with the key from the workload credential; the decrypted keys equal the Iceberg keys at the last snapshot, both ways |
+| 1088 | the ingest again | every table "up to date at batch 3": nothing changed |
+
+The cluster batches hold inserts only; deletes and updates are covered by the end-to-end
+test in 5.3.
 
 ## 6. Applying the blueprint to another table
 
