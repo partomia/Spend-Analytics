@@ -196,3 +196,48 @@ rsingh_spend_anl` anyway.
    with no decryption.
 4. After the next nightly batch, the SCD2 table has new versions for the batch's
    `U` keys, and closed versions (`__END_AT` set) for its `D` keys.
+
+## 8. Push to a Volume (Databricks Free Edition)
+
+A workspace that cannot read the project bucket (Free Edition has no external
+locations) gets the batches pushed instead: DAG task `push_databricks`, after
+`export_databricks`, runs `cde/jobs/push_databricks.py`
+(CDE job `rsingh-spend-anl-push-databricks`). Nothing in Databricks holds an AWS
+key, and the bucket stays private.
+
+| | |
+|---|---|
+| Settings | `config/export.yaml`, `databricks_push`: host, `volume_root`, `pipeline_id`, `wait_minutes` |
+| Token | CDE workload credential `rsingh-spend-anl-databricks`, file `token` (a Databricks PAT) |
+| Volume | `/Volumes/workspace/spend_landing/cloudera_export`, the pipeline's `spend.root` |
+| Pipeline | `spend-cloudera-scd2`: `02_ingest_scd2.sql`, serverless, triggered |
+
+Per table, the job:
+
+1. Reads the manifests on S3 and in the Volume. A batch in both must have the same
+   `to_snapshot_id` and `exported_at`, or the Volume holds another export's batches
+   and the job stops.
+2. Pushes the batches the Volume lacks, in order: the Parquet files (one executor
+   task per file, sizes checked), then the manifest, still the commit marker. An
+   empty Volume starts at the latest `full` or `resync` batch; a gap stops the job.
+3. Starts one pipeline update and waits for it. A `resync` pushed on top of earlier
+   batches does not start it: set `spend.start_batch` and run a full refresh
+   (section 5). A rerun pushes nothing twice.
+
+Set up once:
+
+```bash
+# Databricks: Volume, schemas, spend_tokens scope and the pipeline (sections 5 and 7), then a PAT
+databricks tokens create --lifetime-seconds 7776000 --comment "CDE push"     # 90 days
+# Cloudera: the PAT as a workload credential ({"token": "..."} in a mode-600 file), then the job
+cde credential create --name rsingh-spend-anl-databricks --type workload-credential \
+  --workload-cred-json-file token.json
+./cde/scripts/deploy_jobs.sh && ./cde/scripts/deploy_dag.sh
+```
+
+Ad hoc: `cde job run --name rsingh-spend-anl-push-databricks --arg=--dry-run` lists
+what would be pushed; `--arg=--no-trigger` pushes without starting the pipeline.
+
+Free Edition specifics: `is_account_group_member()` does not see workspace groups,
+so on Free Edition `detok()` checks `is_member('spend_pii_readers')`. Renew the PAT
+before it expires (`cde credential update`), or the task fails with HTTP 403.

@@ -65,4 +65,4 @@ STORED AS SCD TYPE 2;
 
 -- Check after each run (README 7): current rows per table vs the manifests' counts.
 --   SELECT count(*) FROM spend_silver.customer WHERE __END_AT IS NULL;
---   SELECT batch, batch_type, counts FROM read_files('${spend.root}/silver/customer/_manifests/', format => 'json');
+--   SELECT batch, batch_type, counts FROM read_files('${spend.root}/silver/customer/_manifests/', format => 'json', multiLine => true);

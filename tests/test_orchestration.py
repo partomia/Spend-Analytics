@@ -35,15 +35,16 @@ def test_prefixes_agree():
 
 def test_deployed_jobs_point_at_existing_files():
     files = re.findall(r'^create_job "\$\{JOB_PREFIX\}-[\w-]+"\s+"([\w/.]+)"', DEPLOY, re.M)
-    assert len(files) == 5
+    assert len(files) == 6
     for f in files:
         assert (ROOT / f).is_file(), f
 
 
 def test_dag_and_drill_only_run_deployed_jobs():
     pipeline = {"generate-bronze", "dq-check", "build-silver", "build-gold-features"}
-    assert _deployed_suffixes() == pipeline | {"export-parquet"}
-    assert set(re.findall(r'job_name=f"\{JOB_PREFIX\}-([\w-]+)"', DAG)) == pipeline | {"export-parquet"}
+    assert _deployed_suffixes() == pipeline | {"export-parquet", "push-databricks"}
+    assert set(re.findall(r'job_name=f"\{JOB_PREFIX\}-([\w-]+)"', DAG)) == pipeline | {"export-parquet",
+                                                                                     "push-databricks"}
     # a backfill must not export: each batch is a diff against the last exported snapshot
     assert set(re.findall(r'"\$\{JOB_PREFIX\}-([\w-]+)"', DRILL)) == pipeline
 
@@ -54,10 +55,21 @@ def test_export_job_mounts_the_token_key():
     line = next(l for l in DEPLOY.splitlines() if "-export-parquet" in l and l.startswith("create_job"))
     assert line.endswith('--workload-credential "${TOKEN_CREDENTIAL}"')
     assert _const(DEPLOY, "TOKEN_CREDENTIAL") == cred
-    assert re.search(r"^\s+dq_gold >> export$", DAG, re.M)
+    assert re.search(r"^\s+dq_gold >> export >> push$", DAG, re.M)
 
 
-def test_dag_has_thirteen_tasks_in_pipeline_order():
+def test_push_job_mounts_the_databricks_token():
+    import yaml
+    cred = yaml.safe_load((ROOT / "config" / "export.yaml").read_text())["databricks_push"]["credential"]
+    line = next(l for l in DEPLOY.splitlines() if "-push-databricks" in l and l.startswith("create_job"))
+    assert line.endswith('--workload-credential "${DATABRICKS_CREDENTIAL}"')
+    assert _const(DEPLOY, "DATABRICKS_CREDENTIAL") == cred
+    # the push runs on small resources of its own, set after the pipeline jobs
+    assert DEPLOY.index("RESOURCES=(--driver-cores 1") < DEPLOY.index(line)
+    assert DEPLOY.index("RESOURCES=(--driver-cores 1") > DEPLOY.index('create_job "${JOB_PREFIX}-export-parquet"')
+
+
+def test_dag_has_fourteen_tasks_in_pipeline_order():
     chain = re.search(r"^\s+\((generate >> [^)]+)\)", DAG, re.M | re.S).group(1)
     assert [t.strip() for t in chain.split(">>")] == [
         "generate", "dq_bronze", "silver", "dq_silver", "categorise", "gold", "dq_gold",
@@ -73,7 +85,7 @@ def test_dag_has_thirteen_tasks_in_pipeline_order():
     task_ids = re.findall(r'task_id="(\w+)"', DAG) + [t for t, _ in re.findall(r'_task\("(\w+)", "(\w+)"\)', DAG)]
     assert 'task_id="deploy_registry_model", python_callable=deploy_registry_model' in DAG
     assert re.search(r"^\s+evaluate >> registry_deploy$", DAG, re.M)
-    assert len(set(task_ids)) == 13
+    assert len(set(task_ids)) == 14
 
 
 def test_every_overridden_run_repeats_the_db_prefix():

@@ -13,6 +13,16 @@
 target: s3a://federal-buk-574bcea0/data/rsingh_spend_anl/databricks_export
 key_credential: rsingh-spend-anl-token-key      # CDE workload credential, mounted at /etc/dex/secrets/<name>/
 
+# cde/jobs/push_databricks.py (DAG task push_databricks, after export_databricks): copies the new
+# batches into a Unity Catalog Volume, for a workspace that cannot read the bucket (Free Edition),
+# then runs the pipeline of databricks/02_ingest_scd2.sql with spend.root = volume_root.
+databricks_push:
+  host: https://dbc-4fc428bf-54a6.cloud.databricks.com
+  volume_root: /Volumes/workspace/spend_landing/cloudera_export
+  pipeline_id: e4e063c8-717b-4ef9-937a-bbfcb00e2548   # spend-cloudera-scd2
+  credential: rsingh-spend-anl-databricks              # CDE workload credential, file "token" (a Databricks PAT)
+  wait_minutes: 45
+
 tables:
   silver.customer:
     primary_key: cif

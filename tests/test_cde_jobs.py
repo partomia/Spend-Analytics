@@ -328,3 +328,35 @@ def test_export_plan_batch(export_job):
     assert export_job.plan_batch(last, keys, "other", False, ok)[0] == "resync"
     assert export_job.plan_batch(last, keys, "h", False, gone)[0] == "resync"
     assert export_job.batch_name(12) == "000012"
+
+
+def _m(batch: int, kind: str = "incremental") -> dict:
+    return {"batch": batch, "batch_type": kind, "to_snapshot_id": 100 + batch, "exported_at": f"t{batch}"}
+
+
+def test_push_plan_starts_at_the_latest_base_and_never_skips(push_job):
+    s3 = {1: _m(1, "full"), 2: _m(2), 3: _m(3, "resync"), 4: _m(4)}
+    assert push_job.plan_push(s3, {}, "t") == [3, 4]                     # empty Volume: from the latest base
+    assert push_job.plan_push({1: _m(1, "full"), 2: _m(2)}, {}, "t") == [1, 2]
+    assert push_job.plan_push({2: _m(2)}, {}, "t") == []                  # no base on S3: nothing to start from
+    assert push_job.plan_push(s3, {1: _m(1, "full"), 2: _m(2)}, "t") == [3, 4]
+    assert push_job.plan_push(s3, dict(s3), "t") == []                    # a rerun pushes nothing
+    with pytest.raises(ValueError, match="another export"):
+        push_job.plan_push(s3, {1: {**_m(1, "full"), "to_snapshot_id": 9}}, "t")
+    with pytest.raises(ValueError, match="below its latest"):
+        push_job.plan_push(s3, {1: _m(1, "full"), 3: _m(3, "resync")}, "t")
+
+
+def test_push_holds_the_pipeline_for_a_resync_on_top(push_job):
+    s3 = {"silver.customer": {1: _m(1, "full"), 2: _m(2), 3: _m(3, "resync")}}
+    assert push_job.blocking_resyncs({"silver.customer": [2, 3]}, s3, {"silver.customer": True}) == [
+        "silver.customer batch 3"]
+    # into an empty Volume the resync is the first batch the pipeline sees
+    assert push_job.blocking_resyncs({"silver.customer": [3]}, s3, {"silver.customer": False}) == []
+
+
+def test_push_config_points_at_the_pipeline_volume(push_job):
+    from spend.config import ROOT
+    cfg = push_job.load_config(ROOT / "config" / "export.yaml")["databricks_push"]
+    assert cfg["volume_root"].startswith("/Volumes/") and cfg["host"].startswith("https://")
+    assert push_job.parse_args(["--db-prefix", "x", "--dry-run"]).dry_run

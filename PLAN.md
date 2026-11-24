@@ -22,7 +22,7 @@ Same CDP environment as `partomia/Mule-Account-Identifier`,
 |---|---|---|
 | Ingest + medallion | CDE (Spark 3, Iceberg v2) | generate 8 bronze + 7 ref tables, silver (dedupe, CIF resolution, `spend_event`), gold (CIF x weekly snapshot, cohort x category x week, mix x week; MERGE) |
 | Data quality | CDE + Great Expectations 1.23.2 | `dq_check.py --layer bronze/silver/gold` after each layer, results in `ref.dq_results` |
-| Orchestration | CDE Airflow | daily DAG, 13 tasks: 5 CDE jobs, 3 DQ gates, 4 CAI jobs, the endpoint refresh, the registry deployment (API v2) and the tokenized Databricks export |
+| Orchestration | CDE Airflow | daily DAG, 14 tasks: 6 CDE jobs, 3 DQ gates, 4 CAI jobs, the endpoint refresh, the registry deployment (API v2), the tokenized Databricks export and its push to a Databricks Volume |
 | Categorisation | CAI Job `spend-categorise` | new merchant keys: MCC -> SEED -> MiniLM kNN -> FALLBACK, appended to `ref.merchant_category_map` |
 | Daily ML | CAI Jobs `spend-feature-engineering` -> `spend-model-training` -> `spend-model-evaluation` | features + covariates; KMeans personas, MiniLM holdouts, Chronos-2 backtest + forecast, signals; KPIs, KPI gate, MLflow, publish |
 | Experiment tracking | CAI Experiments (MLflow) | params, KPIs, gate detail per daily run |

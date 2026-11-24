@@ -1,5 +1,5 @@
 """
-Airflow DAG (CDE): daily spend analytics pipeline, 13 tasks.
+Airflow DAG (CDE): daily spend analytics pipeline, 14 tasks.
 
   generate_spend_bronze -> dq_bronze -> build_silver -> dq_silver            (CDE Spark)
     -> cai_categorise                                                        (CAI Job: new merchant keys -> map)
@@ -8,6 +8,7 @@ Airflow DAG (CDE): daily spend analytics pipeline, 13 tasks.
     -> refresh_endpoint                                                      (CAI API: restart spend-scorer, verify)
      + deploy_registry_model (beside it)          (CAI API: build the new registry version into spend-persona-registry)
   dq_gold -> export_databricks          (CDE Spark, beside the ML: tokenized change batch of silver for Databricks)
+    -> push_databricks                  (CDE Spark: the new batches into a Databricks Volume, then its pipeline)
 
 dq_bronze/dq_silver/dq_gold are the same CDE job (cde/jobs/dq_check.py, Great
 Expectations) run three times with --layer overridden per task. Critical
@@ -377,8 +378,11 @@ with DAG(
         overrides={"spark": {"args": ["--db-prefix", DB_PREFIX]}},
         wait=True,
     )
+    # Copies only the batches the Volume lacks, so a retry or a rerun pushes nothing twice; it waits
+    # for the Databricks pipeline update it starts (config/export.yaml, databricks_push).
+    push = CDEJobRunOperator(task_id="push_databricks", job_name=f"{JOB_PREFIX}-push-databricks", wait=True)
 
     (generate >> dq_bronze >> silver >> dq_silver >> categorise >> gold >> dq_gold >> features >> train >> evaluate
      >> refresh)
     evaluate >> registry_deploy
-    dq_gold >> export
+    dq_gold >> export >> push

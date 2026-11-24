@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Create/sync the CDE Repository for this GitHub repo and (re)create the four
 # pipeline Spark jobs plus the tokenized Parquet export for Databricks
-# (cde/jobs/export_parquet.py), each reading its application file straight from the repo. The
+# (cde/jobs/export_parquet.py) and its push into a Databricks Volume (cde/jobs/push_databricks.py),
+# each reading its application file straight from the repo. The
 # dq-check job is shared by the three data-quality DAG tasks; --layer is set per
 # task at run time (cde/dags/spend_dag.py), so its --layer arg here is only a
 # default for an ad hoc `cde job run`. Run-time args replace job args, so the
@@ -37,6 +38,7 @@ PYTHON_ENV="${PYTHON_ENV:-rsingh-spend-anl-python-env}"
 JOB_PREFIX="${JOB_PREFIX:-rsingh-spend-anl}"
 DB_PREFIX="${DB_PREFIX:-rsingh_spend_anl}"
 TOKEN_CREDENTIAL="${TOKEN_CREDENTIAL:-rsingh-spend-anl-token-key}"
+DATABRICKS_CREDENTIAL="${DATABRICKS_CREDENTIAL:-rsingh-spend-anl-databricks}"
 REQUIREMENTS="$(cd "$(dirname "$0")/.." && pwd)/resources/requirements.txt"
 RESOURCES=(--driver-cores 4 --driver-memory 8g
            --executor-cores "${EXECUTOR_CORES:-4}" --executor-memory "${EXECUTOR_MEMORY:-8g}"
@@ -93,6 +95,13 @@ create_job "${JOB_PREFIX}-build-gold-features"  "cde/jobs/build_gold_features.py
 cde credential describe --name "${TOKEN_CREDENTIAL}" &>/dev/null \
   || { echo "workload credential ${TOKEN_CREDENTIAL} missing (databricks/README.md, key setup)"; exit 1; }
 create_job "${JOB_PREFIX}-export-parquet"       "cde/jobs/export_parquet.py" --workload-credential "${TOKEN_CREDENTIAL}"
+# DAG task push_databricks (after export_databricks): the new batches into a Databricks Volume, then
+# the pipeline (config/export.yaml, databricks_push). Small: one file per task, at most ~350 MB each.
+cde credential describe --name "${DATABRICKS_CREDENTIAL}" &>/dev/null \
+  || { echo "workload credential ${DATABRICKS_CREDENTIAL} missing (databricks/README.md, section 8)"; exit 1; }
+RESOURCES=(--driver-cores 1 --driver-memory 2g --executor-cores 1 --executor-memory 2g
+           --min-executors 1 --initial-executors 1 --max-executors 4 --conf spark.executor.memoryOverhead=2g)
+create_job "${JOB_PREFIX}-push-databricks"      "cde/jobs/push_databricks.py" --workload-credential "${DATABRICKS_CREDENTIAL}"
 
 echo ""
 echo "Jobs deployed from ${REPO_NAME}. Run the chain for one as-of date:"

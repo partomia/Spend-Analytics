@@ -44,6 +44,12 @@ def export_job():
 
 
 @pytest.fixture(scope="session")
+def push_job():
+    pytest.importorskip("pyspark")
+    return _load(ROOT / "cde" / "jobs" / "push_databricks.py")
+
+
+@pytest.fixture(scope="session")
 def dq_job():
     pytest.importorskip("pyspark")
     pytest.importorskip("great_expectations")
