@@ -882,3 +882,30 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
   in `scripts/` may be named after a stdlib module. pytest: 221 passed.
 - The skill's pending edits from other projects (the rename to `platform_ctl.py` and a merged
   duplicate bullet) were reviewed and look correct; they were left for those projects to commit.
+
+## 2026-11-24: Databricks Free Edition, fed by a push from Cloudera
+
+- Free Edition cannot read the project bucket (no storage credentials or external
+  locations for your own S3), so Cloudera now pushes: DAG task `push_databricks` after
+  `export_databricks` runs `cde/jobs/push_databricks.py` (CDE job
+  `rsingh-spend-anl-push-databricks`, 1 / 2 GB driver, 1-4 executors of 1 / 2 GB plus 2 GB
+  overhead). It copies the batches the Volume lacks over the Files API, files then manifest,
+  and starts the pipeline `spend-cloudera-scd2` (`02_ingest_scd2.sql`, serverless) and waits.
+  Commit `f34fa74`. pytest: 233 passed.
+- Workspace `dbc-4fc428bf-54a6`: catalog `workspace`, Volume `spend_landing.cloudera_export`,
+  scope `spend_tokens` (enc_key_v1 only), group `spend_pii_readers`. Token: a PAT that expires
+  2027-02-22, in the CDE workload credential `rsingh-spend-anl-databricks`.
+- CDE reaches the workspace (HTTP 401 without a token from a probe run, 1333).
+- Run 1334 (dry run) stopped as intended: the Volume held a laptop test export of batch 1
+  (snapshot 3382918986255363505 vs 9123428909333812348 on S3). The Volume was cleared.
+- Run 1335 pushed batches 1-13 of all three tables in 7 min (spend_event batch 1: 16 files,
+  5.5 GB). A full refresh of the pipeline took under 5 min. Current rows equal the manifests'
+  I counts: customer 195,961, account 231,038, spend_event 31,046,359. Every event joins its
+  customer on the token; `spend_silver_v.customer` decrypts all 195,961 `cif`s.
+- Free Edition: groups are workspace groups, which `is_account_group_member()` does not see,
+  so the workspace's `detok()` uses `is_member()`. The repo keeps the account-group check.
+- Python logs of a CDE run are only in `cde run logs --id N --download-all` (driver_stdout.log),
+  not in `--type driver/stderr`.
+- Not yet seen live: the push starting a pipeline update on its own (the next nightly batch).
+  Run 1330 (23 Nov) failed: generate_spend_bronze sat in "starting" and was killed twice at
+  90 min (no room on the shared vcluster), so no batch 14 yet.
