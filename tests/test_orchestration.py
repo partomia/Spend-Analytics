@@ -178,3 +178,88 @@ def test_registry_versions_are_paged_and_a_stopped_scorer_is_skipped():
     assert "versions = _versions(api, model[\"model_id\"])" in DAG
     refresh = DAG.split("def refresh_endpoint")[1].split("\ndef ")[0]
     assert "raise AirflowSkipException(f\"{ENDPOINT_MODEL} is stopped" in refresh
+
+
+def _dag_function(name: str, **namespace):
+    import ast
+
+    node = next(n for n in ast.parse(DAG).body if isinstance(n, ast.FunctionDef) and n.name == name)
+    exec(compile(ast.Module(body=[node], type_ignores=[]), "spend_dag.py", "exec"), namespace)
+    return namespace[name]
+
+
+class _FakeCai:
+    """requests stand-in for the job runs endpoint: scripted POST outcomes, a list of runs."""
+
+    class RequestException(Exception):
+        pass
+
+    class HTTPError(RequestException):
+        pass
+
+    def __init__(self, posts, runs=()):
+        self.posts, self.runs, self.post_calls = list(posts), list(runs), 0
+
+    def post(self, url, **_):
+        self.post_calls += 1
+        outcome = self.posts.pop(0)
+        if isinstance(outcome, Exception):
+            raise outcome
+        status, body = outcome
+        resp = type("R", (), {"status_code": status, "json": lambda s: body})()
+
+        def raise_for_status(_=None):
+            if status >= 400:
+                raise _FakeCai.HTTPError(f"HTTP {status}")
+        resp.raise_for_status = raise_for_status
+        return resp
+
+    def get(self, url, **_):
+        runs = self.runs
+        return type("R", (), {"json": lambda s: {"job_runs": runs}})()
+
+
+def _start_cai_run(fake):
+    import json as json_mod
+    from datetime import datetime, timedelta, timezone
+
+    class AirflowException(Exception):
+        pass
+
+    fn = _dag_function("_start_cai_run", requests=fake, json=json_mod, AirflowException=AirflowException,
+                       datetime=datetime, timedelta=timedelta, timezone=timezone,
+                       time=type("T", (), {"sleep": staticmethod(lambda s: None)}))
+    return fn, AirflowException
+
+
+def test_cai_run_post_that_timed_out_but_started_is_followed_not_repeated():
+    import json as json_mod
+    from datetime import datetime, timezone
+
+    env = {"SPEND_RUN_DATE": "2026-11-24", "SPEND_TRIGGERED_BY": "airflow"}
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    fake = _FakeCai([_FakeCai.RequestException("Read timed out")],
+                    runs=[{"id": "other", "created_at": now, "environment": json_mod.dumps({"SPEND_RUN_DATE": "x"})},
+                          {"id": "mine", "created_at": now, "environment": json_mod.dumps(env)}])
+    fn, _ = _start_cai_run(fake)
+    assert fn("u", {}, env) == "mine" and fake.post_calls == 1
+
+
+def test_cai_run_post_retries_5xx_and_fails_fast_on_4xx():
+    import pytest
+
+    env = {"SPEND_RUN_DATE": "2026-11-24", "SPEND_TRIGGERED_BY": "airflow"}
+    fake = _FakeCai([(503, {}), _FakeCai.RequestException("Name or service not known"), (200, {"id": "r1"})])
+    fn, airflow_exc = _start_cai_run(fake)
+    assert fn("u", {}, env) == "r1" and fake.post_calls == 3
+
+    fake = _FakeCai([(400, {})])
+    fn, _ = _start_cai_run(fake)
+    with pytest.raises(_FakeCai.HTTPError):
+        fn("u", {}, env)
+
+    fake = _FakeCai([_FakeCai.RequestException("down")] * 4)
+    fn, airflow_exc = _start_cai_run(fake)
+    with pytest.raises(airflow_exc):
+        fn("u", {}, env)
+    assert fake.post_calls == 4

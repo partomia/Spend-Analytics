@@ -79,7 +79,7 @@ def main() -> int:
 
     base = f"/projects/{pid}/models"
     model = next((m for m in wb("GET", base, params={"page_size": 100}).get("models", [])
-                  if m["name"] == WORKBENCH_MODEL["name"]), None)
+                  if m["name"] == WORKBENCH_MODEL["name"] and not m.get("deletion_status")), None)
     if model is None:
         if args.dry_run:
             print(f"would create model {WORKBENCH_MODEL['name']} from the registry, build v{version['number']}")

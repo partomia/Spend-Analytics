@@ -199,7 +199,8 @@ generate_spend_bronze -> dq_bronze -> build_silver -> dq_silver -> cai_categoris
 - **Sizing on the federal cluster:**
   - Spark executors are 4 cores / 8 GB, 1 minimum / 2 initial / 16 maximum.
     The larger go01 sizing was rejected by the vcluster's queue.
-  - CAI training runs at 4 vCPU / 16 GB (8 / 32 waited 20 min for a node).
+  - CAI training runs at 2 vCPU / 12 GB and spend-scorer at 2 / 8, to fit the per-user quota
+    (about 12 vCPU across every project of the user); 8 / 32 waited 20 min for a node.
   - Categorise runs at 2 vCPU / 8 GB. At 4 / 16 it never left scheduling on
     5-8 Oct: every sibling project runs as the same user, and their apps and
     models filled the per-user CAI quota. CAI fails such a run after 60 min with

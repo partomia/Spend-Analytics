@@ -909,3 +909,39 @@ Ideas taken from the CXR Triage CAI build guide and adapted (PLAN decisions 21-2
 - Not yet seen live: the push starting a pipeline update on its own (the next nightly batch).
   Run 1330 (23 Nov) failed: generate_spend_bronze sat in "starting" and was killed twice at
   90 min (no room on the shared vcluster), so no batch 14 yet.
+
+## 2026-11-26: new AI Registry, first nightly push, CAI right-sized to the user quota
+
+- Databricks: DAG run 1346 (as_of 2026-11-24, rerun after the platform upgrade) exported batch 14
+  and `push_databricks` (run 1358) uploaded it and started an incremental pipeline update, which
+  completed. Current rows equal batch 14's `source_row_count`: customer 196,323, account 231,462,
+  spend_event 31,471,437. Runs 1330 and 1336 had failed in `generate_spend_bronze` (vcluster full),
+  1339 at `cai_categorise` (CAI host not resolvable during the CAI upgrade).
+- New AI Registry `model-registry-ml-00576a42-222` (1.18.0-b19, public), empty. Registered the
+  20261113-f39e688c MLflow run as `spend-persona` version 1 (READY in 6 s; the version tags are
+  dropped, nothing reads them). Lookup, run_id / run_date params and paging work.
+- A model deleted in the UI stays listed by the API with `deletion_status: "pending"` (the
+  retired `spend-persona` since October), and its deployments 404. The deploy script, the DAG,
+  `platform_ctl.py`, `setup_cai.py` and `trigger_cai_pipeline.py` skip such models. A build of
+  the new version on the old `spend-persona-registry` failed (HTTP 500, "failed to get model"):
+  it was linked to the deleted registry. `ci/deploy_registered_model.py` created a new
+  `spend-persona-registry` (`8e4afb8e`) and deployed version 1 in 142 s; it answers in all three
+  MLflow request formats (0.2 s warm).
+- Impala: the rebuilt `federal-impala-1` passes `DESCRIBE rsingh_spend_anl_gold.spend_features`;
+  the stale Metastore login is gone.
+- Run 1346 then failed at `cai_model_training`: the POST timed out at 60 s but created run
+  `se1isvrz5lt7k2cf`, which never left scheduling and was ENGINE_FAILED at 60 min. The app had
+  failed the same way (09:25-10:25 UTC). Cause: the per-user CAI quota, about 12 vCPU (2 vCPU
+  jobs ran at 12 in use; 4 vCPU workloads did not place at 10). The nodes had room.
+- Fix:
+  - spend-scorer 4 / 16 -> 2 / 8 (new deployment `fdb5bda7` of build d10cff3e), the app 4 / 8 ->
+    2 / 8, spend-model-training 4 / 16 -> 2 / 12. The user's total with every app and model up:
+    10 vCPU / 36 GB (EV 5 / 18), which leaves 2 vCPU / 12 GB for the nightly jobs, one at a time.
+  - CAI 2.1 rejects a job PATCH without `runtime_identifier` (HTTP 500, check constraint
+    `engine_or_runtime`); `setup_cai.py` now sends it.
+  - DAG: `_start_cai_run` retries the run POST on network errors and 5xx (4 attempts), and
+    before each retry follows a run of this job already created with the same environment, so a
+    timed-out POST never starts a second run. Status polls survive a failed GET.
+  - pytest: 235 passed.
+- Follow-up: raise the per-user CAI quota (Site Administration > Quotas); every rsingh project
+  shares it, so one more app elsewhere fills it again.

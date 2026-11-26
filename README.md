@@ -295,7 +295,7 @@ python cai/model/test_endpoint.py --local --context impala     # the four endpoi
 | `spend-sync-code` | `cai/jobs/sync_code.py` | 2 vCPU / 8 GB |
 | `spend-categorise` | `cai/jobs/categorise.py` | 2 vCPU / 8 GB |
 | `spend-feature-engineering` | `cai/jobs/feature_engineering.py` | 2 vCPU / 8 GB |
-| `spend-model-training` | `cai/jobs/train_models.py` | 4 vCPU / 16 GB (8 / 32 waited 20 min for a node on the federal workbench) |
+| `spend-model-training` | `cai/jobs/train_models.py` | 2 vCPU / 12 GB (4 / 16 until 26 Nov, when it no longer fit the per-user quota; 8 / 32 waited 20 min for a node) |
 | `spend-model-evaluation` | `cai/jobs/evaluate_models.py` | 2 vCPU / 8 GB |
 
 Evaluation exits 1 when the gate fails; it logs params, KPIs and the gate
@@ -303,7 +303,7 @@ detail to MLflow before writing, so `spend_model_run.mlflow_run_id` links the
 two.
 
 **Model** `spend-scorer`: file `cai/model/predict.py`, function `predict`,
-4 vCPU / 16 GB, authentication on. Actions `profile`, `forecast`, `what_if`
+2 vCPU / 8 GB, authentication on. Actions `profile`, `forecast`, `what_if`
 and `categorise`; example inputs: `python cai/model/test_endpoint.py
 --print-request`. Each replica loads the latest published run at start-up;
 the DAG's `refresh_endpoint` task restarts it after each published run and
@@ -311,7 +311,7 @@ checks it serves that run. A published run's persona model is also registered
 in the Cloudera AI Registry as `spend-persona` (PLAN decision 27).
 
 **Application** `Spend Insights Console` (live as `Spend Analytics Application - Live`,
-subdomain `spend-analytics`, 4 vCPU / 8 GB; `ci/setup_cai.py` creates it at 2 vCPU / 4 GB): script `app/run.py`,
+subdomain `spend-analytics`, 2 vCPU / 8 GB; `ci/setup_cai.py` creates it at 2 vCPU / 4 GB): script `app/run.py`,
 with `SPEND_ENDPOINT_URL`, `SPEND_ENDPOINT_ACCESS_KEY` and
 `SPEND_ENDPOINT_API_KEY` (a Model API key) so Customer 360 and the
 Categoriser call the endpoint; without them the app answers in-process and

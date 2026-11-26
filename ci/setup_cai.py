@@ -109,7 +109,9 @@ def ensure_jobs(wb: Workbench, project: dict, dry_run: bool) -> dict:
             elif dry_run:
                 print(f"job {job['name']}: would resize to {job['cpu']} vCPU / {job['memory']} GB")
             else:
-                wb("PATCH", f"/projects/{project['id']}/jobs/{have['id']}", body=size)
+                # CAI 2.1: a PATCH without runtime_identifier fails the jobs table's engine_or_runtime check (HTTP 500)
+                wb("PATCH", f"/projects/{project['id']}/jobs/{have['id']}",
+                   body={**size, "runtime_identifier": have.get("runtime_identifier") or RUNTIME})
                 print(f"job {job['name']}: resized to {job['cpu']} vCPU / {job['memory']} GB ({have['id']})")
             continue
         if dry_run:
@@ -127,7 +129,7 @@ def ensure_model(wb: Workbench, project: dict, dry_run: bool) -> dict | None:
     """The model, with a first build that deploys itself once built (cdsw-build.sh installs requirements.txt)."""
     pid = project["id"]
     model = next((m for m in wb("GET", f"/projects/{pid}/models", params={"page_size": 100}).get("models", [])
-                  if m["name"] == MODEL["name"]), None)
+                  if m["name"] == MODEL["name"] and not m.get("deletion_status")), None)
     if model:
         print(f"model {MODEL['name']}: exists ({model['id']})")
         return model

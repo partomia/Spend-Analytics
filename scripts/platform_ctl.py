@@ -151,7 +151,8 @@ class Cai:
         names = set(PRJ["cai_models"]) | set(PRJ.get("cai_retired_models", []))
         out = []
         for m in self("GET", self.p("/models"), params={"page_size": 100})["models"]:
-            if m["name"] not in names:
+            # a model deleted in the UI stays listed with deletion_status "pending"; its deployments 404
+            if m["name"] not in names or m.get("deletion_status"):
                 continue
             for b in self("GET", self.p(f"/models/{m['id']}/builds"), params={"page_size": 100})["model_builds"]:
                 for d in self("GET", self.p(f"/models/{m['id']}/builds/{b['id']}/deployments"))["model_deployments"]:

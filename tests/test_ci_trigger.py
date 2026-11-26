@@ -196,8 +196,10 @@ def test_setup_cai_creates_once_and_never_prints_secrets(monkeypatch, capsys):
     assert not [c for c in wb.calls[n:] if c[0] in ("POST", "PATCH")]       # idempotent
     wb.jobs[0]["memory"] = 2                                                  # sized before a change
     setup_cai.ensure_jobs(wb, project, dry_run=False)
+    # the runtime goes with every PATCH: CAI 2.1 rejects one without it (engine_or_runtime, HTTP 500)
     assert wb.calls[-1] == ("PATCH", "/projects/p1/jobs/j0", {"cpu": cai_jobs.JOBS[0]["cpu"],
-                                                               "memory": cai_jobs.JOBS[0]["memory"]})
+                                                               "memory": cai_jobs.JOBS[0]["memory"],
+                                                               "runtime_identifier": cai_jobs.RUNTIME})
     assert "s3cret-value" not in capsys.readouterr().out
 
 
@@ -212,7 +214,7 @@ def test_setup_cai_deploys_the_model_then_the_app_once_the_model_key_is_set(monk
     model = setup_cai.ensure_model(wb, project, dry_run=False)
     build = next(b for m, p, b in wb.calls if p.endswith("/builds"))
     assert build["file_path"] == "cai/model/predict.py" and build["function_name"] == "predict"
-    assert build["auto_deploy_model"] and build["auto_deployment_config"]["memory"] == 16
+    assert build["auto_deploy_model"] and build["auto_deployment_config"]["memory"] == cai_jobs.MODEL["memory"]
     assert wb.models[0]["disable_authentication"] is False
     endpoint = setup_cai.endpoint_env(wb, model)
     assert endpoint == {"SPEND_ENDPOINT_URL": "https://modelservice.ml-x.example/model",

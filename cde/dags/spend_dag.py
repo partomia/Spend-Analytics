@@ -55,8 +55,9 @@ Job names must match cde/scripts/deploy_jobs.sh exactly (CDEJobRunOperator
 fails with 404 "job not found" otherwise).
 """
 
+import json
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import requests
 from airflow import DAG
@@ -89,6 +90,42 @@ ENDPOINT_TIMEOUT = timedelta(minutes=REGISTRY_WAIT_MIN + ENDPOINT_DEADLINE_MIN +
 DAGRUN_TIMEOUT = timedelta(hours=6)            # a full run takes about 50 min; well inside the daily interval
 
 
+def _start_cai_run(url: str, headers: dict, env: dict, attempts: int = 4) -> str:
+    """POST a job run, retrying network errors and 5xx. A POST that timed out may still have
+    created the run (26 Nov: read timeout at 60 s, the run was there), so before each retry
+    the job's newest runs are checked for one started since the first attempt with this env."""
+    since = (datetime.now(timezone.utc) - timedelta(minutes=1)).strftime("%Y-%m-%dT%H:%M:%S")
+    for attempt in range(1, attempts + 1):
+        try:
+            resp = requests.post(url, json={"environment": env}, headers=headers, timeout=120)
+            if resp.status_code < 500:
+                resp.raise_for_status()
+                return resp.json()["id"]
+            error = f"HTTP {resp.status_code}"
+        except requests.HTTPError:
+            raise
+        except requests.RequestException as e:
+            error = str(e)
+        if attempt == attempts:
+            raise AirflowException(f"CAI job run not started after {attempts} attempts: {error}")
+        print(f"CAI job run POST failed ({error}); attempt {attempt + 1} in {30 * attempt} s")
+        time.sleep(30 * attempt)
+        try:
+            runs = requests.get(url, params={"page_size": 5, "sort": "-created_at"}, headers=headers,
+                                timeout=60).json().get("job_runs", [])
+        except (requests.RequestException, ValueError):
+            runs = []
+        for run in runs:
+            try:
+                run_env = json.loads(run.get("environment") or "{}")
+            except ValueError:
+                run_env = {}
+            if run.get("created_at", "") >= since and all(run_env.get(k) == v for k, v in env.items()):
+                print(f"the failed POST did start run {run['id']}: following it")
+                return run["id"]
+    raise AirflowException("unreachable")
+
+
 def trigger_cai_job(as_of: str, job_var: str, **_):
     host = Variable.get("SPEND_CAI_HOST", default_var="").rstrip("/")
     if not host:
@@ -101,17 +138,19 @@ def trigger_cai_job(as_of: str, job_var: str, **_):
     # artifacts/<as_of>/.
     env = {"SPEND_RUN_DATE": as_of, "SPEND_TRIGGERED_BY": "airflow"}
     url = f"{host}/api/v2/projects/{project}/jobs/{job}/runs"
-    resp = requests.post(url, json={"environment": env}, headers=headers, timeout=60)
-    resp.raise_for_status()
-    run_id = resp.json()["id"]
+    run_id = _start_cai_run(url, headers, env)
     print(f"Started CAI job run {run_id} ({job_var}) with environment: {env}")
 
     deadline = time.time() + CAI_DEADLINE_MIN * 60
     started = False
     while time.time() < deadline:
         time.sleep(30)
-        r = requests.get(f"{url}/{run_id}", headers=headers, timeout=60)
-        r.raise_for_status()
+        try:
+            r = requests.get(f"{url}/{run_id}", headers=headers, timeout=60)
+            r.raise_for_status()
+        except requests.RequestException as e:
+            print(f"CAI run {run_id}: status not readable ({e}); polling again")
+            continue
         status = str(r.json().get("status", "")).lower().replace("engine_", "")
         print(f"CAI run {run_id}: {status}")
         started = started or status != "scheduling"
@@ -193,7 +232,7 @@ def refresh_endpoint(as_of: str, **_):
     Skipped when spend-scorer is stopped (scripts/platform_ctl.py stop): it loads the latest run when started."""
     api, host, pid, headers = _cai_api("the endpoint refresh")
     model = next((m for m in api("GET", f"{pid}/models", params={"page_size": 100}).get("models", [])
-                  if m["name"] == ENDPOINT_MODEL), None)
+                  if m["name"] == ENDPOINT_MODEL and not m.get("deletion_status")), None)
     if model is None:
         raise AirflowSkipException(f"model {ENDPOINT_MODEL} not deployed: nothing to refresh")
     mid = model["id"]
@@ -240,7 +279,7 @@ def deploy_registry_model(as_of: str, **_):
     The model itself is created once by ci/deploy_registered_model.py; a new build replaces its deployment."""
     api, host, pid, headers = _cai_api("the registry deployment")
     model = next((m for m in api("GET", f"{pid}/models", params={"page_size": 100}).get("models", [])
-                  if m["name"] == REGISTRY_ENDPOINT), None)
+                  if m["name"] == REGISTRY_ENDPOINT and not m.get("deletion_status")), None)
     if model is None:
         raise AirflowSkipException(f"{REGISTRY_ENDPOINT} not created (ci/deploy_registered_model.py): skipping")
     champion = _champion(api, as_of)

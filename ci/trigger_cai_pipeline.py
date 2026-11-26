@@ -109,7 +109,7 @@ def wait_for(fetch, ok: set, what: str, poll_s: float, deadline_s: float) -> str
 def rebuild_model(api, sha: str, poll_s: float = POLL_S, deadline_s: float = DEADLINE_MIN * 60) -> int:
     """A new spend-scorer build of this commit, deployed when built."""
     model = next((m for m in api("GET", "/models", params={"page_size": 100}).get("models", [])
-                  if m["name"] == MODEL["name"]), None)
+                  if m["name"] == MODEL["name"] and not m.get("deletion_status")), None)
     if model is None:
         print(f"::notice::model {MODEL['name']} not created yet (ci/setup_cai.py): nothing to rebuild")
         return 0

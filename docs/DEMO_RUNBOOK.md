@@ -17,7 +17,7 @@ each time. Check every screenshot for keys and hostnames before committing it.
 | AI Registry | `model-registry-ml-83cd393d-eba` | Internet access Public (the private one timed out every call) |
 | Registered model | `spend-persona` | `ggkt-8lv2-u8hh-i0x0`, a version per published run |
 | Model from the registry | `spend-persona-registry` | `27b57519-fea0-4288-a7bb-335b8de23888` (from `ci/deploy_registered_model.py`) |
-| Application | `Spend Analytics Application - Live` | `zzym-iofi-1tfw-fu1l`, subdomain `spend-analytics`, `app/run.py` at 4 vCPU / 8 GB; created in the UI on 5 Oct in place of the `ci/setup_cai.py` app `Spend Insights Console` (`801g-3mb1-mub1-c9t7`, no longer listed) |
+| Application | `Spend Analytics Application - Live` | `zzym-iofi-1tfw-fu1l`, subdomain `spend-analytics`, `app/run.py` at 2 vCPU / 8 GB (4 / 8 until 26 Nov, when it could no longer be placed within the per-user quota); created in the UI on 5 Oct in place of the `ci/setup_cai.py` app `Spend Insights Console` (`801g-3mb1-mub1-c9t7`, no longer listed) |
 | CDE DAG job | `rsingh-spend-anl-orchestration` | dagID `spend_analytics_pipeline` |
 
 ## Setup (one-time)
@@ -139,7 +139,7 @@ names must match `ci/cai_jobs.py`:
 | `spend-sync-code` | `cai/jobs/sync_code.py` | 2 vCPU / 8 GB |
 | `spend-categorise` | `cai/jobs/categorise.py` | 2 vCPU / 8 GB |
 | `spend-feature-engineering` | `cai/jobs/feature_engineering.py` | 2 vCPU / 8 GB |
-| `spend-model-training` | `cai/jobs/train_models.py` | 4 vCPU / 16 GB |
+| `spend-model-training` | `cai/jobs/train_models.py` | 2 vCPU / 12 GB |
 | `spend-model-evaluation` | `cai/jobs/evaluate_models.py` | 2 vCPU / 8 GB |
 
 Run feature engineering, training and evaluation once, in order, and confirm
@@ -158,7 +158,7 @@ python3 -c "import os, cmlapi; c = cmlapi.default_client(); pid = os.environ['CD
 `ci/setup_cai.py` (step 2) creates it, builds and deploys it once, and sets
 `SPEND_ENDPOINT_URL` / `_ACCESS_KEY` in the project environment. By hand:
 Model Deployments > New Model: name `spend-scorer`, file
-`cai/model/predict.py`, function `predict`, Python 3.11, 4 vCPU / 16 GB, 1
+`cai/model/predict.py`, function `predict`, Python 3.11, 2 vCPU / 8 GB, 1
 replica, authentication **on**. Example input for each action for the Test
 tab:
 

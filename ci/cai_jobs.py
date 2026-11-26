@@ -18,7 +18,9 @@ from __future__ import annotations
 GITHUB_ARTIFACTS_DIR = "artifacts/github"
 RUNTIME = "docker.repository.cloudera.com/cloudera/cdsw/ml-runtime-pbj-jupyterlab-python3.11-standard:2026.08.1-b5"
 
-MODEL = {"name": "spend-scorer", "file": "cai/model/predict.py", "cpu": 4, "memory": 16,
+# The per-user CAI quota (about 12 vCPU, shared with every rsingh project) is the limit, not the
+# nodes: on 26 Nov a 4 vCPU app and the 4 vCPU training run never left scheduling with 10 in use.
+MODEL = {"name": "spend-scorer", "file": "cai/model/predict.py", "cpu": 2, "memory": 8,
          "description": "Spend profile, 12-week forecast, what-if and live categorise for one customer"}
 # A push touching these rebuilds and redeploys spend-scorer once its KPI gate passes: the
 # build snapshots the project files and installs requirements.txt (cdsw-build.sh).
@@ -30,7 +32,8 @@ JOBS = [
     # 4 / 16 never left scheduling on 5-8 Oct while the per-user quota was full; a night's keys take seconds
     {"name": "spend-categorise", "script": "cai/jobs/categorise.py", "cpu": 2, "memory": 8},
     {"name": "spend-feature-engineering", "script": "cai/jobs/feature_engineering.py", "cpu": 2, "memory": 8},
-    {"name": "spend-model-training", "script": "cai/jobs/train_models.py", "cpu": 4, "memory": 16},
+    # 4 / 16 took about 2 min; 26 Nov it never left scheduling with the quota at 10 of 12 vCPU
+    {"name": "spend-model-training", "script": "cai/jobs/train_models.py", "cpu": 2, "memory": 12},
     {"name": "spend-model-evaluation", "script": "cai/jobs/evaluate_models.py", "cpu": 2, "memory": 8},
 ]
 BY_NAME = {j["name"]: j for j in JOBS}
